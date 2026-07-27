@@ -1,4 +1,4 @@
-import type { IsoDateTime, TenantId, UserId, Uuid } from './primitives';
+import type { IsoDateTime, TenantId, UserId, Uuid } from './primitives.ts';
 
 /**
  * Estado de vida de um tenant.

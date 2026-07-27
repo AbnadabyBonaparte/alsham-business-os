@@ -12,12 +12,15 @@ Nenhuma linha de código, schema, configuração ou documento nasce aqui sem ant
 1. `docs/canon/TAXONOMIA-EMPRESARIAL-ALSHAM.md` — o mapa canônico. É a ÚNICA taxonomia (Sol Único).
 2. `docs/canon/ROADMAP-TECNICO-V1.md` — a ordem de engenharia. Core primeiro, sempre.
 3. `docs/canon/CORE-SPEC.md` — o contrato do Lego: como um módulo nasce, se registra, é instalado e conversa. **Se você vai escrever um módulo, esta é a lei.**
-4. `README.md` — as 6 Leis do Projeto.
+4. `docs/canon/IDENTIDADE-VISUAL.md` — a direção de arte e os tokens `--bos-*`. **Nada de UI nasce fora destes tokens: nenhum HEX solto em componente.**
+5. `README.md` — as 6 Leis do Projeto.
+
+Se você vai mexer no módulo de conciliação, leia também `docs/canon/MODULO-RECON-SPEC.md`.
 
 Antes de decidir de onde minerar uma peça, leia também:
 
-5. `docs/balancos/BALANCO-DE-TECNOLOGIA-BUSINESS-OS.md` — o que o império já tem, com estado **PROVADO · DOSSIÊ · NÃO TEMOS**.
-6. `docs/balancos/BALANCO-SUPABASE.md` — o que cada banco doa; o que é pedreira de schema e o que nunca se reutiliza.
+6. `docs/balancos/BALANCO-DE-TECNOLOGIA-BUSINESS-OS.md` — o que o império já tem, com estado **PROVADO · DOSSIÊ · NÃO TEMOS**.
+7. `docs/balancos/BALANCO-SUPABASE.md` — o que cada banco doa; o que é pedreira de schema e o que nunca se reutiliza.
 
 `docs/historico/` é memória, não canon. Em divergência, o canon vence.
 
@@ -63,7 +66,7 @@ Corolário do roadmap: *cada linha de código escrita para um cliente deve aumen
 
 ---
 
-## 5. ESTADO ATUAL — ETAPA 1 (O CONTRATO DO CORE)
+## 5. ESTADO ATUAL — ETAPA 2 (O PRIMEIRO MÓDULO)
 
 ### 5.1 Stack — SELADA
 
@@ -77,30 +80,46 @@ Consequências que qualquer agente deve respeitar a partir daqui:
 
 ### 5.2 O que existe hoje
 
-- `packages/config` e `packages/core` são pacotes reais (`package.json` + `src/`). **`packages/core` é contrato puro: tipos TypeScript, zero runtime.**
+- `packages/config` e `packages/core` são pacotes reais. **`packages/core` é contrato puro: tipos TypeScript, zero runtime.**
+- `packages/finance-reconciliation` é o **Módulo 1** — manifesto, tipos e motor de sugestão de baixa. Contrato + domínio puro: sem UI, sem banco, sem parser.
 - Os demais 17 pacotes e os 4 apps continuam **só com `README.md`** — status NÃO INICIADO.
-- `supabase/migrations/0001_core.sql` existe como **ARQUIVO, não aplicado**.
+- `supabase/migrations/0001_core.sql` e `0002_recon.sql` existem como **ARQUIVO, não aplicados**.
 
-### 5.3 Limites que continuam valendo
+### 5.3 A LEI DO LEGO — para todo módulo, deste em diante
+
+O Módulo 1 é o padrão. Quem escrever o Módulo 2 obedece ao mesmo:
+
+1. **Schema próprio.** Nenhum módulo cria objeto no schema `core`.
+2. **Uma porta só.** O módulo fala com o mundo por `<modulo>.emit_event()`, que escreve em `core.event_outbox`. Nada de chamada direta.
+3. **Nada de ler tabela alheia.** Precisa do dado de outro módulo? Projeção local alimentada por evento. O acoplamento é com o **tipo do evento**, nunca com o código de quem emite.
+4. **Tudo pelo manifesto.** Capacidade, permissão (com prefixo do módulo) e evento que não estejam no `ModuleManifest` não existem.
+5. **Só o Core como dependência.** `requiresCore` é o único campo de dependência que existe — e a ausência de `dependsOn` é deliberada.
+6. **Consumo só com consumidor.** Não declare `consumes` sem o handler construído (Lei 7).
+
+### 5.4 Limites que continuam valendo
 
 - ❌ **Não criar projeto Supabase. Não aplicar migration. Não deployar. Não adicionar segredo.**
 - Migration nasce como arquivo versionado e é revisada em PR. Aplicar é ato do dono.
-- Zero UI e zero app até o Core fechar.
+- **Zero UI** — as telas são da Etapa 3, e nascem consumindo os tokens `--bos-*` de `docs/canon/IDENTIDADE-VISUAL.md`.
 
 ---
 
 ## 6. ESTRUTURA (não invente pastas)
 
 ```
-docs/canon/            taxonomia + roadmap + core-spec  — leitura obrigatória
+docs/canon/            taxonomia · roadmap · core-spec · identidade-visual
+                       · modulo-recon-spec              — leitura obrigatória
 docs/balancos/         tecnologia + supabase            — de onde minerar
 docs/historico/        catálogo anterior                — memória, não canon
-supabase/migrations/   schema versionado                — ARQUIVO; aplicar é ato do dono
+supabase/migrations/   0001_core.sql · 0002_recon.sql   — ARQUIVO; aplicar é ato do dono
 apps/                  admin · portal · store · api
 packages/              core auth organizations permissions workflow billing
                        notifications documents ai crm finance marketing
                        legal hr analytics integrations ui sdk config
+                       finance-reconciliation           — Módulo 1
 ```
+
+Um módulo novo é uma pasta em `packages/` **mais** uma migration com schema próprio. Nunca uma tabela a mais no `core`.
 
 Pasta ou conceito novo **exige aprovação do dono**. Simplifique antes de expandir. Reduza antes de criar.
 

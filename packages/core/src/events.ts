@@ -1,4 +1,4 @@
-import type { IsoDateTime, ModuleId, TenantId, Uuid } from './primitives';
+import type { IsoDateTime, ModuleId, TenantId, Uuid } from './primitives.ts';
 
 /**
  * Tipo de evento, sempre em três partes: `<moduleId>.<agregado>.<fatoOcorrido>`.

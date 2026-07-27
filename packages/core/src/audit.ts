@@ -1,4 +1,4 @@
-import type { IsoDateTime, ModuleId, TenantId, UserId, Uuid } from './primitives';
+import type { IsoDateTime, ModuleId, TenantId, UserId, Uuid } from './primitives.ts';
 
 /**
  * Quem agiu.

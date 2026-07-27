@@ -1,4 +1,4 @@
-import type { EventTypeDeclaration } from './events';
+import type { EventTypeDeclaration } from './events.ts';
 import type {
   CoreVersionRange,
   IsoDateTime,
@@ -6,9 +6,9 @@ import type {
   SemVer,
   TenantId,
   Uuid,
-} from './primitives';
-import type { CapabilityDeclaration, ModuleTaxonomy } from './taxonomy';
-import type { Permission } from './tenant';
+} from './primitives.ts';
+import type { CapabilityDeclaration, ModuleTaxonomy } from './taxonomy.ts';
+import type { Permission } from './tenant.ts';
 
 /**
  * **O CONTRATO DO LEGO.**

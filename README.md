@@ -42,16 +42,18 @@ Todo módulo: independente, instalável/removível sem recompilar, comunicação
 
 ```
 docs/
-  canon/       taxonomia + roadmap + core-spec  — leitura obrigatória (VERTEX)
+  canon/       taxonomia · roadmap · core-spec · identidade-visual
+               · modulo-recon-spec              — leitura obrigatória (VERTEX)
   balancos/    tecnologia + supabase            — de onde minerar cada peça
   historico/   catálogo anterior                — memória, não canon
 supabase/
-  migrations/  0001_core.sql                    — ARQUIVO; NÃO APLICADO
+  migrations/  0001_core.sql · 0002_recon.sql   — ARQUIVO; NÃO APLICADO
 apps/
   admin/  portal/  store/  api/                 — só README, NÃO INICIADO
 packages/
   config/                                       — ✅ CONSTRUÍDO
   core/                                         — ✅ CONSTRUÍDO (contrato, zero runtime)
+  finance-reconciliation/                       — ✅ CONSTRUÍDO (Módulo 1)
   auth/ organizations/ permissions/ workflow/ billing/
   notifications/ documents/ ai/ crm/ finance/ marketing/
   legal/ hr/ analytics/ integrations/ ui/ sdk/  — só README, NÃO INICIADO
@@ -73,7 +75,14 @@ Cada `README.md` de app e de package declara: o propósito, a fase do roadmap a 
 - `supabase/migrations/0001_core.sql` — o schema do Core, com `tenant_id` e RLS real em todas as tabelas. **Arquivo; não aplicado.**
 - [`docs/canon/CORE-SPEC.md`](docs/canon/CORE-SPEC.md) — o ciclo de vida de um módulo, que amarra as três peças.
 
-**O que NÃO existe:** o motor. Validador de manifesto, registro em runtime, despachante da caixa de saída e resolvedor de permissão estão **NÃO CONSTRUÍDOS** — a lista honesta está em [CORE-SPEC §5](docs/canon/CORE-SPEC.md). Nenhum projeto Supabase foi criado, nenhuma migration aplicada, nenhum segredo existe aqui.
+**Etapa 2 — O primeiro módulo** *(esta etapa)*: **Conciliação & Aprovações** — o Módulo 1, que prova o Lego.
+
+- `@alsham/finance-reconciliation` — manifesto, tipos e o motor de sugestão de baixa (determinístico, sem I/O, 28 testes).
+- `supabase/migrations/0002_recon.sql` — schema **`recon`**, próprio do módulo. **Nenhum objeto criado no schema `core`.**
+- [`docs/canon/MODULO-RECON-SPEC.md`](docs/canon/MODULO-RECON-SPEC.md) — o fluxo que substitui régua e caneta: importar → sugerir → conferir → visar com trilha.
+- A direção de arte está selada em [`docs/canon/IDENTIDADE-VISUAL.md`](docs/canon/IDENTIDADE-VISUAL.md) e é obrigatória para a UI da Etapa 3.
+
+**O que NÃO existe:** o motor de execução. Validador de manifesto, registro em runtime, despachante da caixa de saída e resolvedor de permissão seguem **NÃO CONSTRUÍDOS** ([CORE-SPEC §5](docs/canon/CORE-SPEC.md)); no módulo, faltam UI, parser de OFX/CSV e persistência ([MODULO-RECON-SPEC §7](docs/canon/MODULO-RECON-SPEC.md)). Nenhum projeto Supabase foi criado, nenhuma migration aplicada, nenhum segredo existe aqui.
 
 ---
 
