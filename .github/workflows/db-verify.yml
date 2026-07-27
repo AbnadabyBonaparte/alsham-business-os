@@ -169,3 +169,41 @@ jobs:
       # se a Store passar a anunciar algo que o código não faz, quebra aqui.
       - run: pnpm typecheck
       - run: pnpm test
+
+      # É isto que a Vercel roda. Se passa aqui, passa lá.
+      - run: pnpm build:portal
+
+      # ⭐ A REGRA DE OURO, VERIFICADA (CLAUDE.md §5.3).
+      # `apps/` é a PELE. Se alguém escrever regra de negócio numa tela
+      # "porque era mais rápido", o build continuaria passando — e a dívida
+      # entraria em silêncio. Este passo não deixa.
+      - name: nenhuma cor fora do canon em apps/
+        run: |
+          SOLTO=$(grep -rInE '#[0-9a-fA-F]{3,8}\b' apps --include='*.tsx' --include='*.ts' || true)
+          if [ -n "$SOLTO" ]; then
+            echo "::error::HEX solto em apps/ — toda cor vem de var(--bos-*)"; echo "$SOLTO"; exit 1
+          fi
+          CRUA=$(grep -rInE '\b(bg|text|border)-(white|black|gray|slate|zinc|neutral|stone|red|blue|green|amber|yellow|purple|pink|indigo)-?[0-9]*\b' apps --include='*.tsx' || true)
+          if [ -n "$CRUA" ]; then
+            echo "::error::classe de cor crua do Tailwind em apps/ — use os tokens bos-*"; echo "$CRUA"; exit 1
+          fi
+
+      - name: o motor não foi reimplementado em apps/
+        run: |
+          # A tela CHAMA suggestMatches; se um dia ela declarar a própria, o
+          # coração terá migrado para a pele.
+          if grep -rInE 'function (suggestMatches|scorePair|unmatchedLines)' apps --include='*.ts' --include='*.tsx'; then
+            echo "::error::motor de domínio redeclarado em apps/ — ele vive em packages/"; exit 1
+          fi
+          # Procura a CHAMADA no CÓDIGO, ignorando linhas de comentário.
+          #
+          # Duas versões anteriores desta guarda passaram na sabotagem: a
+          # primeira casava o nome em qualquer lugar; a segunda exigia
+          # `suggestMatches(` mas o próprio JSDoc da página tem essa string
+          # com parêntese. Guarda que não é testada contra sabotagem não é
+          # guarda — é decoração.
+          CODIGO=$(grep -Ev '^\s*(\*|//|/\*)' apps/portal/src/app/conciliacao/page.tsx)
+          echo "$CODIGO" | grep -Eq 'suggestMatches\(' \
+            || { echo "::error::a tela de conciliação deixou de chamar o motor do pacote"; exit 1; }
+          echo "$CODIGO" | grep -Eq 'unmatchedLines\(' \
+            || { echo "::error::a tela deixou de usar unmatchedLines do pacote"; exit 1; }

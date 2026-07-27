@@ -1,0 +1,147 @@
+@import 'tailwindcss';
+
+/* ==========================================================================
+   TOKENS — transcrição LITERAL de docs/canon/IDENTIDADE-VISUAL.md §7.
+   --------------------------------------------------------------------------
+   Este é o ÚNICO arquivo do app onde um HEX pode aparecer, e mesmo aqui ele
+   é cópia do canon, não invenção. Todo componente consome `var(--bos-*)`
+   através das utilidades do Tailwind declaradas no @theme abaixo.
+
+   Se a identidade visual mudar, muda aqui — e no canon primeiro.
+   ========================================================================== */
+
+:root {
+  /* primária */
+  --bos-obsidian: #0a0e1a;
+  --bos-midnight-ink: #111827;
+  --bos-steel-navy: #1e293b;
+  --bos-imperial-gold: #c9a24b;
+  --bos-champagne: #e8d9a8;
+  --bos-parchment: #f5f1e8;
+  --bos-ivory: #fafaf7;
+  --bos-slate: #94a3b8;
+
+  /* estados */
+  --bos-success: #4a7c59;
+  --bos-warning: #b8860b;
+  --bos-danger: #8b2e2e;
+  --bos-info: #3b5b8c;
+
+  /* verticais */
+  --bos-v-medical: #2c5f5d;
+  --bos-v-casa: #7c2d3a;
+  --bos-v-kraken: #1e3a5f;
+  --bos-v-conversion: #8b6f47;
+  --bos-v-events: #3d2e5c;
+  --bos-v-mirror: #4a5568;
+
+  /* superfícies e semântica */
+  --bos-bg: var(--bos-obsidian);
+  --bos-surface: var(--bos-midnight-ink);
+  --bos-border: color-mix(in srgb, var(--bos-imperial-gold) 15%, transparent);
+  --bos-text: var(--bos-ivory);
+  --bos-text-muted: var(--bos-slate);
+  --bos-accent: var(--bos-imperial-gold);
+  --bos-accent-hover: var(--bos-champagne);
+
+  /* movimento */
+  --bos-ease: cubic-bezier(0.16, 1, 0.3, 1);
+  --bos-duration: 700ms;
+
+  /* tipografia */
+  --bos-font-display: 'Fraunces', Georgia, 'Times New Roman', serif;
+  --bos-font-ui: 'Inter', system-ui, sans-serif;
+  --bos-font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', monospace;
+}
+
+/* --------------------------------------------------------------------------
+   Os tokens viram utilidades do Tailwind. `inline` faz o Tailwind gerar
+   `bg-bos-obsidian`, `text-bos-accent` etc. apontando para as variáveis —
+   nunca para um valor literal duplicado.
+   -------------------------------------------------------------------------- */
+@theme inline {
+  --color-bos-bg: var(--bos-bg);
+  --color-bos-surface: var(--bos-surface);
+  --color-bos-elevated: var(--bos-steel-navy);
+  --color-bos-border: var(--bos-border);
+  --color-bos-text: var(--bos-text);
+  --color-bos-muted: var(--bos-text-muted);
+  --color-bos-accent: var(--bos-accent);
+  --color-bos-accent-hover: var(--bos-accent-hover);
+  --color-bos-parchment: var(--bos-parchment);
+
+  --color-bos-success: var(--bos-success);
+  --color-bos-warning: var(--bos-warning);
+  --color-bos-danger: var(--bos-danger);
+  --color-bos-info: var(--bos-info);
+
+  --font-display: var(--bos-font-display);
+  --font-sans: var(--bos-font-ui);
+  --font-mono: var(--bos-font-mono);
+
+  --ease-bos: var(--bos-ease);
+}
+
+/* --------------------------------------------------------------------------
+   Base
+   -------------------------------------------------------------------------- */
+html {
+  color-scheme: dark;
+}
+
+body {
+  background-color: var(--bos-bg);
+  color: var(--bos-text);
+  font-family: var(--bos-font-ui);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Numerais TABULARES em tudo que é número (IDENTIDADE-VISUAL §4).
+   Coluna de valor de conciliação alinha dígito com dígito, ou não se lê. */
+.tabular {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' 1;
+}
+
+/* A "planta antes da obra": linha técnica fina dourada sobre preto
+   (IDENTIDADE-VISUAL §5.2). Sutil — é textura, não decoração. */
+.blueprint {
+  background-image:
+    linear-gradient(to right, var(--bos-border) 0.5px, transparent 0.5px),
+    linear-gradient(to bottom, var(--bos-border) 0.5px, transparent 0.5px);
+  background-size: 48px 48px;
+}
+
+/* Movimento: lento, cinematográfico, sem bounce (IDENTIDADE-VISUAL §5.6). */
+@media (prefers-reduced-motion: no-preference) {
+  .bos-enter {
+    animation: bos-fade var(--bos-duration) var(--bos-ease) both;
+  }
+}
+
+@keyframes bos-fade {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Skeleton de carregamento — pulso lento, sem brilho de SaaS genérico. */
+@keyframes bos-pulse {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
+.bos-skeleton {
+  background-color: var(--bos-steel-navy);
+  animation: bos-pulse 2.2s var(--bos-ease) infinite;
+}
