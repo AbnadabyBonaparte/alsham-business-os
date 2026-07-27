@@ -1,10 +1,27 @@
 # 🔧 RUNBOOK — APLICAR O BANCO DO BUSINESS OS
 
 **Para quem:** o dono, aplicando pelo painel do Supabase. Não exige CLI.
-**Quando:** uma vez, ao criar o projeto Supabase novo.
+**Quando:** uma vez, ao criar um projeto Supabase novo.
 **Quanto tempo:** ~15 minutos, incluindo a conferência de segurança.
 
 > **O que já foi provado antes de você chegar aqui:** estes arquivos foram aplicados de verdade num PostgreSQL 17 limpo, na ordem abaixo, e passaram num teste de isolamento com usuário real. O CI repete isso a cada mudança. **Não é para dar susto.**
+
+---
+
+## ⛔ LEIA ANTES: parte disto JÁ FOI APLICADO
+
+Em **27/07/2026** o dono informou ter aplicado `0001_core.sql`, `0002_recon.sql` e o seed num projeto Supabase de produção, com um tenant piloto. **O repositório não verificou esse apply** — nenhum agente daqui conecta a banco com dado de cliente, e o registro fica assim, literalmente (Lei 7).
+
+| Arquivo | Estado |
+|---|---|
+| `0001_core.sql` | **APLICADO** — não editar |
+| `0002_recon.sql` | **APLICADO** — não editar |
+| `seed/0001_platform.sql` | **APLICADO** — idempotente, pode rodar de novo sem estragar |
+| `0003_billing.sql` | **ARQUIVO, ainda não aplicado** — é o único que falta |
+
+**Se o seu projeto já existe**, o passo 1 não é para você: pule para o Passo 2 e rode **só o `0003`**, depois confira o Passo 3 e o Passo 4.
+
+**Este documento continua valendo inteiro** para o próximo ambiente — homologação, um segundo tenant, uma restauração. É por isso que ele descreve o zero, e não o meio.
 
 ---
 
@@ -160,7 +177,7 @@ Faça este passo **no mesmo dia**. É ele que separa este banco do `suna-core`, 
 ## PASSO 5 — O QUE **NÃO** FAZER
 
 - ❌ **Não crie tabela pelo editor de tabelas do painel.** Ela nasceria em `public`, exposta, sem RLS e fora do controle de versão. Toda mudança de schema é uma migration nova no repositório, revisada em PR.
-- ❌ **Não edite `0001` ou `0002` depois de aplicados.** Arquivo aplicado é história. Correção vira `0003_*.sql`.
+- ❌ **Não edite `0001` nem `0002` — elas já foram aplicadas.** Arquivo aplicado é história. Corrigir no lugar faz o próximo ambiente nascer diferente da produção **sem ninguém perceber**, e o CI continua verde porque ele aplica do zero. Correção é migration nova: a próxima é `0004_*.sql`.
 - ❌ **Não rode o seed com dado de cliente dentro.** Se precisar de um tenant de exemplo, é script descartável, fora do repositório.
 - ❌ **Não desligue a RLS "só para testar".** É exatamente assim que o `suna-core` chegou onde chegou.
 
@@ -209,12 +226,14 @@ Honestidade de escopo, para você não procurar o que não foi construído:
 |---|---|
 | Lógica do correio (`@alsham/workflow`) | ✅ **CONSTRUÍDA e testada** — mas **não ligada**: ver Passo 6 |
 | Consumidor de trilha (`core.audit_log`) | ✅ construído no pacote; grava quando o correio for ligado |
+| Telas (`apps/portal`) | ✅ construídas — login e quatro telas do Módulo 1 |
+| Parser de OFX/CSV | ✅ construído em `@alsham/finance-reconciliation` |
+| Leitor de CAMT.053 | **NÃO CONSTRUÍDO** |
 | Preço em reais e gateway de pagamento | **NÃO CONSTRUÍDO** — `usage_ledger` conta uso, não dinheiro |
 | Instalador de módulo em runtime | **NÃO CONSTRUÍDO** — por isso o seed já põe as permissões do `recon` no papel `admin` |
-| Qualquer tela | **NÃO CONSTRUÍDO** |
-| Parser de OFX/CSV | **NÃO CONSTRUÍDO** |
+| Deploy configurado neste repositório | **NÃO EXISTE** — não há `vercel.json`; publicar é ato do dono |
 
-Aplicar este banco **não** põe o produto no ar. Põe a fundação no ar, provada e trancada — que é o que esta etapa se propôs a entregar.
+Aplicar este banco **não** põe o produto no ar. Põe a fundação no ar, provada e trancada.
 
 ---
 

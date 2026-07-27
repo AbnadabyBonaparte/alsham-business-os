@@ -182,6 +182,18 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm test
 
+      # A Lei 7 com o sinal trocado: negar o que já existe.
+      #
+      # As Etapas 4, 5 e 6 construíram parser, telas, correio e contabilidade
+      # de uso — e SEIS documentos continuaram dizendo que nada disso existia,
+      # inclusive dois de leitura obrigatória no VERTEX. Nenhuma guarda pegou,
+      # porque defasagem não exige que ninguém escreva nada: basta não apagar.
+      #
+      # `pnpm test:docs` roda o autoteste da guarda (ela ainda morde?);
+      # `pnpm verificar:docs` varre o repositório de verdade.
+      - run: pnpm test:docs
+      - run: pnpm verificar:docs
+
       # É isto que a Vercel roda. Se passa aqui, passa lá.
       - run: pnpm build:portal
 

@@ -21,4 +21,6 @@
 
 **Leia antes de escrever um módulo:** [`docs/canon/CORE-SPEC.md`](../../docs/canon/CORE-SPEC.md) — o ciclo de vida completo (declara → registra → instala → recebe permissões → conversa por eventos).
 
-**Status:** ✅ **CONSTRUÍDO como contrato.** O **motor** não existe: validador de manifesto, registro em runtime, despachante da caixa de saída e resolvedor de permissão estão todos **NÃO CONSTRUÍDOS** (CORE-SPEC §5). Passa em `pnpm typecheck`.
+**Status:** ✅ **CONSTRUÍDO como contrato.** Passa em `pnpm typecheck`.
+
+Do **motor**, uma peça já existe e três não (CORE-SPEC §5): o **despachante da caixa de saída** foi construído na Etapa 6 e vive em `@alsham/workflow` — engine, fora daqui, porque este pacote é zero runtime e assim continua. **Validador de manifesto, registro de módulo em runtime e resolvedor de permissão seguem NÃO CONSTRUÍDOS** — hoje quem barra acesso é a RLS no banco, não código de aplicação.
