@@ -1,11 +1,15 @@
 import { createMockPort } from './mock';
 import { createSupabasePort } from './supabase';
+import { createMarketingMockPort } from './marketing-mock';
+import { createMarketingSupabasePort } from './marketing-supabase';
 import { createSupabaseServerClient } from '../supabase/server';
 import { resolveSession } from '../session';
 import type { DataPort } from './port';
+import type { MarketingPort } from './marketing-port';
 
 export { DataPortError } from './port';
 export type { DataPort } from './port';
+export type { MarketingPort } from './marketing-port';
 
 /**
  * Escolhe o adapter — e é só isto que muda entre demonstração e produção.
@@ -28,4 +32,33 @@ export async function getDataPort(): Promise<DataPort> {
   if (!db) return createMockPort();
 
   return createSupabasePort(db, session.activeTenant.id);
+}
+
+/**
+ * A porta do Módulo 2 — **outra porta, mesmo encanamento**.
+ *
+ * ⚠️ Sobre a dívida registrada em `MODULO-RECON-SPEC §7`: o adaptador de banco
+ * mora em `apps/portal`, não em `packages/`. Esta etapa **não a duplicou** e
+ * também não a promoveu a pacote, e as duas coisas são deliberadas.
+ *
+ * O que seria duplicação — criar o cliente Supabase e resolver o tenant a
+ * partir da sessão — já estava fatorado em `lib/supabase/server.ts` e
+ * `lib/session.ts`, e as duas portas usam exatamente o mesmo. O que é
+ * específico de cada módulo são as consultas, e essas **devem** ser separadas:
+ * módulo não lê tabela de módulo.
+ *
+ * Promover o encanamento a `@alsham/sdk` continua pendente e continua sendo
+ * decisão do dono — com um dado novo a favor de não fazer às pressas:
+ * `resolveSession()` importa `next/headers`. Movê-lo para `packages/` levaria
+ * o framework para dentro do coração, que é o inverso exato da Regra de Ouro
+ * (§5.3). Se aquele código virar pacote, tem de perder o Next antes.
+ */
+export async function getMarketingPort(): Promise<MarketingPort> {
+  const session = await resolveSession();
+  if (session.mode !== 'authenticated') return createMarketingMockPort();
+
+  const db = await createSupabaseServerClient();
+  if (!db) return createMarketingMockPort();
+
+  return createMarketingSupabasePort(db, session.activeTenant.id);
 }

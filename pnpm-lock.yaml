@@ -26,6 +26,9 @@ importers:
       '@alsham/finance-reconciliation':
         specifier: workspace:*
         version: link:../../packages/finance-reconciliation
+      '@alsham/marketing':
+        specifier: workspace:*
+        version: link:../../packages/marketing
       '@supabase/ssr':
         specifier: ^0.12.3
         version: 0.12.3(@supabase/supabase-js@2.110.8)
@@ -92,6 +95,25 @@ importers:
         specifier: workspace:*
         version: link:../core
     devDependencies:
+      '@types/node':
+        specifier: ^22.10.2
+        version: 22.20.1
+      typescript:
+        specifier: ^5.7.2
+        version: 5.9.3
+
+  packages/marketing:
+    dependencies:
+      '@alsham/core':
+        specifier: workspace:*
+        version: link:../core
+    devDependencies:
+      '@alsham/billing':
+        specifier: workspace:*
+        version: link:../billing
+      '@alsham/workflow':
+        specifier: workspace:*
+        version: link:../workflow
       '@types/node':
         specifier: ^22.10.2
         version: 22.20.1

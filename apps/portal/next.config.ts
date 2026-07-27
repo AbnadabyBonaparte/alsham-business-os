@@ -9,7 +9,12 @@ import type { NextConfig } from 'next';
 const nextConfig: NextConfig = {
   // Os pacotes do monorepo são publicados como TypeScript cru, de propósito:
   // são fonte, não artefato. O Next os compila junto.
-  transpilePackages: ['@alsham/config', '@alsham/core', '@alsham/finance-reconciliation'],
+  transpilePackages: [
+    '@alsham/config',
+    '@alsham/core',
+    '@alsham/finance-reconciliation',
+    '@alsham/marketing',
+  ],
 
   typedRoutes: true,
 };

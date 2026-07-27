@@ -141,16 +141,17 @@ O ator não é sempre humano: `user`, `agent` (doutrina da Casa — agente embar
 
 Honestidade de escopo (Lei 7). **Esta seção é do repositório, não da etapa que escreveu este documento** — quem entregar uma peça atualiza a linha dela aqui, e há guarda no CI contra deixá-la envelhecer.
 
-*Conferido em 27/07/2026, depois da Etapa 6.*
+*Conferido em 27/07/2026, depois da Etapa 7.*
 
 | Peça | Estado |
 |---|---|
 | Tipos do Core (`@alsham/core`) | ✅ construído — zero runtime, só tipos |
 | Constantes canônicas (`@alsham/config`) | ✅ construído |
 | Schema do Core (`0001_core.sql`) | ✅ **APLICADO em produção** — ver aviso abaixo |
+| **O Lego com DOIS módulos** | ✅ **PROVADO na Etapa 7** — `marketing` reage a `recon.approval.decided` sem importá-lo, sem ler seu schema e sem conhecer o correio ([MODULO-MARKETING-SPEC](MODULO-MARKETING-SPEC.md)) |
 | Contabilidade de uso (`0003_billing.sql` + `@alsham/billing`) | ✅ construído — **arquivo, ainda não aplicado**. Sem preço (Lei 7) |
 | **Despachante da caixa de saída** (`@alsham/workflow`) | ✅ **CONSTRUÍDO** — idempotência por consumidor e backoff, 15 testes. ⚠️ **NÃO LIGADO**: sem o job rodando (runbook §6), todo evento fica em `pending` |
-| UI | ✅ construída — `apps/portal`: login e quatro telas do Módulo 1 |
+| UI | ✅ construída — `apps/portal`: login, quatro telas do Módulo 1 e a carteira de campanhas do Módulo 2 |
 | Validador de manifesto | **NÃO CONSTRUÍDO** — hoje o manifesto é conferido por tipo em build, nunca em runtime |
 | Registro / instalador de módulo em runtime | **NÃO CONSTRUÍDO** — por isso o seed já põe as permissões do `recon` no papel `admin` |
 | Resolvedor de permissão em runtime | **NÃO CONSTRUÍDO** — quem barra hoje é a **RLS no banco**, não código de aplicação |
