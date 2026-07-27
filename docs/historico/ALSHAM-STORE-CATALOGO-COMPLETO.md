@@ -52,7 +52,7 @@ Pacientes · Agenda médica · Prontuário · Convênios · Receitas · Exames �
 ## ⚙ Indústria (7)
 Produção · PCP · Qualidade · Máquinas · OEE · Manutenção industrial · Chão de fábrica
 
-## 🛒 Varejo (7) — *dor viva do cliente MT: supermercado*
+## 🛒 Varejo (7) — *dor viva do cliente inaugural: supermercado*
 PDV · Estoque de varejo · Caixa · Promoções · Fidelidade · Catálogo · Marketplace próprio
 
 ## 🎓 Educação (7)
@@ -73,7 +73,7 @@ Reservas · Hóspedes · Governança/limpeza · Restaurante do hotel · Eventos 
 ## 🍽 Restaurantes (6)
 Mesas · Pedidos · Delivery · Cozinha (KDS) · Estoque de insumos · Cardápio digital
 
-## 🛍 Shopping Centers (9) — *dor viva do cliente MT*
+## 🛍 Shopping Centers (9) — *dor viva do cliente inaugural*
 Lojistas · Contratos de locação · Aluguéis · Fundo de promoção · Marketing do mall · Eventos do mall · Segurança · Facilities · Estacionamento
 
 ## ⚡ Utilidades (9)
@@ -86,7 +86,7 @@ WhatsApp · PIX · Bancos (Open Finance) · Receita Federal · Gov.br · Google 
 
 ## ➕ EXPANSÃO — 1ª RODADA
 
-## ☀️ Energia (8) — *dor viva do cliente MT: fazendas solares*
+## ☀️ Energia (8) — *dor viva do cliente inaugural: fazendas solares*
 Usinas · Geração distribuída · Assinatura de energia · Monitoramento de geração · Manutenção de usina · Créditos de compensação · Contratos de energia · Comercialização e leads
 
 ## 🏗 Construção Civil (8)
@@ -188,7 +188,7 @@ A tese ALSHAM: um Core, uma Store de módulos, uma Store de agentes — e o clie
 
 **Regras que este mapa obedece:**
 1. Este documento é MAPA, não promessa — nada daqui vai a site sem estar construído (Lei 7)
-2. O grupo MT decide a ORDEM da fila, nunca o CONTEÚDO dos módulos (produto universal, Lei anti-viés)
+2. O cliente inaugural decide a ORDEM da fila, nunca o CONTEÚDO dos módulos (produto universal, Lei anti-viés)
 3. Folha, fiscal e PDV: fronteira construir × INTEGRAR a decidir por módulo — alguns desses são empresas inteiras (eSocial, SAT)
 4. Lei do Reaproveitamento: CRM=360° PRIMA · Saúde=Peritus · Eventos=Events OS · Beleza=Suprema · Agentes=Exército/Santuário/Cognitive Mirror · Billing=padrão da Casa
 

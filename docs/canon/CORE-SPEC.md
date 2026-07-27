@@ -1,0 +1,196 @@
+# 🧩 CORE-SPEC — O CONTRATO DO LEGO
+## ALSHAM Business OS™ · Especificação do Core · Fase 1
+
+**Versão:** 1.0 · **Data:** 27/07/2026 · **Status:** Canônico
+**Subordinação:** este documento obedece à [Taxonomia Empresarial ALSHAM](TAXONOMIA-EMPRESARIAL-ALSHAM.md) e ao [Roadmap Técnico V1](ROADMAP-TECNICO-V1.md). Em divergência, os dois vencem.
+
+**Natureza:** esta é a especificação que amarra três peças que nasceram juntas e não fazem sentido separadas:
+
+| Peça | O que é |
+|---|---|
+| `packages/config` | as constantes canônicas — o que a empresa é |
+| `packages/core` | os **tipos** que todo módulo obedece — zero runtime |
+| `supabase/migrations/0001_core.sql` | o **schema** que sustenta esses tipos — arquivo, não aplicado |
+
+> **Lei 7:** nada aqui está no ar. Este documento descreve o contrato construído nesta etapa, não uma plataforma em produção. O que ainda não existe está marcado como **NÃO CONSTRUÍDO**.
+
+---
+
+## 1. A TESE, EM UMA FRASE
+
+> A empresa não compra um sistema. Ela **monta** o sistema dela — Core + módulos, como Lego.
+
+Para isso ser verdade e não slogan, uma coisa precisa ser mecanicamente impossível: **um módulo depender de outro módulo.** Se o Financeiro importar o CRM, o cliente que quer só Financeiro leva o CRM junto — e o Lego virou monolito com nome bonito.
+
+Todo o resto deste documento existe para tornar essa dependência impossível.
+
+---
+
+## 2. AS TRÊS PROIBIÇÕES QUE SUSTENTAM O CORE
+
+**1. Módulo não importa módulo.** `ModuleManifest` não tem campo `dependsOn`. A única dependência declarável é `requiresCore`. O que o tipo não deixa escrever, ninguém precisa lembrar de proibir na revisão de código.
+
+**2. Módulo não lê tabela de outro módulo.** O que atravessa a fronteira é o `EventEnvelope`, e só ele. Consumir o evento de outro módulo **não é depender dele**: o acoplamento é com o *tipo do evento*, que é contrato público. Se ninguém emitir aquele tipo, o consumidor simplesmente não é acordado — não quebra.
+
+**3. Nenhuma query sem `tenant_id`.** Toda tabela de dados de tenant carrega `tenant_id`, e toda tabela tem RLS ligada com policy real. As duas exceções do schema — `module_registry` e `plan_limits` — são catálogo da plataforma, não dado de tenant, e estão sinalizadas no próprio SQL.
+
+---
+
+## 3. O CICLO DE VIDA DE UM MÓDULO
+
+```
+   ┌───────────────────────────────────────────────────────────────────┐
+   │ 1. DECLARA                                       (o módulo, em código) │
+   │    ModuleManifest: id · taxonomia · capacidades · permissões ·    │
+   │    eventos que emite e consome · requiresCore                     │
+   │                                                                   │
+   │    Lei 7 vive aqui: capacidade só entra na lista quando está      │
+   │    construída. O manifesto é o que a Store exibe.                 │
+   └───────────────────────────────┬───────────────────────────────────┘
+                                   │  service_role, do servidor
+                                   ▼
+   ┌───────────────────────────────────────────────────────────────────┐
+   │ 2. REGISTRA                                  core.module_registry │
+   │    O Core valida o manifesto e grava no catálogo.                 │
+   │    status: draft → published → deprecated                         │
+   │                                                                   │
+   │    Só `published` aparece na vitrine (policy, não filtro de tela). │
+   │    `deprecated` some da vitrine; quem já instalou continua.        │
+   └───────────────────────────────┬───────────────────────────────────┘
+                                   │  o tenant escolhe, na apps/store
+                                   ▼
+   ┌───────────────────────────────────────────────────────────────────┐
+   │ 3. TENANT INSTALA                             core.tenant_modules │
+   │    (tenant_id, module_id, version, settings)                      │
+   │    Exige a permissão `core.module.install` naquele tenant.        │
+   │                                                                   │
+   │    `settings` é onde a Lei anti-viés se materializa: o que é       │
+   │    específico de UM cliente vira chave aqui, nunca código no       │
+   │    módulo.                                                         │
+   │                                                                   │
+   │    Desinstalar = status 'uninstalled'. Não apaga a linha: o        │
+   │    histórico do que o tenant já teve sobrevive.                   │
+   └───────────────────────────────┬───────────────────────────────────┘
+                                   ▼
+   ┌───────────────────────────────────────────────────────────────────┐
+   │ 4. RECEBE PERMISSÕES                         core.role_permissions │
+   │    As permissões do manifesto passam a existir naquele tenant e    │
+   │    ficam disponíveis para os papéis.                              │
+   │                                                                   │
+   │    O prefixo `<moduleId>.` é o que permite revogar TUDO de um      │
+   │    módulo de uma vez quando ele sai.                              │
+   │                                                                   │
+   │    Duas camadas, sempre: RLS impede o tenant errado de VER a       │
+   │    linha; a permissão impede o membro errado de FAZER a ação.      │
+   └───────────────────────────────┬───────────────────────────────────┘
+                                   ▼
+   ┌───────────────────────────────────────────────────────────────────┐
+   │ 5. CONVERSA POR EVENTOS                                            │
+   │                                                                   │
+   │    módulo A                    CORE                    módulo B    │
+   │       │                          │                          │      │
+   │       │ grava dado + evento      │                          │      │
+   │       │ na MESMA transação       │                          │      │
+   │       ├─────────────────────────►│ core.event_outbox        │      │
+   │       │                          │ (status: pending)        │      │
+   │       │                          │                          │      │
+   │       │                     entrega com                     │      │
+   │       │                   backoff e reentrega               │      │
+   │       │                          ├─────────────────────────►│      │
+   │       │                          │                          │      │
+   │       │                          │  B grava event_id em     │      │
+   │       │                          │  core.processed_events   │      │
+   │       │                          │  ANTES de agir           │      │
+   │       │                          │◄─────────────────────────┤      │
+   │       │                          │                          │      │
+   │       │                          │  event_id repetido =     │      │
+   │       │                          │  insert falha = descarta │      │
+   │                                                                   │
+   │    A nunca soube que B existe. B pode ser desinstalado sem que A   │
+   │    mude uma linha.                                                │
+   └───────────────────────────────────────────────────────────────────┘
+```
+
+### 3.1 Por que a caixa de saída, e não uma chamada direta
+
+Chamada direta tem dois modos de falha que não se resolvem com `try/catch`: o dado grava e o evento não sai; ou o evento sai e o dado não grava. A caixa de saída elimina os dois — o evento é gravado na **mesma transação** do dado que ele descreve, e a entrega vem depois, com reentrega.
+
+Isso não é teoria: é o padrão do `casa-bonaparte-saas` (`pg_cron` + `pg_net`, job de reentrega por minuto), registrado no Balanço de Tecnologia como **PROVADO ponta a ponta** — e foi ele que segurou uma falha real em 24/07.
+
+### 3.2 Por que a idempotência é por consumidor
+
+A chave primária de `processed_events` é `(event_id, consumer)`, não `event_id`. O mesmo evento **deve** ser processado uma vez por cada consumidor interessado. Chave só em `event_id` faria o segundo consumidor achar que o evento já foi tratado — e perder o fato em silêncio.
+
+---
+
+## 4. A TRILHA — o que fica registrado
+
+Toda mudança de estado no Core escreve em `core.audit_log`: **quem, o quê, quando, em qual tenant.** Minerado do padrão do peritus, a régua de auditoria do império (**PROVADO**).
+
+Três regras que o schema impõe, não pede:
+
+1. **Append-only de verdade.** Sem policy de UPDATE ou DELETE, **e** com trigger que bloqueia as duas — inclusive para o `service_role`, que passaria por cima da RLS. Corrigir um erro é escrever uma entrada nova.
+2. **Sobrevive ao dado.** `resource_id` é solto, não chave estrangeira: apagar o recurso não cascateia o apagamento da trilha.
+3. **Nunca guarda segredo.** Senha, token e chave são redigidos antes de chegar. Trilha de auditoria é o último lugar onde um segredo deveria vazar, e o que mais dói quando vaza.
+
+O ator não é sempre humano: `user`, `agent` (doutrina da Casa — agente embarcado sempre que possível) ou `system` (job, cron, migração). Tratar agente e cron como "usuário do sistema" é exatamente como se perde a trilha.
+
+---
+
+## 5. O QUE ESTA ETAPA **NÃO** CONSTRUIU
+
+Honestidade de escopo (Lei 7). Existe **contrato**; não existe **motor**.
+
+| Peça | Estado |
+|---|---|
+| Tipos do Core (`@alsham/core`) | ✅ construído — zero runtime, só tipos |
+| Constantes canônicas (`@alsham/config`) | ✅ construído |
+| Schema do Core (`0001_core.sql`) | ✅ **arquivo**; **NÃO APLICADO** |
+| Validador de manifesto | **NÃO CONSTRUÍDO** |
+| Registro de módulo em runtime | **NÃO CONSTRUÍDO** |
+| Despachante da caixa de saída (job de entrega) | **NÃO CONSTRUÍDO** |
+| Resolvedor de permissão em runtime | **NÃO CONSTRUÍDO** |
+| Cliente de banco / SDK | **NÃO CONSTRUÍDO** |
+| Qualquer UI | **NÃO CONSTRUÍDO** — zero UI até o Core fechar |
+
+Nenhum projeto Supabase foi criado. Nenhuma migration foi aplicada. Nenhum segredo existe no repositório.
+
+---
+
+## 6. O QUE A ETAPA 2 FARÁ — *lista, não obra*
+
+> Esta seção **lista** o próximo passo. Nada dela foi construído nesta etapa.
+
+### 6.1 Billing minerado da Casa
+
+Trazer para `packages/billing` o padrão registrado como **PROVADO ponta a ponta** no Balanço de Tecnologia §1:
+
+- motor de pagamento multi-secret com cofre de segredos em cascata;
+- webhook idempotente por `event.id` — reaproveitando `core.processed_events` já desenhado nesta etapa;
+- reentregador com backoff — reaproveitando `core.event_outbox`;
+- `usage_ledger` + medição de consumo por tenant, minerado do kraken-v2 (**PROVADO**, com economia unitária calculada);
+- ligação de `plan_limits` ao que o tenant pode instalar e consumir.
+
+**Fronteira a respeitar:** o catálogo (`module_registry`) descreve o que o módulo **é**; o preço é de billing. Manter separado é o que permite preço diferente por plano sem reescrever o catálogo.
+
+### 6.2 Módulo Conciliação & Aprovações
+
+O primeiro módulo de produto sobre o Core — e o teste real do contrato: se ele nascer sem importar nenhum outro módulo, o Lego funciona.
+
+- **Taxonomia:** Domain `finance` (Financeiro, §5) — capacidades *Conciliação bancária* e *Aprovações financeiras*.
+- **Fase:** Fase 3 do Roadmap, que traz o **Smart Reconciliation™** como módulo premium.
+- **Estado da peça no Balanço:** ⚠️ **NÃO TEMOS.** O Balanço de Tecnologia §2 é explícito — a base de pagamento existe e está provada, mas *conciliação, DRE e tesouraria* são obra genuinamente nova. Esta é a primeira peça do Business OS que não é montagem.
+- **Teste anti-viés a aplicar em cada requisito:** *"outra empresa do mesmo setor usaria isso exatamente como está?"* Regra de conciliação específica de um cliente vira `tenant_modules.settings`, nunca código no módulo.
+- **Lei 3 (construir × INTEGRAR):** conciliação **constrói**; o lado fiscal (NF/SPED/SAT) **integra**, salvo decisão de dono explícita.
+
+### 6.3 O que a Etapa 2 ainda não decide
+
+Fica registrado para não virar decisão por omissão:
+
+- aplicar `0001_core.sql` num projeto Supabase — **ato do dono**;
+- a emenda de stack na Carta Magna do `alsham-events-os`, que ainda descreve a Linha B (MySQL/Drizzle) — **pendente, e naquele repositório**;
+- as pendências de sonda que os próprios Balanços abriram: onde vivem os prompts do Cognitive Mirror, a faxina do `system_health_log`, o banco real do kraken-v2.
+
+---
+
+*Universo Bonaparte · ALSHAM Global Commerce Ltda · Powered by ALSHAM*
