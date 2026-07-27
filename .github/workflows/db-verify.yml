@@ -194,9 +194,10 @@ jobs:
 
       - name: o motor não foi reimplementado em apps/
         run: |
-          # A tela CHAMA suggestMatches; se um dia ela declarar a própria, o
-          # coração terá migrado para a pele.
-          if grep -rInE 'function (suggestMatches|scorePair|unmatchedLines)' apps --include='*.ts' --include='*.tsx'; then
+          # A tela CHAMA o domínio; se um dia ela declarar o próprio, o
+          # coração terá migrado para a pele. Inclui o parser: ler extrato é
+          # regra de negócio (decide sinal, arredondamento, fuso, duplicata).
+          if grep -rInE 'function (suggestMatches|scorePair|unmatchedLines|summarizeStatement|parseOfx|parseCsv|parseStatement|parseAmountToCents|parseDate)' apps --include='*.ts' --include='*.tsx'; then
             echo "::error::motor de domínio redeclarado em apps/ — ele vive em packages/"; exit 1
           fi
           # Procura a CHAMADA no CÓDIGO, ignorando linhas de comentário.
@@ -211,3 +212,50 @@ jobs:
             || { echo "::error::a tela de conciliação deixou de chamar o motor do pacote"; exit 1; }
           echo "$CODIGO" | grep -Eq 'unmatchedLines\(' \
             || { echo "::error::a tela deixou de usar unmatchedLines do pacote"; exit 1; }
+
+          FECHA=$(grep -Ev '^\s*(\*|//|/\*)' apps/portal/src/app/fechamento/page.tsx)
+          echo "$FECHA" | grep -Eq 'summarizeStatement\(' \
+            || { echo "::error::a tela de fechamento deixou de usar summarizeStatement do pacote"; exit 1; }
+
+          IMPORTA=$(grep -Ev '^\s*(\*|//|/\*)' apps/portal/src/app/actions.ts)
+          echo "$IMPORTA" | grep -Eq 'parseStatement\(' \
+            || { echo "::error::a importação deixou de usar o parser do pacote — ler extrato é regra de negócio"; exit 1; }
+
+      # ⛔ A CHAVE-MÃE NÃO PODE CHEGAR AO NAVEGADOR.
+      #
+      # `service_role` ignora toda a RLS: quem a tem enxerga todos os tenants.
+      # O painel fala com o banco como o USUÁRIO. Esta guarda olha o bundle de
+      # cliente já compilado — não o código-fonte —, que é onde a chave
+      # apareceria de verdade se alguém a importasse por engano.
+      - name: a service_role não chega ao bundle de cliente
+        run: |
+          DIR=apps/portal/.next/static
+          [ -d "$DIR" ] || { echo "::error::bundle de cliente não encontrado — o build rodou?"; exit 1; }
+          if grep -rl "service_role" "$DIR" 2>/dev/null; then
+            echo "::error::a string service_role chegou ao bundle de CLIENTE"; exit 1
+          fi
+          # E nenhum JWT literal em lugar nenhum do build.
+          if grep -rhoE "eyJ[A-Za-z0-9_-]{30,}" apps/portal/.next 2>/dev/null | head -1 | grep -q .; then
+            echo "::error::um token com cara de JWT foi embutido no build"; exit 1
+          fi
+          echo "bundle de cliente limpo."
+
+      # O tenant nunca pode vir do cliente.
+      - name: o tenant vem da sessão, não do ambiente nem da URL
+        run: |
+          # Procura o USO, não a menção.
+          #
+          # A primeira versão desta guarda casava `NEXT_PUBLIC_TENANT` em
+          # qualquer lugar — e reprovava o próprio `.env.example`, cujo
+          # comentário explica justamente por que essa variável não existe.
+          # É a terceira vez neste repositório que uma guarda tropeça na
+          # documentação que ela deveria proteger; por isso agora é sempre
+          # "leia código, não prosa".
+          if grep -rInE 'process\.env\.NEXT_PUBLIC_TENANT' apps --include='*.ts' --include='*.tsx'; then
+            echo "::error::tenant lido de variável pública — ele tem de vir da sessão + memberships"; exit 1
+          fi
+          if grep -rInE '^[[:space:]]*NEXT_PUBLIC_TENANT' apps --include='*.example'; then
+            echo "::error::variável pública de tenant declarada no .env.example"; exit 1
+          fi
+          grep -q 'resolveSession' apps/portal/src/lib/data/index.ts \
+            || { echo "::error::a porta de dados deixou de resolver o tenant pela sessão"; exit 1; }

@@ -1,12 +1,14 @@
 import { PERMISSIONS } from '@alsham/finance-reconciliation';
 import type {
   ApprovalItem,
+  BankStatement,
+  CsvMapping,
   MatchingSettings,
   Payable,
   StatementLine,
 } from '@alsham/finance-reconciliation';
 
-import type { DataPort } from './port';
+import { DataPortError, type DataPort } from './port';
 
 /**
  * Adapter MOCKADO — a tela se prova sem banco no ar.
@@ -202,6 +204,57 @@ const GRANTED: ReadonlySet<string> = new Set([
   PERMISSIONS.approvalDecide,
 ]);
 
+/**
+ * Um extrato de demonstração, já importado.
+ *
+ * Dá à tela de fechamento algo para mostrar sem banco — inclusive a
+ * divergência, que é o número que interessa.
+ */
+const STATEMENTS: BankStatement[] = [
+  {
+    id: STMT,
+    tenantId: TENANT,
+    accountRef: 'conta-corrente-1',
+    sourceFormat: 'ofx',
+    originalFilename: 'extrato-julho.ofx',
+    contentHash: 'demonstracao',
+    periodStart: '2026-07-01',
+    periodEnd: '2026-07-31',
+    openingBalanceCents: null,
+    closingBalanceCents: 1_500_000,
+    currency: 'BRL',
+    status: 'reconciling',
+    importedAt: '2026-07-25T12:00:00.000Z',
+  },
+];
+
+/**
+ * O mapeamento de CSV do tenant fictício.
+ *
+ * Na vida real vem de `settings.import.csvMapping`. Está aqui porque o mock
+ * precisa devolver *algum* mapeamento — não porque o app tenha um.
+ */
+const CSV_MAPPING: CsvMapping = {
+  delimiter: ';',
+  hasHeader: true,
+  decimalSeparator: ',',
+  dateOrder: 'DMY',
+  columns: {
+    postedAt: 'Data',
+    description: 'Historico',
+    amount: 'Valor',
+    counterpartyName: 'Contraparte',
+    externalId: 'Documento',
+  },
+};
+
+/** O que uma escrita no modo de demonstração responde. */
+function semBanco(): never {
+  throw new DataPortError(
+    'Modo de demonstração: não há banco configurado, então nada foi gravado. Configure NEXT_PUBLIC_SUPABASE_URL para operar de verdade.',
+  );
+}
+
 export function createMockPort(): DataPort {
   return {
     kind: 'mock',
@@ -211,8 +264,17 @@ export function createMockPort(): DataPort {
     async loadMatchingSettings() {
       return SETTINGS;
     },
+    async loadCsvMapping() {
+      return CSV_MAPPING;
+    },
     async loadStatementLines() {
       return LINES;
+    },
+    async loadLinesOfStatement(statementId) {
+      return LINES.filter((l) => l.statementId === statementId);
+    },
+    async loadOpenStatements() {
+      return STATEMENTS;
     },
     async loadPayables() {
       return PAYABLES;
@@ -220,13 +282,24 @@ export function createMockPort(): DataPort {
     async loadApprovalQueue() {
       return APPROVALS;
     },
+    // ── escrita ──────────────────────────────────────────────────────────
+    // Sem banco não há o que gravar, e **fingir que gravou seria pior do que
+    // não gravar**: o operador acharia que importou um extrato que não existe.
+    // Por isso a escrita recusa com mensagem, em vez de responder "ok".
+    async importStatement() {
+      semBanco();
+    },
+    async closeStatement() {
+      semBanco();
+    },
+    async discardStatement() {
+      semBanco();
+    },
     async decideMatch() {
-      // Sem banco, não há o que gravar. A tela revalida e continua mostrando
-      // o mock — e diz ao operador, na própria interface, que está em modo
-      // de demonstração. Fingir que gravou seria pior do que não gravar.
+      semBanco();
     },
     async decideApproval() {
-      // idem.
+      semBanco();
     },
   };
 }

@@ -4,12 +4,17 @@ import Link from 'next/link';
 
 import { PRODUCT, COMPANY } from '@alsham/config';
 
+import { resolveSession } from '@/lib/session';
+import { TenantSwitcher } from '@/components/tenant-switcher';
+
 import './globals.css';
 
 export const metadata: Metadata = {
   title: `Conciliação & Aprovações · ${PRODUCT.displayName}`,
   description: 'Painel do tenant — Módulo 1: Conciliação & Aprovações.',
 };
+
+type Rota = '/conciliacao' | '/aprovacoes' | '/importar' | '/fechamento';
 
 /**
  * O layout raiz.
@@ -21,16 +26,19 @@ export const metadata: Metadata = {
  * As fontes vêm por `@font-face` do sistema, não por `next/font/google`: uma
  * fonte baixada em tempo de build é uma dependência de rede no build, e o
  * fallback declarado em `--bos-font-*` já é a família certa quando ela existe
- * na máquina. Trocar por `next/font` depois é mudança de uma linha.
+ * na máquina.
  */
-export default function RootLayout({ children }: { children: ReactNode }) {
+export default async function RootLayout({ children }: { children: ReactNode }) {
+  const session = await resolveSession();
+  const logado = session.mode === 'authenticated';
+
   return (
     <html lang="pt-BR">
       <body className="min-h-screen bg-bos-bg text-bos-text">
         <div className="flex min-h-screen flex-col">
           <header className="border-b border-bos-border">
             <div className="mx-auto flex w-full max-w-7xl flex-wrap items-center gap-x-8 gap-y-3 px-6 py-4">
-              <Link href="/" className="group flex items-center gap-3">
+              <Link href="/" className="flex items-center gap-3">
                 {/* O Sol Único — um só por peça (IDENTIDADE-VISUAL §5.1). */}
                 <span
                   aria-hidden
@@ -41,10 +49,22 @@ export default function RootLayout({ children }: { children: ReactNode }) {
                 </span>
               </Link>
 
-              <nav className="flex items-center gap-1 text-sm">
-                <NavLink href="/conciliacao">Conciliação</NavLink>
-                <NavLink href="/aprovacoes">Aprovações</NavLink>
-              </nav>
+              {session.mode !== 'anonymous' && session.mode !== 'no-access' ? (
+                <nav className="flex flex-wrap items-center gap-1 text-sm">
+                  <NavLink href="/importar">Importar</NavLink>
+                  <NavLink href="/conciliacao">Conciliação</NavLink>
+                  <NavLink href="/aprovacoes">Aprovações</NavLink>
+                  <NavLink href="/fechamento">Fechamento</NavLink>
+                </nav>
+              ) : null}
+
+              {logado ? (
+                <TenantSwitcher
+                  tenants={session.tenants}
+                  active={session.activeTenant}
+                  email={session.email}
+                />
+              ) : null}
             </div>
           </header>
 
@@ -61,7 +81,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   );
 }
 
-function NavLink({ href, children }: { href: '/conciliacao' | '/aprovacoes'; children: ReactNode }) {
+function NavLink({ href, children }: { href: Rota; children: ReactNode }) {
   return (
     <Link
       href={href}

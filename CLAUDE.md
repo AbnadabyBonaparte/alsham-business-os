@@ -66,7 +66,7 @@ Corolário do roadmap: *cada linha de código escrita para um cliente deve aumen
 
 ---
 
-## 5. ESTADO ATUAL — ETAPA 4 (A PRIMEIRA TELA)
+## 5. ESTADO ATUAL — ETAPA 5 (OPERAÇÃO REAL)
 
 ### 5.1 Stack — SELADA
 
@@ -125,7 +125,9 @@ Onde vai cada coisa:
 - `supabase/migrations/0001_core.sql` e `0002_recon.sql` existem como **ARQUIVO, não aplicados** — mas agora **provados**: aplicam de verdade num Postgres 17 e passam num teste de isolamento com usuário real (`supabase/tests/`), rodado no CI a cada mudança.
 - `supabase/seed/0001_platform.sql` — o catálogo da plataforma, idempotente. **Zero tenant, zero usuário.**
 - `docs/runbook/APLICAR.md` — o passo a passo para quando o dono criar o projeto Supabase.
-- `apps/portal` é o **primeiro app com código**: mesa de conciliação e fila de aprovação. Next.js 16.2.12 + React 19 + Tailwind 4, toda cor vinda dos tokens `--bos-*`.
+- `apps/portal` tem **login (Supabase Auth) e quatro telas**: importar extrato, mesa de conciliação, fila de aprovação e fechar período. Next.js 16.2.12 + React 19 + Tailwind 4, toda cor vinda dos tokens `--bos-*`.
+- O **parser de OFX/CSV** vive em `packages/finance-reconciliation/src/parsing/` — ler extrato é regra de negócio, não tela.
+- **Segurança de tenant:** o `tenant_id` vem sempre da sessão cruzada com `core.memberships`, resolvido no servidor. Nunca de URL, formulário ou variável de ambiente. A `service_role key` não entra em `apps/` — há guarda no CI sobre o bundle de cliente.
 
 ### 5.5 A LEI DO LEGO — para todo módulo, deste em diante
 

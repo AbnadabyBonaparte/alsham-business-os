@@ -1,5 +1,7 @@
 import { createMockPort } from './mock';
 import { createSupabasePort } from './supabase';
+import { createSupabaseServerClient } from '../supabase/server';
+import { resolveSession } from '../session';
 import type { DataPort } from './port';
 
 export { DataPortError } from './port';
@@ -8,17 +10,22 @@ export type { DataPort } from './port';
 /**
  * Escolhe o adapter — e é só isto que muda entre demonstração e produção.
  *
- * Sem as variáveis de ambiente, o painel roda com dado fabricado e diz isso na
- * própria tela. Com elas, fala com o Supabase sob RLS. **O mesmo componente
- * serve os dois**: nenhuma tela sabe de onde veio o dado.
+ * Sem banco configurado ou sem sessão, o painel roda com dado fabricado e diz
+ * isso na própria tela. Com sessão, fala com o Supabase **sob RLS**, em nome
+ * do tenant resolvido a partir dos vínculos do usuário.
+ *
+ * ⚠️ O `tenantId` vem de `resolveSession()`, nunca de parâmetro, URL ou
+ * formulário. Nenhuma chamada a esta função aceita tenant de fora.
+ *
+ * **O mesmo componente serve os dois modos.** Nenhuma tela sabe de onde veio
+ * o dado — só pergunta `port.kind` para avisar o operador.
  */
-export function getDataPort(): DataPort {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  const tenantId = process.env.NEXT_PUBLIC_TENANT_ID;
+export async function getDataPort(): Promise<DataPort> {
+  const session = await resolveSession();
+  if (session.mode !== 'authenticated') return createMockPort();
 
-  if (url && key && tenantId) {
-    return createSupabasePort(tenantId);
-  }
-  return createMockPort();
+  const db = await createSupabaseServerClient();
+  if (!db) return createMockPort();
+
+  return createSupabasePort(db, session.activeTenant.id);
 }

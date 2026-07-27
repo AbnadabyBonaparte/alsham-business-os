@@ -51,7 +51,7 @@ function Loading() {
  * (CLAUDE.md §5.3).
  */
 async function Conteudo() {
-  const port = getDataPort();
+  const port = await getDataPort();
 
   try {
     // A política é do TENANT, não do app: vem de core.tenant_modules.settings.
