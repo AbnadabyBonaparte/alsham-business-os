@@ -3,8 +3,11 @@
 -- Módulo 1: Conciliação & Aprovações. Schema `recon`.
 -- =============================================================================
 --
--- ESTE ARQUIVO NÃO FOI APLICADO. Nenhum projeto Supabase criado, nenhuma
--- migration executada, nenhum segredo. Aplicar é ato do dono.
+-- NÃO APLICADO EM NENHUM PROJETO SUPABASE. Nenhum projeto criado, nenhum
+-- segredo. Aplicar em produção é ato do dono — ver docs/runbook/APLICAR.md.
+--
+-- MAS PROVADO: aplicado de verdade a cada push, depois do 0001, num
+-- PostgreSQL 17 limpo e efêmero (.github/workflows/db-verify.yml).
 --
 -- Taxonomia: Domain `finance` (Financeiro, §5) — capacidades *Conciliação
 -- bancária* e *Aprovações financeiras*. Roadmap: Fase 3, Smart Reconciliation™.

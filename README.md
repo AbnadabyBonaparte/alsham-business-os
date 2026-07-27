@@ -47,7 +47,10 @@ docs/
   balancos/    tecnologia + supabase            — de onde minerar cada peça
   historico/   catálogo anterior                — memória, não canon
 supabase/
-  migrations/  0001_core.sql · 0002_recon.sql   — ARQUIVO; NÃO APLICADO
+  migrations/  0001_core.sql · 0002_recon.sql   — provadas em CI; aplicar é ato do dono
+  seed/        0001_platform.sql                — catálogo, idempotente
+  tests/       shim + isolamento multi-tenant   — só CI, nunca no Supabase real
+docs/runbook/  APLICAR.md                       — passo a passo para o dono aplicar
 apps/
   admin/  portal/  store/  api/                 — só README, NÃO INICIADO
 packages/
@@ -81,6 +84,15 @@ Cada `README.md` de app e de package declara: o propósito, a fase do roadmap a 
 - `supabase/migrations/0002_recon.sql` — schema **`recon`**, próprio do módulo. **Nenhum objeto criado no schema `core`.**
 - [`docs/canon/MODULO-RECON-SPEC.md`](docs/canon/MODULO-RECON-SPEC.md) — o fluxo que substitui régua e caneta: importar → sugerir → conferir → visar com trilha.
 - A direção de arte está selada em [`docs/canon/IDENTIDADE-VISUAL.md`](docs/canon/IDENTIDADE-VISUAL.md) e é obrigatória para a UI da Etapa 3.
+
+**Etapa 3 — O motor ligado** *(esta etapa)*: o schema deixa de ser texto e passa a ser **provado**.
+
+- **Versão-alvo selada** em [`CLAUDE.md §5.2`](CLAUDE.md) — Next.js 16.2.x · React 19 · TS 5 strict · Node 20+ · Turbopack · Vercel, com a **Regra de Ouro da Longevidade**: lógica de negócio vive em `packages/`, nunca em `apps/`. O framework é a pele, não o coração.
+- As duas migrations **aplicam de verdade** num PostgreSQL 17 limpo, na ordem, a cada push.
+- `supabase/tests/01_rls_isolation.sql` — isolamento multi-tenant provado com **usuário real**, não com leitura de policy.
+- `supabase/seed/0001_platform.sql` — o catálogo da plataforma, idempotente. **Zero tenant, zero usuário.**
+- [`docs/runbook/APLICAR.md`](docs/runbook/APLICAR.md) — o passo a passo do dono, com checklist de segurança pós-apply.
+- [`.github/workflows/db-verify.yml`](.github/workflows/db-verify.yml) — o SENTINELA em CI: toda mudança que quebrar o isolamento é barrada antes da main.
 
 **O que NÃO existe:** o motor de execução. Validador de manifesto, registro em runtime, despachante da caixa de saída e resolvedor de permissão seguem **NÃO CONSTRUÍDOS** ([CORE-SPEC §5](docs/canon/CORE-SPEC.md)); no módulo, faltam UI, parser de OFX/CSV e persistência ([MODULO-RECON-SPEC §7](docs/canon/MODULO-RECON-SPEC.md)). Nenhum projeto Supabase foi criado, nenhuma migration aplicada, nenhum segredo existe aqui.
 
