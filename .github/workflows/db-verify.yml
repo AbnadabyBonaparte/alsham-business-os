@@ -80,6 +80,9 @@ jobs:
       - name: aplicar 0002_recon.sql
         run: $PSQL -f supabase/migrations/0002_recon.sql
 
+      - name: aplicar 0003_billing.sql
+        run: $PSQL -f supabase/migrations/0003_billing.sql
+
       # ---------------------------------------------------------------------
       # 2. SEED — e a prova de que reaplicar não muda nada
       # ---------------------------------------------------------------------
@@ -147,6 +150,11 @@ jobs:
       # ---------------------------------------------------------------------
       - name: teste de isolamento multi-tenant
         run: $PSQL -f supabase/tests/01_rls_isolation.sql
+
+      # A contabilidade de uso é o dado que vira DINHEIRO. Vazamento aqui é o
+      # concorrente lendo o volume de operação do vizinho.
+      - name: teste de isolamento da contabilidade de uso
+        run: $PSQL -f supabase/tests/02_usage_isolation.sql
 
   contract:
     name: manifesto, tipos e domínio
@@ -220,6 +228,29 @@ jobs:
           IMPORTA=$(grep -Ev '^\s*(\*|//|/\*)' apps/portal/src/app/actions.ts)
           echo "$IMPORTA" | grep -Eq 'parseStatement\(' \
             || { echo "::error::a importação deixou de usar o parser do pacote — ler extrato é regra de negócio"; exit 1; }
+
+      # ⚠️ LEI 7 — BILLING CONTA USO, NÃO DINHEIRO.
+      #
+      # No dia em que alguém escrever um preço em reais em `packages/billing`
+      # ou no schema de uso, terá inventado um número que o dono não decidiu.
+      # Preço é etapa própria, com valores medidos.
+      - name: billing não tem preço inventado
+        run: |
+          # -i e [_a-zA-Z0-9]* de propósito: a primeira versão desta guarda era
+          # sensível a caixa e passou batido em `const PRECO_MENSAL = 4900`,
+          # que é justamente a forma mais provável de uma constante de preço.
+          # O `[^;]{0,40}` cobre a anotação de tipo entre o nome e o valor:
+          # `const fee: number = 250` escapou das duas primeiras versões desta
+          # guarda, e é a forma que um TypeScript real usaria.
+          PRECO=$(grep -rInEi '(price|preco|preço|amount_cents|valor|tarifa|fee)[_a-zA-Z0-9]*[^;]{0,40}[:=][[:space:]]*[0-9]' \
+                    packages/billing/src supabase/migrations/0003_billing.sql 2>/dev/null || true)
+          if [ -n "$PRECO" ]; then
+            echo "::error::preço/valor monetário em billing — Lei 7: preço é decisão do dono"
+            echo "$PRECO"; exit 1
+          fi
+          if grep -rInE '\b(BRL|USD|EUR|R\$)\b' packages/billing/src 2>/dev/null; then
+            echo "::error::moeda em packages/billing — este pacote conta uso, não dinheiro"; exit 1
+          fi
 
       # ⛔ A CHAVE-MÃE NÃO PODE CHEGAR AO NAVEGADOR.
       #

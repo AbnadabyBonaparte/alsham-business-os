@@ -1,0 +1,11 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "composite": false,
+    "declaration": false,
+    "declarationMap": false,
+    "types": ["node"],
+    "paths": { "@alsham/core": ["../core/src/index.ts"] }
+  },
+  "include": ["src/**/*.ts"]
+}

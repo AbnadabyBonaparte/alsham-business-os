@@ -47,7 +47,7 @@ docs/
   balancos/    tecnologia + supabase            — de onde minerar cada peça
   historico/   catálogo anterior                — memória, não canon
 supabase/
-  migrations/  0001_core.sql · 0002_recon.sql   — provadas em CI; aplicar é ato do dono
+  migrations/  0001_core · 0002_recon · 0003_billing — provadas em CI; aplicar é ato do dono
   seed/        0001_platform.sql                — catálogo, idempotente
   tests/       shim + isolamento multi-tenant   — só CI, nunca no Supabase real
 docs/runbook/  APLICAR.md                       — passo a passo para o dono aplicar
@@ -58,7 +58,9 @@ packages/
   config/                                       — ✅ CONSTRUÍDO
   core/                                         — ✅ CONSTRUÍDO (contrato, zero runtime)
   finance-reconciliation/                       — ✅ CONSTRUÍDO (Módulo 1)
-  auth/ organizations/ permissions/ workflow/ billing/
+  workflow/                                     — ✅ CONSTRUÍDO (o correio do Core)
+  billing/                                      — ✅ CONSTRUÍDO (uso, sem preço)
+  auth/ organizations/ permissions/
   notifications/ documents/ ai/ crm/ finance/ marketing/
   legal/ hr/ analytics/ integrations/ ui/ sdk/  — só README, NÃO INICIADO
 CLAUDE.md      instruções permanentes para qualquer agente neste repo
@@ -110,6 +112,13 @@ Cada `README.md` de app e de package declara: o propósito, a fase do roadmap a 
 - **Portal ligado ao banco real**, sob RLS, com a chave publicável. A `service_role` não entra no app — há guarda no CI olhando o bundle de cliente.
 - **Importar extrato** (OFX e CSV) — o parser vive em `packages/`, com 35 testes. O layout do CSV é `settings` do tenant, nunca código.
 - **Fechar período** — mostra o resumo, e o fechamento dispara `recon.reconciliation.completed` na caixa de saída do Core.
+
+**Etapa 6 — O correio e a cobrança** *(esta etapa)*: o ciclo do Lego fecha.
+
+- **`@alsham/workflow` — o correio do Core.** Entrega o que os módulos põem na caixa de saída, com idempotência por consumidor e backoff exponencial. Sem ele, todo evento ficava preso em `pending` para sempre.
+- **`@alsham/billing` — contabilidade de uso.** `usage_ledger` + leitura de limite, minerados do kraken-v2. **Sem preço** — preço é decisão do dono (Lei 7), e há guarda no CI.
+- `supabase/migrations/0003_billing.sql` — o livro-caixa, com isolamento de uso entre tenants provado no CI.
+- **ENGINE, não módulo:** o correio é serviço compartilhado (Taxonomia §4) — não aparece na Store.
 
 **O que NÃO existe:** o motor de execução. Validador de manifesto, registro em runtime, despachante da caixa de saída e resolvedor de permissão seguem **NÃO CONSTRUÍDOS** ([CORE-SPEC §5](docs/canon/CORE-SPEC.md)); no módulo, faltam UI, parser de OFX/CSV e persistência ([MODULO-RECON-SPEC §7](docs/canon/MODULO-RECON-SPEC.md)). Nenhum projeto Supabase foi criado, nenhuma migration aplicada, nenhum segredo existe aqui.
 
