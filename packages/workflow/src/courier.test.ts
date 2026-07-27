@@ -99,6 +99,10 @@ function memoryStore(inicial: OutboxRecord[]) {
       processed.add(chave);
       return true;
     },
+    async unmarkProcessed({ eventId, consumer }) {
+      processed.delete(`${eventId}::${consumer}`);
+      log.push(`unprocessed:${eventId}:${consumer}`);
+    },
   };
 
   return { store, processed, log, estado };
@@ -170,17 +174,31 @@ describe('⭐ IDEMPOTÊNCIA — o mesmo evento duas vezes, efeito uma vez', () =
     assert.equal(r.outcomes[0]?.result === 'delivered' ? r.outcomes[0].consumers : 0, 2);
   });
 
-  test('o registro vem ANTES de agir — handler que explode não "desprocessa"', async () => {
+  test('o registro vem ANTES de agir — e é DESFEITO quando o handler explode', async () => {
     const { store, processed } = memoryStore([record()]);
     const subs: Subscription[] = [
       { consumer: 'quebrado', eventType: '*', handle: async () => { throw new Error('caiu'); } },
     ];
     await deliverDue({ store, subscriptions: subs, policy: DEFAULT_RETRY_POLICY, now: () => AGORA });
 
-    // O evento fica marcado como processado por este consumidor. É a escolha
-    // consciente do padrão: at-most-once por consumidor. Repetir efeito
-    // colateral é pior do que não repetir — e a linha fica com o erro.
-    assert.equal(processed.size, 1);
+    // ⚠️ ESTE TESTE MUDOU DE VEREDITO NA ETAPA 8, e a mudança é deliberada.
+    //
+    // Antes ele afirmava que o registro FICAVA, sob o argumento de que repetir
+    // efeito colateral é pior do que não repetir (at-most-once por consumidor).
+    // O argumento é bom, mas a implementação não entregava isso: com o
+    // registro mantido, a reentrega via `already-processed`, chamava
+    // `markDelivered` — e o evento cujo handler NUNCA teve sucesso era gravado
+    // como entregue. Não era at-most-once; era perda silenciosa, e o backoff e
+    // o `dead` viravam decoração inalcançável.
+    //
+    // Contra Postgres real: três rodadas, handler chamado UMA vez, evento
+    // `delivered`. Ver `apps/api/src/outbox-store.test.ts`.
+    //
+    // A escolha agora é a do padrão outbox: **pelo menos uma vez, com
+    // consumidor idempotente**. O resíduo aceito está documentado em
+    // `OutboxStore.unmarkProcessed`: se o processo morrer ENTRE o registro e o
+    // handler, aquele consumidor não é reexecutado.
+    assert.equal(processed.size, 0, 'o registro tem de ser desfeito, senão o evento some em silêncio');
   });
 });
 
@@ -347,5 +365,105 @@ describe('⭐ o correio encontra a cobrança', () => {
       onDelivered: async () => { usos.push(1); },
     });
     assert.equal(usos.length, 0);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// ⭐ O BURACO QUE O MOCK NÃO PEGAVA — descoberto contra Postgres na Etapa 8
+// ---------------------------------------------------------------------------
+//
+// Até aqui, TODO teste deste arquivo usava um store novo por cenário. Nenhum
+// exercitava o MESMO evento falhando e sendo reentregue — que é justamente
+// onde `processed_events` acumula.
+//
+// Contra banco real, três rodadas seguidas deram: handler chamado UMA vez, e o
+// evento gravado como `delivered`. Um evento cujo handler nunca teve sucesso,
+// contado como entregue. O backoff e o `dead` eram decoração.
+//
+// Estes testes existem para que isso não volte.
+
+describe('⭐ falha e reentrega no MESMO store — o handler tem de ser chamado de novo', () => {
+  const POLICY: RetryPolicy = { baseDelayMs: 1_000, maxDelayMs: 60_000, maxAttempts: 3 };
+
+  test('handler que lança é reexecutado na rodada seguinte', async () => {
+    const { store, log } = memoryStore([record({})]);
+    let chamadas = 0;
+    const subs = [
+      {
+        consumer: 'c',
+        eventType: '*',
+        handle: async () => {
+          chamadas += 1;
+          throw new Error('falhou');
+        },
+      },
+    ];
+
+    await deliverDue({ store, subscriptions: subs, policy: POLICY, now: () => AGORA });
+    assert.equal(chamadas, 1);
+    assert.ok(log.some((l) => l.startsWith('unprocessed:')), 'o registro não foi desfeito');
+
+    // Reentrega: o horário avançou além do backoff.
+    const depois = new Date(AGORA.getTime() + 10 * 60_000);
+    await deliverDue({ store, subscriptions: subs, policy: POLICY, now: () => depois });
+
+    assert.equal(chamadas, 2, 'a reentrega não chamou o handler — o evento sumiria em silêncio');
+  });
+
+  test('e o evento NÃO é marcado como entregue enquanto ninguém o entregou', async () => {
+    const { store, estado } = memoryStore([record({})]);
+    const subs = [
+      { consumer: 'c', eventType: '*', handle: async () => { throw new Error('falhou'); } },
+    ];
+
+    await deliverDue({ store, subscriptions: subs, policy: POLICY, now: () => AGORA });
+    const depois = new Date(AGORA.getTime() + 10 * 60_000);
+    await deliverDue({ store, subscriptions: subs, policy: POLICY, now: () => depois });
+
+    assert.notEqual(
+      estado.get('evt-1')?.status,
+      'delivered',
+      'evento com handler que nunca teve sucesso foi gravado como entregue',
+    );
+  });
+
+  test('só o consumidor que lançou é desfeito — quem entregou não é chamado duas vezes', async () => {
+    const { store } = memoryStore([record({})]);
+    let bons = 0;
+    let ruins = 0;
+    const subs = [
+      { consumer: 'bom', eventType: '*', handle: async () => { bons += 1; } },
+      {
+        consumer: 'ruim',
+        eventType: '*',
+        handle: async () => {
+          ruins += 1;
+          throw new Error('falhou');
+        },
+      },
+    ];
+
+    await deliverDue({ store, subscriptions: subs, policy: POLICY, now: () => AGORA });
+    const depois = new Date(AGORA.getTime() + 10 * 60_000);
+    await deliverDue({ store, subscriptions: subs, policy: POLICY, now: () => depois });
+
+    assert.equal(bons, 1, 'o consumidor que já tinha entregue foi chamado de novo');
+    assert.equal(ruins, 2, 'o consumidor que falhou não foi reexecutado');
+  });
+
+  test('depois de esgotar as tentativas o evento vira dead — de verdade, rodada a rodada', async () => {
+    const { store, estado } = memoryStore([record({})]);
+    const subs = [
+      { consumer: 'c', eventType: '*', handle: async () => { throw new Error('sempre falha'); } },
+    ];
+
+    let t = AGORA.getTime();
+    for (let i = 0; i < POLICY.maxAttempts; i++) {
+      await deliverDue({ store, subscriptions: subs, policy: POLICY, now: () => new Date(t) });
+      t += 60 * 60_000; // avança bem além de qualquer backoff
+    }
+
+    assert.equal(estado.get('evt-1')?.status, 'dead');
+    assert.equal(estado.get('evt-1')?.lastError, 'sempre falha');
   });
 });

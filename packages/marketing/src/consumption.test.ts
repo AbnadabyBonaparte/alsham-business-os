@@ -47,6 +47,12 @@ function fazerCaixa(registros: OutboxRecord[]): OutboxStore & { processados: Set
       processados.add(chave);
       return true;
     },
+    // O desfazer, acrescentado na Etapa 8: sem ele, um handler que lança
+    // deixaria o evento marcado como tratado e a reentrega o daria por
+    // entregue — com o efeito nunca tendo acontecido.
+    async unmarkProcessed({ eventId, consumer }) {
+      processados.delete(`${eventId}::${consumer}`);
+    },
   };
 }
 

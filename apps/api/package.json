@@ -1,0 +1,25 @@
+{
+  "name": "@alsham/api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "start": "node src/server.ts"
+  },
+  "dependencies": {
+    "@alsham/billing": "workspace:*",
+    "@alsham/core": "workspace:*",
+    "@alsham/marketing": "workspace:*",
+    "@alsham/workflow": "workspace:*",
+    "pg": "^8.22.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "@types/pg": "^8.20.0",
+    "typescript": "^5.7.2"
+  },
+  "description": "A composição do Core: onde o correio, os consumidores e a cobrança se ligam. Roda com service_role, do servidor."
+}

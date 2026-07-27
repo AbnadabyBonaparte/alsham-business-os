@@ -6,7 +6,7 @@ A empresa não compra "um sistema". Ela monta o sistema dela — Core + módulos
 
 > **Status: dois módulos, e o Lego provado.** O Módulo 2 (Campanhas) **reage ao fato do Módulo 1 sem importá-lo, sem ler o schema dele e sem conhecer o correio** — que era a única metade da tese ainda não demonstrada. Existem o contrato do Lego, o schema (provado em CI contra PostgreSQL 17), o correio de eventos, a contabilidade de uso e cinco telas.
 >
-> **O que ainda não está de pé:** o correio está construído e testado, mas **não ligado** — sem o job rodando, todo evento fica em `pending`. Não há preço, gateway, nem deploy configurado neste repositório. O dono informou ter aplicado `0001`, `0002` e o seed num Supabase de produção em 27/07/2026; **este repositório não verificou esse apply** e o registra como tal. Nada daqui é promessa pública (Lei 7).
+> **O que ainda não está de pé:** o correio agora é **ligável** — persistência real contra Postgres, composição, endpoint e saúde da fila —, mas **ninguém agendou nada ainda**. Enquanto o job não rodar, todo evento fica em `pending`. O roteiro é o [runbook §6](docs/runbook/APLICAR.md) e ligar é ato do dono. Não há preço, gateway, nem deploy configurado neste repositório. O dono informou ter aplicado `0001`, `0002` e o seed num Supabase de produção em 27/07/2026; **este repositório não verificou esse apply** e o registra como tal. Nada daqui é promessa pública (Lei 7).
 
 ---
 
@@ -51,7 +51,8 @@ docs/
   historico/   catálogo anterior                — memória, não canon
 supabase/
   migrations/  0001_core · 0002_recon           — APLICADAS em produção; não editar
-               0003_billing · 0004_marketing    — arquivo; aplicar é ato do dono
+               0003_billing · 0004_marketing
+               0005_courier_cron                — arquivo; aplicar é ato do dono
   seed/        0001_platform.sql                — catálogo, idempotente
   tests/       shim · isolamento · uso · consumo entre módulos
                                                 — só CI, nunca no Supabase real
@@ -59,7 +60,8 @@ docs/runbook/  APLICAR.md                       — passo a passo para o dono ap
 .github/scripts/ guarda de defasagem de documento — o CI barra doc que envelheceu
 apps/
   portal/                                       — ✅ CONSTRUÍDO (login + 5 telas)
-  admin/  store/  api/                          — só README, NÃO INICIADO
+  api/                                          — ✅ CONSTRUÍDO (A COMPOSIÇÃO; service_role)
+  admin/  store/                                — só README, NÃO INICIADO
 packages/
   config/                                       — ✅ CONSTRUÍDO
   core/                                         — ✅ CONSTRUÍDO (contrato, zero runtime)
@@ -135,9 +137,18 @@ Cada `README.md` de app e de package declara: o propósito, a fase do roadmap a 
 - **A cobrança pegou o módulo novo de graça:** nada foi escrito em `@alsham/billing`, porque ela conta **evento**, não módulo.
 - **Guarda nova no CI — "módulo não conhece módulo"** — reprova import, dependência declarada e acesso a schema alheio. Sabotada nas três formas antes de entrar.
 
+**Etapa 8 — O correio ligável** *(esta etapa)*: o Lego ganha o que faltava para conversar de verdade.
+
+- **A persistência real do correio**, contra `core.event_outbox`. Duas falhas que memória nenhuma revelaria apareceram no primeiro contato com Postgres: a tomada **não reivindicava** nada (dois entregadores pegavam os mesmos 20 eventos), e um handler que falhava **nunca era reexecutado** — o evento acabava gravado como `delivered` sem nunca ter sido entregue. As duas corrigidas, com teste.
+- **`apps/api` — A COMPOSIÇÃO**: o único lugar do repositório onde os módulos se conhecem. Importa `workflow`, `marketing` e `billing`; nenhum deles importa nenhum outro.
+- **`0005_courier_cron.sql`** — a saúde da fila (`core.courier_status()`) e o agendamento `pg_cron`, **comentado de propósito**: agendar exige extensões e segredos que só o dono tem.
+- **25 testes contra Postgres de verdade**, incluindo o de concorrência que só o banco pode dar.
+- ⚠️ **Construído ≠ no ar.** Ninguém agendou nada — e há guarda no CI para que nenhum documento diga o contrário.
+
 **O que NÃO existe** — o estado corrente vive em [CORE-SPEC §5](docs/canon/CORE-SPEC.md) e [MODULO-RECON-SPEC §7](docs/canon/MODULO-RECON-SPEC.md), e há guarda no CI contra essas duas seções envelhecerem:
 
-- **O correio não está ligado.** A lógica existe e é testada; enquanto o job não roda ([runbook §6](docs/runbook/APLICAR.md)), todo evento fica em `pending`.
+- **O correio não está agendado.** Tudo o que ele precisa existe e é testado contra Postgres; enquanto o job não roda ([runbook §6](docs/runbook/APLICAR.md)), todo evento fica em `pending`.
+- **Nenhum alarme.** A saúde da fila é consulta, não notificação — quem olha é o dono.
 - Do motor do Core, seguem **NÃO CONSTRUÍDOS** o validador de manifesto, o registro de módulo em runtime e o resolvedor de permissão — hoje quem barra acesso é a **RLS no banco**.
 - Sem **preço**, sem gateway de pagamento, sem fatura (Lei 7 — decisão do dono, com números medidos).
 - Sem leitor de **CAMT.053**, sem rateio N↔M, sem instalador de módulo.

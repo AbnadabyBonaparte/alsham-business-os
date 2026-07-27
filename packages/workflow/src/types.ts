@@ -98,6 +98,34 @@ export interface OutboxStore {
     consumer: string;
     tenantId: TenantId;
   }): Promise<boolean>;
+
+  /**
+   * Desfaz o registro de `markProcessed` — **e existe por um motivo que só
+   * apareceu contra banco real.**
+   *
+   * O correio grava em `processed_events` ANTES de chamar o handler, para que
+   * uma reentrega não repita o efeito. Mas, se o handler **lança**, esse
+   * registro fica: na reentrega o correio vê "já processado", não chama o
+   * handler de novo e marca o evento como `delivered`.
+   *
+   * O resultado é o pior possível: **um evento cujo handler nunca teve
+   * sucesso é gravado como entregue.** O backoff e o `dead` viram decoração,
+   * e o fato some em silêncio — exatamente a falha que a caixa de saída
+   * existe para impedir.
+   *
+   * Por isso, ao falhar, o correio desfaz o registro **só do consumidor que
+   * lançou**. Quem já tinha entregue continua marcado e não é chamado duas
+   * vezes.
+   *
+   * ⚠️ Fica um resíduo conhecido e aceito: se o processo morrer entre o
+   * `markProcessed` e o handler, o registro permanece e aquele consumidor não
+   * é chamado de novo. É entrega **no máximo uma vez** para queda de
+   * processo, e **pelo menos uma vez** para erro de handler. Fechar essa
+   * última janela exigiria gravar o registro na mesma transação do efeito do
+   * handler — o que o correio não pode fazer sem conhecer o banco de cada
+   * consumidor.
+   */
+  unmarkProcessed(input: { eventId: Uuid; consumer: string }): Promise<void>;
 }
 
 /** O que aconteceu com um evento nesta rodada. */

@@ -19,12 +19,16 @@ on:
     paths:
       - 'supabase/**'
       - 'packages/**'
-      - '.github/workflows/db-verify.yml'
+      - 'apps/**'
+      - '.github/**'
+      - 'package.json'
   pull_request:
     paths:
       - 'supabase/**'
       - 'packages/**'
-      - '.github/workflows/db-verify.yml'
+      - 'apps/**'
+      - '.github/**'
+      - 'package.json'
   workflow_dispatch:
 
 permissions:
@@ -88,6 +92,9 @@ jobs:
       # NÃO detectaria uma edição nelas: correção é migration nova.
       - name: aplicar 0004_marketing.sql
         run: $PSQL -f supabase/migrations/0004_marketing.sql
+
+      - name: aplicar 0005_courier_cron.sql
+        run: $PSQL -f supabase/migrations/0005_courier_cron.sql
 
       # ---------------------------------------------------------------------
       # 2. SEED — e a prova de que reaplicar não muda nada
@@ -174,6 +181,103 @@ jobs:
       # atravessa a RLS sem perceber.
       - name: teste do consumo entre módulos (Módulo 2)
         run: $PSQL -f supabase/tests/03_marketing_consumption.sql
+
+      # A visão de saúde tem de responder assim que o arquivo é aplicado — ela
+      # é como o dono descobre que o correio parou. Uma visão que só existe no
+      # papel não avisa ninguém de nada.
+      - name: a visão de saúde da fila responde
+        run: |
+          $PSQL -c "select * from core.courier_health order by status;"
+          VEREDITO=$($PSQL -tAc "select veredito from core.courier_status();")
+          echo "veredito: $VEREDITO"
+          case "$VEREDITO" in
+            OK|ATRASADO|PARADO|ATENCAO) ;;
+            *) echo "::error::core.courier_status() devolveu algo inesperado: $VEREDITO"; exit 1 ;;
+          esac
+          # Nem a visão nem a função podem estar abertas: operação é assunto
+          # de quem opera, e `core.event_outbox` não tem policy nenhuma.
+          ABERTO=$($PSQL -tAc "select count(*) from information_schema.role_table_grants
+                                where grantee in ('anon','authenticated')
+                                  and table_name = 'courier_health';")
+          [ "$ABERTO" = "0" ] || { echo "::error::a visão de saúde está exposta a $ABERTO papel(is)"; exit 1; }
+
+  correio:
+    name: o correio contra Postgres de verdade
+    runs-on: ubuntu-latest
+
+    # ⭐ ESTE JOB EXISTE PORQUE MEMÓRIA NÃO PROVA CONCORRÊNCIA.
+    #
+    # Até a Etapa 7, todas as garantias do correio foram provadas contra um
+    # `OutboxStore` de memória. Contra Postgres apareceram DOIS defeitos que o
+    # mock não podia revelar:
+    #
+    #   1. a tomada não reivindicava nada — dois entregadores pegavam os
+    #      mesmos eventos;
+    #   2. um handler que falhava nunca era reexecutado, e o evento acabava
+    #      gravado como `delivered` sem nunca ter sido entregue.
+    #
+    # Este job é o que impede que voltem.
+
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: bos_correio
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      PGHOST: localhost
+      PGPORT: '5432'
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: bos_correio
+      PSQL: psql -v ON_ERROR_STOP=1 --no-psqlrc
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/bos_correio
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: instalar cliente psql
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-client
+
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
+      - name: montar o banco
+        run: |
+          $PSQL -q -f supabase/tests/00_supabase_shim.sql
+          $PSQL -q -f supabase/migrations/0001_core.sql
+          $PSQL -q -f supabase/migrations/0002_recon.sql
+          $PSQL -q -f supabase/migrations/0003_billing.sql
+          $PSQL -q -f supabase/migrations/0004_marketing.sql
+          $PSQL -q -f supabase/migrations/0005_courier_cron.sql
+          $PSQL -q -f supabase/seed/0001_platform.sql
+
+      # ⚠️ Sem `DATABASE_URL` os testes do store se PULAM — de propósito, para
+      # que ninguém os veja "passar" sem banco. Aqui a variável existe, então
+      # pular seria bug: este passo reprova se algum teste for pulado, ou se
+      # nenhum rodar.
+      - name: o correio contra Postgres (store, concorrência, composição)
+        run: |
+          set -o pipefail
+          pnpm test:api 2>&1 | tee /tmp/api.log
+          PULADOS=$(grep -oP '^# skipped \K\d+' /tmp/api.log | head -1)
+          PASSOU=$(grep -oP '^# pass \K\d+' /tmp/api.log | head -1)
+          echo "passaram=$PASSOU pulados=$PULADOS"
+          [ "${PULADOS:-0}" = "0" ] || { echo "::error::$PULADOS teste(s) pulados — o job ficaria verde sem provar nada"; exit 1; }
+          [ "${PASSOU:-0}" -gt 15 ] || { echo "::error::só $PASSOU teste(s) rodaram; o arquivo não foi coletado"; exit 1; }
 
   contract:
     name: manifesto, tipos e domínio
@@ -330,6 +434,65 @@ jobs:
 
           [ "$FALHOU" = "0" ] || exit 1
           echo "Lego intacto: dois módulos, zero dependência entre eles."
+
+      # ⛔⛔ A FRONTEIRA DA CHAVE-MÃE (Etapa 8).
+      #
+      # `apps/api` roda com `service_role`: ela ignora toda a RLS e enxerga
+      # todos os tenants. `apps/portal` é a interface do CLIENTE. As duas não
+      # podem virar o mesmo deploy, e o jeito de isso acontecer sem ninguém
+      # notar é um `import` inocente.
+      #
+      # A guarda de bundle que já existe pega a string `service_role` no
+      # JavaScript compilado. Esta pega um passo antes: a dependência.
+      - name: a chave-mãe não encosta no app do cliente
+        run: |
+          FALHOU=0
+
+          if grep -rInE "from '@alsham/api'|require\('@alsham/api'\)" apps/portal/src 2>/dev/null; then
+            echo "::error::apps/portal importa @alsham/api — a composição roda com service_role"; FALHOU=1
+          fi
+          if grep -qE '"(@alsham/api|pg)"' apps/portal/package.json; then
+            echo "::error::apps/portal declara a composição ou um driver de banco como dependência"; FALHOU=1
+          fi
+          # Driver de Postgres no app do cliente significa conexão direta —
+          # o portal fala com o banco pela chave publicável, sob RLS.
+          if grep -rInE "from 'pg'|require\('pg'\)" apps/portal/src 2>/dev/null; then
+            echo "::error::apps/portal importa um driver de Postgres direto"; FALHOU=1
+          fi
+          # E os segredos do correio não podem ser lidos de lá.
+          if grep -rInE 'process\.env\.(DATABASE_URL|COURIER_SECRET)' apps/portal 2>/dev/null; then
+            echo "::error::apps/portal lê um segredo que é do servidor de composição"; FALHOU=1
+          fi
+          # O caminho inverso: a composição não pode virar tela.
+          if grep -rInE "from 'next|from 'react" apps/api/src 2>/dev/null; then
+            echo "::error::apps/api importou framework de UI — ele é servidor, não tela"; FALHOU=1
+          fi
+
+          [ "$FALHOU" = "0" ] || exit 1
+          echo "fronteira intacta: a chave-mãe fica do lado do servidor."
+
+      # ⭐ A COMPOSIÇÃO É A ÚNICA — e não pode reimplementar a entrega.
+      #
+      # Se alguém escrever a lógica de tomada, backoff ou idempotência dentro
+      # de `apps/api` "porque era mais rápido", passamos a ter DUAS
+      # implementações da mesma garantia. Este repositório já pagou para saber
+      # o que isso custa: o defeito da Etapa 6 foi corrigido num lugar só
+      # porque só existia um.
+      - name: a composição chama o correio, não o reescreve
+        run: |
+          if grep -rInE 'function (deliverDue|entregarUm|backoffDelayMs|isExhausted|nextAttemptAt)' \
+               apps --include='*.ts' --include='*.tsx'; then
+            echo "::error::a lógica de entrega foi redeclarada em apps/ — ela vive em packages/workflow"; exit 1
+          fi
+          COMP=$(grep -Ev '^\s*(\*|//|/\*)' apps/api/src/composition.ts)
+          echo "$COMP" | grep -Eq 'deliverDue\(' \
+            || { echo "::error::a composição deixou de chamar deliverDue do pacote"; exit 1; }
+          echo "$COMP" | grep -Eq 'eventUsageHook\(' \
+            || { echo "::error::a composição deixou de ligar a cobrança"; exit 1; }
+          echo "$COMP" | grep -Eq 'handleSpendDecision\(' \
+            || { echo "::error::a composição deixou de inscrever o consumidor do Módulo 2"; exit 1; }
+          echo "$COMP" | grep -Eq 'auditSubscription\(' \
+            || { echo "::error::a composição deixou de inscrever a trilha"; exit 1; }
 
       # ⚠️ LEI 7 — BILLING CONTA USO, NÃO DINHEIRO.
       #

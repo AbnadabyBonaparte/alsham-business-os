@@ -89,6 +89,11 @@ async function entregarUm(
   let entregues = 0;
   let jaProcessados = 0;
 
+  // Quem foi marcado nesta rodada e ainda não confirmou entrega. Se o handler
+  // lançar, este é o registro que precisa ser desfeito — senão a reentrega
+  // acha que já tratou.
+  let emVoo: string | null = null;
+
   try {
     for (const sub of interessados) {
       // ⭐ A IDEMPOTÊNCIA MORA AQUI, e não no handler.
@@ -111,10 +116,31 @@ async function entregarUm(
         continue;
       }
 
+      emVoo = sub.consumer;
       await sub.handle(envelope);
+      emVoo = null;
       entregues += 1;
     }
   } catch (err) {
+    // ⭐ DESFAZ O REGISTRO DO CONSUMIDOR QUE LANÇOU.
+    //
+    // Sem isto, a reentrega encontraria `already-processed`, marcaria o evento
+    // como `delivered` e o fato sumiria — com o handler nunca tendo tido
+    // sucesso. Foi o que aconteceu de verdade contra Postgres: três rodadas,
+    // o handler chamado UMA vez, e o evento gravado como entregue.
+    //
+    // Só o que lançou. Quem já entregou continua marcado e não é chamado duas
+    // vezes na reentrega.
+    if (emVoo) {
+      try {
+        await store.unmarkProcessed({ eventId, consumer: emVoo });
+      } catch {
+        // Falhar aqui não pode piorar o diagnóstico do erro original: o evento
+        // vai para `failed` de qualquer forma, e o pior caso é este consumidor
+        // não ser reexecutado — o comportamento que existia antes desta
+        // correção.
+      }
+    }
     return await falhar(record, deps, agora, err);
   }
 
