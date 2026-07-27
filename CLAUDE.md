@@ -11,12 +11,13 @@ Nenhuma linha de código, schema, configuração ou documento nasce aqui sem ant
 
 1. `docs/canon/TAXONOMIA-EMPRESARIAL-ALSHAM.md` — o mapa canônico. É a ÚNICA taxonomia (Sol Único).
 2. `docs/canon/ROADMAP-TECNICO-V1.md` — a ordem de engenharia. Core primeiro, sempre.
-3. `README.md` — as 6 Leis do Projeto.
+3. `docs/canon/CORE-SPEC.md` — o contrato do Lego: como um módulo nasce, se registra, é instalado e conversa. **Se você vai escrever um módulo, esta é a lei.**
+4. `README.md` — as 6 Leis do Projeto.
 
 Antes de decidir de onde minerar uma peça, leia também:
 
-4. `docs/balancos/BALANCO-DE-TECNOLOGIA-BUSINESS-OS.md` — o que o império já tem, com estado **PROVADO · DOSSIÊ · NÃO TEMOS**.
-5. `docs/balancos/BALANCO-SUPABASE.md` — o que cada banco doa; o que é pedreira de schema e o que nunca se reutiliza.
+5. `docs/balancos/BALANCO-DE-TECNOLOGIA-BUSINESS-OS.md` — o que o império já tem, com estado **PROVADO · DOSSIÊ · NÃO TEMOS**.
+6. `docs/balancos/BALANCO-SUPABASE.md` — o que cada banco doa; o que é pedreira de schema e o que nunca se reutiliza.
 
 `docs/historico/` é memória, não canon. Em divergência, o canon vence.
 
@@ -62,28 +63,43 @@ Corolário do roadmap: *cada linha de código escrita para um cliente deve aumen
 
 ---
 
-## 5. ESTADO ATUAL — ETAPA 0 (FUNDAÇÃO)
+## 5. ESTADO ATUAL — ETAPA 1 (O CONTRATO DO CORE)
 
-Este repositório contém **a planta e o esqueleto**. Nenhum código de produto foi escrito.
+### 5.1 Stack — SELADA
 
-- `apps/` e `packages/` contêm **apenas `README.md`**. Sem `package.json` por pacote — isso é da Fase 1.
-- **Nenhuma migration, nenhum client de banco, nenhuma dependência de DB.**
-- A escolha de banco (**Linha A** — TypeScript + Next.js + Supabase/Postgres + Vercel — recomendada no Balanço de Tecnologia §4) está **PENDENTE DE SELO DO DONO**.
+A **Linha A** — **TypeScript + Next.js + Supabase/Postgres + Vercel**, monorepo com pnpm workspaces + turborepo — foi **SELADA pelo dono em 27/07/2026**. Deixa de ser recomendação (Balanço de Tecnologia §4, Balanço Supabase §3) e passa a ser a língua única da plataforma.
 
-**Não crie banco, não toque em Supabase, não adicione segredo enquanto o selo não sair.**
+Consequências que qualquer agente deve respeitar a partir daqui:
+
+- Postgres é o banco. **Não se abre discussão de MySQL/Drizzle neste repositório.**
+- Toda peça minerada vem da coluna PROVADO do Balanço, que é toda Postgres/Supabase.
+- **Nota pendente:** a Carta Magna do ALSHAM Platform Framework™ (repo `alsham-events-os`) ainda descreve a Linha B (MySQL/Drizzle). A **emenda de stack na Carta Magna está pendente** e será feita naquele repositório, não neste. Até lá, para o Business OS, vale o selo acima.
+
+### 5.2 O que existe hoje
+
+- `packages/config` e `packages/core` são pacotes reais (`package.json` + `src/`). **`packages/core` é contrato puro: tipos TypeScript, zero runtime.**
+- Os demais 17 pacotes e os 4 apps continuam **só com `README.md`** — status NÃO INICIADO.
+- `supabase/migrations/0001_core.sql` existe como **ARQUIVO, não aplicado**.
+
+### 5.3 Limites que continuam valendo
+
+- ❌ **Não criar projeto Supabase. Não aplicar migration. Não deployar. Não adicionar segredo.**
+- Migration nasce como arquivo versionado e é revisada em PR. Aplicar é ato do dono.
+- Zero UI e zero app até o Core fechar.
 
 ---
 
 ## 6. ESTRUTURA (não invente pastas)
 
 ```
-docs/canon/       taxonomia + roadmap       — leitura obrigatória
-docs/balancos/    tecnologia + supabase     — de onde minerar
-docs/historico/   catálogo anterior         — memória, não canon
-apps/             admin · portal · store · api
-packages/         core auth organizations permissions workflow billing
-                  notifications documents ai crm finance marketing
-                  legal hr analytics integrations ui sdk config
+docs/canon/            taxonomia + roadmap + core-spec  — leitura obrigatória
+docs/balancos/         tecnologia + supabase            — de onde minerar
+docs/historico/        catálogo anterior                — memória, não canon
+supabase/migrations/   schema versionado                — ARQUIVO; aplicar é ato do dono
+apps/                  admin · portal · store · api
+packages/              core auth organizations permissions workflow billing
+                       notifications documents ai crm finance marketing
+                       legal hr analytics integrations ui sdk config
 ```
 
 Pasta ou conceito novo **exige aprovação do dono**. Simplifique antes de expandir. Reduza antes de criar.

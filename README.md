@@ -42,27 +42,38 @@ Todo módulo: independente, instalável/removível sem recompilar, comunicação
 
 ```
 docs/
-  canon/       taxonomia + roadmap        — leitura obrigatória (VERTEX)
-  balancos/    tecnologia + supabase      — de onde minerar cada peça
-  historico/   catálogo anterior          — memória, não canon
+  canon/       taxonomia + roadmap + core-spec  — leitura obrigatória (VERTEX)
+  balancos/    tecnologia + supabase            — de onde minerar cada peça
+  historico/   catálogo anterior                — memória, não canon
+supabase/
+  migrations/  0001_core.sql                    — ARQUIVO; NÃO APLICADO
 apps/
-  admin/  portal/  store/  api/           — só README, NÃO INICIADO
+  admin/  portal/  store/  api/                 — só README, NÃO INICIADO
 packages/
-  core/ auth/ organizations/ permissions/ workflow/ billing/
+  config/                                       — ✅ CONSTRUÍDO
+  core/                                         — ✅ CONSTRUÍDO (contrato, zero runtime)
+  auth/ organizations/ permissions/ workflow/ billing/
   notifications/ documents/ ai/ crm/ finance/ marketing/
-  legal/ hr/ analytics/ integrations/ ui/ sdk/ config/
-                                          — só README, NÃO INICIADO
+  legal/ hr/ analytics/ integrations/ ui/ sdk/  — só README, NÃO INICIADO
 CLAUDE.md      instruções permanentes para qualquer agente neste repo
 NOTICE.md      propriedade e reserva de direitos
 ```
 
-Cada `README.md` de app e de package declara: o propósito, a fase do roadmap a que pertence, de onde a peça será minerada (com o estado que o Balanço registrou) e o status atual — hoje, **NÃO INICIADO** em todos.
+Cada `README.md` de app e de package declara: o propósito, a fase do roadmap a que pertence, de onde a peça será minerada (com o estado que o Balanço registrou) e o status atual.
 
-## 🏗 Estado da fundação (Etapa 0)
+## 🏗 Estado da obra
 
-O que esta etapa entregou: saneamento da raiz, esqueleto do monorepo, `CLAUDE.md` e governança mínima. **Zero lógica, zero migration, zero client de banco.**
+**Etapa 0 — Fundação** *(mergeada)*: raiz saneada, esqueleto do monorepo, `CLAUDE.md` e governança mínima.
 
-O que esta etapa deliberadamente NÃO fez: a escolha de banco (Linha A recomendada no Balanço de Tecnologia, §4) está **PENDENTE DE SELO DO DONO**. Enquanto não houver selo, nenhuma dependência de banco entra neste repositório.
+**Etapa 1 — O contrato do Core** *(esta etapa)*:
+
+- **Stack SELADA pelo dono em 27/07/2026** — Linha A: TypeScript + Next.js + Supabase/Postgres + Vercel. Deixa de ser recomendação do Balanço e passa a ser a língua única da plataforma.
+- `@alsham/config` — constantes canônicas.
+- `@alsham/core` — **o contrato do Lego**: `ModuleManifest`, `EventEnvelope`, RBAC e auditoria como tipos. Zero runtime.
+- `supabase/migrations/0001_core.sql` — o schema do Core, com `tenant_id` e RLS real em todas as tabelas. **Arquivo; não aplicado.**
+- [`docs/canon/CORE-SPEC.md`](docs/canon/CORE-SPEC.md) — o ciclo de vida de um módulo, que amarra as três peças.
+
+**O que NÃO existe:** o motor. Validador de manifesto, registro em runtime, despachante da caixa de saída e resolvedor de permissão estão **NÃO CONSTRUÍDOS** — a lista honesta está em [CORE-SPEC §5](docs/canon/CORE-SPEC.md). Nenhum projeto Supabase foi criado, nenhuma migration aplicada, nenhum segredo existe aqui.
 
 ---
 
