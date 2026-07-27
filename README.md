@@ -4,7 +4,7 @@
 
 A empresa não compra "um sistema". Ela monta o sistema dela — Core + módulos, como Lego. Cada cliente novo financia um módulo que vira patrimônio da plataforma para todos os próximos.
 
-> **Status: Módulo 1 operável.** O contrato do Lego, o schema (provado em CI contra PostgreSQL 17), o correio de eventos, a contabilidade de uso e as quatro telas do módulo existem.
+> **Status: dois módulos, e o Lego provado.** O Módulo 2 (Campanhas) **reage ao fato do Módulo 1 sem importá-lo, sem ler o schema dele e sem conhecer o correio** — que era a única metade da tese ainda não demonstrada. Existem o contrato do Lego, o schema (provado em CI contra PostgreSQL 17), o correio de eventos, a contabilidade de uso e cinco telas.
 >
 > **O que ainda não está de pé:** o correio está construído e testado, mas **não ligado** — sem o job rodando, todo evento fica em `pending`. Não há preço, gateway, nem deploy configurado neste repositório. O dono informou ter aplicado `0001`, `0002` e o seed num Supabase de produção em 27/07/2026; **este repositório não verificou esse apply** e o registra como tal. Nada daqui é promessa pública (Lei 7).
 
@@ -45,27 +45,30 @@ Todo módulo: independente, instalável/removível sem recompilar, comunicação
 ```
 docs/
   canon/       taxonomia · roadmap · core-spec · identidade-visual
-               · modulo-recon-spec              — leitura obrigatória (VERTEX)
+               · modulo-recon-spec · modulo-marketing-spec
+                                                — leitura obrigatória (VERTEX)
   balancos/    tecnologia + supabase            — de onde minerar cada peça
   historico/   catálogo anterior                — memória, não canon
 supabase/
   migrations/  0001_core · 0002_recon           — APLICADAS em produção; não editar
-               0003_billing                     — arquivo; aplicar é ato do dono
+               0003_billing · 0004_marketing    — arquivo; aplicar é ato do dono
   seed/        0001_platform.sql                — catálogo, idempotente
-  tests/       shim + isolamento multi-tenant   — só CI, nunca no Supabase real
+  tests/       shim · isolamento · uso · consumo entre módulos
+                                                — só CI, nunca no Supabase real
 docs/runbook/  APLICAR.md                       — passo a passo para o dono aplicar
 .github/scripts/ guarda de defasagem de documento — o CI barra doc que envelheceu
 apps/
-  portal/                                       — ✅ CONSTRUÍDO (login + 4 telas)
+  portal/                                       — ✅ CONSTRUÍDO (login + 5 telas)
   admin/  store/  api/                          — só README, NÃO INICIADO
 packages/
   config/                                       — ✅ CONSTRUÍDO
   core/                                         — ✅ CONSTRUÍDO (contrato, zero runtime)
   finance-reconciliation/                       — ✅ CONSTRUÍDO (Módulo 1)
+  marketing/                                    — ✅ CONSTRUÍDO (Módulo 2 — prova o Lego)
   workflow/                                     — ✅ CONSTRUÍDO (o correio do Core)
   billing/                                      — ✅ CONSTRUÍDO (uso, sem preço)
   auth/ organizations/ permissions/
-  notifications/ documents/ ai/ crm/ finance/ marketing/
+  notifications/ documents/ ai/ crm/ finance/
   legal/ hr/ analytics/ integrations/ ui/ sdk/  — só README, NÃO INICIADO
 CLAUDE.md      instruções permanentes para qualquer agente neste repo
 NOTICE.md      propriedade e reserva de direitos
@@ -123,6 +126,14 @@ Cada `README.md` de app e de package declara: o propósito, a fase do roadmap a 
 - **`@alsham/billing` — contabilidade de uso.** `usage_ledger` + leitura de limite, minerados do kraken-v2. **Sem preço** — preço é decisão do dono (Lei 7), e há guarda no CI.
 - `supabase/migrations/0003_billing.sql` — o livro-caixa, com isolamento de uso entre tenants provado no CI.
 - **ENGINE, não módulo:** o correio é serviço compartilhado (Taxonomia §4) — não aparece na Store.
+
+**Etapa 7 — O segundo módulo** *(esta etapa)*: a tese do Lego deixa de ser afirmação sobre o futuro.
+
+- **`@alsham/marketing` — o Módulo 2.** Campanhas: planejar, agendar, publicar, encerrar, medir. Schema `marketing` próprio, RLS forçada, porta única de saída.
+- ⭐ **Ele CONSOME `recon.approval.decided`** — e é a primeira vez que um módulo reage ao fato de outro. **Sem importá-lo, sem join no schema dele, sem declará-lo em `package.json`, sem conhecer o correio.** O acoplamento é com o *tipo do evento*: contrato público, como um cabeçalho HTTP.
+- **Provado nos dois níveis:** o correio de verdade entregando ao handler de verdade (TypeScript), e o efeito no banco de verdade — o fato entra uma vez, a reentrega não repete, e a decisão de um tenant não carimba a campanha do outro.
+- **A cobrança pegou o módulo novo de graça:** nada foi escrito em `@alsham/billing`, porque ela conta **evento**, não módulo.
+- **Guarda nova no CI — "módulo não conhece módulo"** — reprova import, dependência declarada e acesso a schema alheio. Sabotada nas três formas antes de entrar.
 
 **O que NÃO existe** — o estado corrente vive em [CORE-SPEC §5](docs/canon/CORE-SPEC.md) e [MODULO-RECON-SPEC §7](docs/canon/MODULO-RECON-SPEC.md), e há guarda no CI contra essas duas seções envelhecerem:
 

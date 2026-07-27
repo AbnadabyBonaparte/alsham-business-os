@@ -83,6 +83,12 @@ jobs:
       - name: aplicar 0003_billing.sql
         run: $PSQL -f supabase/migrations/0003_billing.sql
 
+      # `0001` e `0002` estão CONGELADAS (CLAUDE.md §5.4.1) — aplicadas em
+      # produção. O CI segue aplicando do zero, e é justamente por isso que ele
+      # NÃO detectaria uma edição nelas: correção é migration nova.
+      - name: aplicar 0004_marketing.sql
+        run: $PSQL -f supabase/migrations/0004_marketing.sql
+
       # ---------------------------------------------------------------------
       # 2. SEED — e a prova de que reaplicar não muda nada
       # ---------------------------------------------------------------------
@@ -110,12 +116,12 @@ jobs:
           FALTA=$($PSQL -tAc "
             select coalesce(string_agg(n.nspname||'.'||c.relname, ', '), '')
               from pg_class c join pg_namespace n on n.oid = c.relnamespace
-             where n.nspname in ('core','recon') and c.relkind = 'r'
+             where n.nspname in ('core','recon','marketing') and c.relkind = 'r'
                and (not c.relrowsecurity or not c.relforcerowsecurity);")
           [ -z "$FALTA" ] || { echo "::error::sem RLS enable+force: $FALTA"; exit 1; }
           $PSQL -c "select n.nspname as schema, count(*) as tabelas
                       from pg_class c join pg_namespace n on n.oid=c.relnamespace
-                     where n.nspname in ('core','recon') and c.relkind='r'
+                     where n.nspname in ('core','recon','marketing') and c.relkind='r'
                      group by 1 order by 1;"
 
       - name: nenhuma policy USING (true)
@@ -125,7 +131,7 @@ jobs:
               from pg_policy p
               join pg_class c on c.oid = p.polrelid
               join pg_namespace n on n.oid = c.relnamespace
-             where n.nspname in ('core','recon')
+             where n.nspname in ('core','recon','marketing')
                and pg_get_expr(p.polqual, p.polrelid) = 'true';")
           [ -z "$ABERTAS" ] || { echo "::error::policy aberta (lição paga do suna-core): $ABERTAS"; exit 1; }
 
@@ -136,7 +142,7 @@ jobs:
                              where n.nspname='public' and c.relkind='r';")
           [ "$PUB" = "0" ] || { echo "::error::$PUB tabela(s) em public — expostas via API"; exit 1; }
           ANON=$($PSQL -tAc "select count(*) from information_schema.role_table_grants
-                              where grantee='anon' and table_schema in ('core','recon');")
+                              where grantee='anon' and table_schema in ('core','recon','marketing');")
           [ "$ANON" = "0" ] || { echo "::error::anon tem $ANON grant(s) no Business OS"; exit 1; }
 
       - name: o seed não semeou tenant nem usuário
@@ -155,6 +161,19 @@ jobs:
       # concorrente lendo o volume de operação do vizinho.
       - name: teste de isolamento da contabilidade de uso
         run: $PSQL -f supabase/tests/02_usage_isolation.sql
+
+      # ⭐ A PROVA DA ETAPA 7, no banco e não só no TypeScript.
+      #
+      # Os testes do pacote provam a LÓGICA do consumo com uma projeção de
+      # mentira. Este prova o EFEITO: o fato entra uma vez, a reentrega não
+      # repete, a decisão de um tenant não carimba a campanha do outro, e o
+      # cliente não consegue forjar a própria aprovação de verba.
+      #
+      # A terceira importa porque `record_spend_decision` é SECURITY DEFINER —
+      # e função SECURITY DEFINER escrita sem cuidado é exatamente como se
+      # atravessa a RLS sem perceber.
+      - name: teste do consumo entre módulos (Módulo 2)
+        run: $PSQL -f supabase/tests/03_marketing_consumption.sql
 
   contract:
     name: manifesto, tipos e domínio
@@ -240,6 +259,77 @@ jobs:
           IMPORTA=$(grep -Ev '^\s*(\*|//|/\*)' apps/portal/src/app/actions.ts)
           echo "$IMPORTA" | grep -Eq 'parseStatement\(' \
             || { echo "::error::a importação deixou de usar o parser do pacote — ler extrato é regra de negócio"; exit 1; }
+
+          # Módulo 2: a máquina de estados da campanha é DECISÃO, e decisão
+          # mora no pacote. Escrever `if (status === 'draft')` numa Server
+          # Action é o jeito mais provável de a regra migrar para a pele.
+          if grep -rInE 'function (planTransition|canTransition|budgetStatusFor)' \
+               apps --include='*.ts' --include='*.tsx'; then
+            echo "::error::a máquina de estados da campanha foi redeclarada em apps/"; exit 1
+          fi
+          MKT=$(grep -Ev '^\s*(\*|//|/\*)' apps/portal/src/app/marketing-actions.ts)
+          echo "$MKT" | grep -Eq 'planTransition\(' \
+            || { echo "::error::a ação de campanha deixou de chamar o motor do pacote"; exit 1; }
+          echo "$MKT" | grep -Eq 'budgetStatusFor\(' \
+            || { echo "::error::a ação deixou de consultar a projeção de verba do pacote"; exit 1; }
+
+          # E a tela não pode reinventar a regra de verba com um `if` próprio.
+          if grep -rInE "budgetStatus\s*===?\s*'approved'" \
+               apps/portal/src/app apps/portal/src/lib --include='*.ts' --include='*.tsx'; then
+            echo "::error::a regra de liberação de verba apareceu em apps/ — ela é settings do tenant, decidida no pacote"; exit 1
+          fi
+
+      # ⭐⭐ A LEI DO LEGO, VERIFICADA (CLAUDE.md §5.5, regras 3 e 5).
+      #
+      # A Etapa 7 pôs dois módulos conversando. A tese inteira da plataforma é
+      # que eles conversam **por contrato** e não **por código** — e a diferença
+      # entre as duas coisas é literalmente um `import` que ninguém revisa.
+      #
+      # Um `import type` do outro módulo compilaria, passaria nos testes e
+      # pareceria inofensivo. E aí desinstalar um módulo quebraria o outro, que
+      # é exatamente o que a Store não pode permitir.
+      - name: módulo não conhece módulo
+        run: |
+          FALHOU=0
+
+          # 1. Nenhum módulo importa outro módulo, em nenhuma forma.
+          for MOD in finance-reconciliation marketing; do
+            for OUTRO in finance-reconciliation marketing; do
+              [ "$MOD" = "$OUTRO" ] && continue
+              if grep -rInE "from '@alsham/$OUTRO'|require\('@alsham/$OUTRO'\)" \
+                   "packages/$MOD/src" 2>/dev/null; then
+                echo "::error::@alsham/$MOD importa @alsham/$OUTRO — módulo não depende de módulo"
+                FALHOU=1
+              fi
+            done
+          done
+
+          # 2. E nem pelo package.json: dependência declarada é dependência.
+          #    `devDependencies` de teste também não vale — se o teste precisa
+          #    do outro módulo, o acoplamento é real.
+          for MOD in finance-reconciliation marketing; do
+            if grep -qE '"@alsham/(finance-reconciliation|marketing)"' \
+                 <(grep -v "\"@alsham/$MOD\"" "packages/$MOD/package.json"); then
+              echo "::error::packages/$MOD declara outro módulo como dependência"
+              FALHOU=1
+            fi
+          done
+
+          # 3. Nenhum schema de módulo toca o schema de outro no SQL.
+          #    Lê CÓDIGO, não prosa: os comentários dos dois arquivos explicam
+          #    justamente esta regra, e citam o nome do outro schema ao fazê-lo.
+          for PAR in "0002_recon.sql:marketing" "0004_marketing.sql:recon"; do
+            ARQ="supabase/migrations/${PAR%%:*}"; ALHEIO="${PAR##*:}"
+            CODIGO=$(sed 's/--.*//' "$ARQ")
+            if echo "$CODIGO" | grep -qE "\b$ALHEIO\."; then
+              echo "::error::$ARQ acessa o schema $ALHEIO — projeção local, nunca join"
+              echo "$CODIGO" | grep -nE "\b$ALHEIO\." | head -5
+              FALHOU=1
+            fi
+          done
+
+          [ "$FALHOU" = "0" ] || exit 1
+          echo "Lego intacto: dois módulos, zero dependência entre eles."
 
       # ⚠️ LEI 7 — BILLING CONTA USO, NÃO DINHEIRO.
       #

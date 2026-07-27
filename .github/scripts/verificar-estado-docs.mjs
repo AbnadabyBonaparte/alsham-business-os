@@ -93,6 +93,23 @@ export const PECAS = [
     onde: 'packages/workflow/src/courier.ts',
   },
   {
+    nome: 'Módulo 2 — Campanhas de Marketing',
+    detector: [
+      'packages/marketing/src/manifest.ts',
+      'packages/marketing/src/spend-approval.ts',
+      'supabase/migrations/0004_marketing.sql',
+    ],
+    // O pacote existia como README vazio desde a Etapa 0, declarado
+    // NÃO INICIADO em três documentos. Construí-lo sem apagar essas linhas era
+    // exatamente o defeito que esta guarda nasceu para pegar.
+    //
+    // As 12 capacidades que o módulo NÃO implementa (calendário, social media,
+    // e-mail marketing…) seguem podendo ser declaradas ausentes: elas não
+    // casam com este padrão, que exige o nome do pacote ou "Módulo 2".
+    padrao: /(m[óo]dulo 2|packages\/marketing|@alsham\/marketing)/i,
+    onde: 'packages/marketing/',
+  },
+  {
     nome: 'Contabilidade de uso',
     detector: ['packages/billing/src/usage.ts'],
     // Preço, fatura e gateway seguem não construídos DE PROPÓSITO (Lei 7) —
@@ -116,6 +133,7 @@ export const APLICADAS = {
 const SECOES = [
   { arquivo: 'docs/canon/CORE-SPEC.md', titulo: '## 5. ESTADO DA OBRA' },
   { arquivo: 'docs/canon/MODULO-RECON-SPEC.md', titulo: '## 7. ESTADO DA OBRA' },
+  { arquivo: 'docs/canon/MODULO-MARKETING-SPEC.md', titulo: '## 6. ESTADO DA OBRA' },
 ];
 
 /**

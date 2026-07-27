@@ -160,6 +160,71 @@ select r.id, r.key, p.permission_key, 'recon'
 on conflict (role_id, permission_key) do nothing;
 
 -- =============================================================================
+-- 4.1 O MÓDULO `marketing` NO CATÁLOGO DA STORE
+-- Transcrito de packages/marketing/src/manifest.ts.
+-- -----------------------------------------------------------------------------
+-- ⚠️ Mesma regra do `recon`: este bloco e o `MANIFEST` do pacote andam juntos,
+-- e há teste no CI que compara os dois.
+--
+-- ⭐ **A diferença que este bloco marca:** `events_consumes` NÃO está vazio.
+-- Este é o primeiro módulo do catálogo que escuta o fato de outro — e a Store
+-- pode dizer isso ao cliente porque o handler existe e é testado (Lei 7).
+--
+-- `status = 'published'` com UMA capacidade só. As outras 12 do Domain
+-- Marketing não aparecem porque não existem — e listá-las seria vender o que
+-- não está construído.
+-- =============================================================================
+
+insert into core.module_registry (
+  module_id, name, version, summary,
+  layer, domain_key,
+  capabilities, permissions, events_emits, events_consumes, agents,
+  requires_core, status
+)
+values (
+  'marketing',
+  'Campanhas de Marketing',
+  '0.1.0',
+  'Planeja, agenda, publica e mede campanhas — e fica sabendo da verba aprovada sem ninguém precisar avisar.',
+  'domain', 'marketing',
+  '[
+     {"key":"campaigns","canonicalName":"Campanhas"}
+   ]'::jsonb,
+  '[
+     {"key":"marketing.campaign.manage","moduleId":"marketing","description":"Criar e editar campanhas, peças e agendamento."},
+     {"key":"marketing.campaign.publish","moduleId":"marketing","description":"Pôr campanha no ar, encerrar e cancelar."},
+     {"key":"marketing.result.record","moduleId":"marketing","description":"Registrar o resultado medido de uma campanha."}
+   ]'::jsonb,
+  '[
+     {"type":"marketing.campaign.published","version":1,"description":"Uma campanha entrou no ar, com a verba e o público que tinha no momento."},
+     {"type":"marketing.campaign.completed","version":1,"description":"Uma campanha cumpriu seu ciclo e foi encerrada."},
+     {"type":"marketing.campaign.cancelled","version":1,"description":"Uma campanha foi cancelada — a ação destrutiva deste módulo. Some da operação, nunca da trilha."}
+   ]'::jsonb,
+  -- ⭐ O consumo declarado. Só está aqui porque o handler EXISTE.
+  '[
+     {"type":"recon.approval.decided","version":1,"description":"Uma decisão financeira foi visada por um humano. Quando a referência bate com a verba de uma campanha, a campanha fica sabendo."}
+   ]'::jsonb,
+  '[]'::jsonb,
+  '0.0.x',
+  'published'
+)
+on conflict (module_id) do nothing;
+
+-- As permissões do módulo `marketing` no papel `admin`, pelo mesmo motivo
+-- provisório do bloco 4: o instalador em runtime está NÃO CONSTRUÍDO.
+insert into core.role_permissions (role_id, role_key, permission_key, module_id)
+select r.id, r.key, p.permission_key, 'marketing'
+  from core.roles r
+ cross join (values
+   ('marketing.campaign.manage'),
+   ('marketing.campaign.publish'),
+   ('marketing.result.record')
+ ) as p(permission_key)
+ where r.tenant_id is null
+   and r.key = 'admin'
+on conflict (role_id, permission_key) do nothing;
+
+-- =============================================================================
 -- 5. PLANOS-BASE
 -- Minerado de: `plan_limits` (5 planos) do kraken-v2 (PROVADO em produção).
 -- -----------------------------------------------------------------------------

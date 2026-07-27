@@ -1,0 +1,28 @@
+{
+  "name": "@alsham/marketing",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "files": [
+    "src"
+  ],
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "node --test src/**/*.test.ts"
+  },
+  "dependencies": {
+    "@alsham/core": "workspace:*"
+  },
+  "devDependencies": {
+    "@alsham/workflow": "workspace:*",
+    "@types/node": "^22.10.2",
+    "typescript": "^5.7.2",
+    "@alsham/billing": "workspace:*"
+  },
+  "description": "Módulo 2 — Campanhas de Marketing. Domínio puro: máquina de estados da campanha e o consumo do fato de outro módulo."
+}
