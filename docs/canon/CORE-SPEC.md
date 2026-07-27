@@ -10,9 +10,9 @@
 |---|---|
 | `packages/config` | as constantes canônicas — o que a empresa é |
 | `packages/core` | os **tipos** que todo módulo obedece — zero runtime |
-| `supabase/migrations/0001_core.sql` | o **schema** que sustenta esses tipos — arquivo, não aplicado |
+| `supabase/migrations/0001_core.sql` | o **schema** que sustenta esses tipos — **aplicado em produção** (§5) |
 
-> **Lei 7:** nada aqui está no ar. Este documento descreve o contrato construído nesta etapa, não uma plataforma em produção. O que ainda não existe está marcado como **NÃO CONSTRUÍDO**.
+> **Lei 7:** o que ainda não existe está marcado como **NÃO CONSTRUÍDO**, e o estado corrente de cada peça está em **[§5](#5-estado-da-obra--o-que-existe-e-o-que-não-existe)** — que é atualizado a cada etapa, não congelado na etapa que escreveu este documento.
 
 ---
 
@@ -137,29 +137,38 @@ O ator não é sempre humano: `user`, `agent` (doutrina da Casa — agente embar
 
 ---
 
-## 5. O QUE ESTA ETAPA **NÃO** CONSTRUIU
+## 5. ESTADO DA OBRA — o que existe e o que não existe
 
-Honestidade de escopo (Lei 7). Existe **contrato**; não existe **motor**.
+Honestidade de escopo (Lei 7). **Esta seção é do repositório, não da etapa que escreveu este documento** — quem entregar uma peça atualiza a linha dela aqui, e há guarda no CI contra deixá-la envelhecer.
+
+*Conferido em 27/07/2026, depois da Etapa 6.*
 
 | Peça | Estado |
 |---|---|
 | Tipos do Core (`@alsham/core`) | ✅ construído — zero runtime, só tipos |
 | Constantes canônicas (`@alsham/config`) | ✅ construído |
-| Schema do Core (`0001_core.sql`) | ✅ **arquivo**; **NÃO APLICADO** |
-| Validador de manifesto | **NÃO CONSTRUÍDO** |
-| Registro de módulo em runtime | **NÃO CONSTRUÍDO** |
-| Despachante da caixa de saída (job de entrega) | **NÃO CONSTRUÍDO** |
-| Resolvedor de permissão em runtime | **NÃO CONSTRUÍDO** |
-| Cliente de banco / SDK | **NÃO CONSTRUÍDO** |
-| Qualquer UI | **NÃO CONSTRUÍDO** — zero UI até o Core fechar |
+| Schema do Core (`0001_core.sql`) | ✅ **APLICADO em produção** — ver aviso abaixo |
+| Contabilidade de uso (`0003_billing.sql` + `@alsham/billing`) | ✅ construído — **arquivo, ainda não aplicado**. Sem preço (Lei 7) |
+| **Despachante da caixa de saída** (`@alsham/workflow`) | ✅ **CONSTRUÍDO** — idempotência por consumidor e backoff, 15 testes. ⚠️ **NÃO LIGADO**: sem o job rodando (runbook §6), todo evento fica em `pending` |
+| UI | ✅ construída — `apps/portal`: login e quatro telas do Módulo 1 |
+| Validador de manifesto | **NÃO CONSTRUÍDO** — hoje o manifesto é conferido por tipo em build, nunca em runtime |
+| Registro / instalador de módulo em runtime | **NÃO CONSTRUÍDO** — por isso o seed já põe as permissões do `recon` no papel `admin` |
+| Resolvedor de permissão em runtime | **NÃO CONSTRUÍDO** — quem barra hoje é a **RLS no banco**, não código de aplicação |
+| SDK (`@alsham/sdk`) | **NÃO INICIADO** — `apps/portal` fala com o banco pelo adaptador dele |
 
-Nenhum projeto Supabase foi criado. Nenhuma migration foi aplicada. Nenhum segredo existe no repositório.
+### ⛔ O apply de produção já aconteceu
+
+O dono informou em 27/07/2026 ter aplicado `0001_core.sql`, `0002_recon.sql` e o seed num projeto Supabase de produção, com um tenant piloto. **Este repositório NÃO VERIFICOU esse apply** — nenhum agente daqui conecta a banco remoto com dado de cliente.
+
+Verificado ou não, a regra que ele cria vale desde já: **`0001` e `0002` não se editam mais.** Arquivo aplicado é história; corrigir no lugar faz o próximo ambiente nascer diferente da produção sem ninguém perceber. Correção é migration nova — a próxima é `0004_*.sql`.
+
+Nenhum segredo existe no repositório.
 
 ---
 
-## 6. O QUE A ETAPA 2 FARÁ — *lista, não obra*
+## 6. O PLANO QUE A ETAPA 1 DEIXOU ESCRITO — *lista, não obra*
 
-> Esta seção **lista** o próximo passo. Nada dela foi construído nesta etapa.
+> **Registro histórico, não estado.** Esta seção é a lista que a Etapa 1 fez do que viria a seguir; parte dela foi construída depois (a conciliação, o reentregador, o `usage_ledger`), parte não (o motor de pagamento, o preço). **O estado corrente é o [§5](#5-estado-da-obra--o-que-existe-e-o-que-não-existe), sempre** — nada aqui deve ser lido como promessa em aberto.
 
 ### 6.1 Billing minerado da Casa
 
@@ -187,7 +196,7 @@ O primeiro módulo de produto sobre o Core — e o teste real do contrato: se el
 
 Fica registrado para não virar decisão por omissão:
 
-- aplicar `0001_core.sql` num projeto Supabase — **ato do dono**;
+- ~~aplicar `0001_core.sql` num projeto Supabase — **ato do dono**~~ → **feito pelo dono em 27/07/2026** (§5). A migration passa a ser história e não se edita;
 - a emenda de stack na Carta Magna do `alsham-events-os`, que ainda descreve a Linha B (MySQL/Drizzle) — **pendente, e naquele repositório**;
 - as pendências de sonda que os próprios Balanços abriram: onde vivem os prompts do Cognitive Mirror, a faxina do `system_health_log`, o banco real do kraken-v2.
 

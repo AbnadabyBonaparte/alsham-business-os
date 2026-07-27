@@ -23,7 +23,9 @@
 
 Não tem UI. Não abre conexão de banco. Não chama rede. **Não importa nenhum outro módulo** — a única dependência é `@alsham/core`, que é contrato de tipos e nem runtime tem.
 
-O parser de OFX/CSV, a persistência e as telas estão **NÃO CONSTRUÍDOS** (Etapa 3).
+O **parser de OFX/CSV mora aqui** (`src/parsing/`, 35 testes) — ler extrato é decidir o que é data, valor e sinal, e isso é regra de negócio, não tela. O que ele recebe é texto e o que devolve é domínio: não abre arquivo, não lê disco.
+
+Fora daqui, e de propósito: as **telas** (`apps/portal`) e o **adaptador de banco** (`apps/portal/src/lib/data/`). Leitor de **CAMT.053**: **NÃO CONSTRUÍDO** — o parser recusa com mensagem clara em vez de tentar adivinhar.
 
 ---
 

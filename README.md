@@ -4,7 +4,9 @@
 
 A empresa não compra "um sistema". Ela monta o sistema dela — Core + módulos, como Lego. Cada cliente novo financia um módulo que vira patrimônio da plataforma para todos os próximos.
 
-> **Status: Módulo 1 operável.** O contrato do Lego, o schema (provado em CI contra PostgreSQL 17) e as duas primeiras telas existem. **Nada está no ar:** nenhum projeto Supabase foi criado e nenhum deploy foi feito. Nada daqui é promessa pública (Lei 7).
+> **Status: Módulo 1 operável.** O contrato do Lego, o schema (provado em CI contra PostgreSQL 17), o correio de eventos, a contabilidade de uso e as quatro telas do módulo existem.
+>
+> **O que ainda não está de pé:** o correio está construído e testado, mas **não ligado** — sem o job rodando, todo evento fica em `pending`. Não há preço, gateway, nem deploy configurado neste repositório. O dono informou ter aplicado `0001`, `0002` e o seed num Supabase de produção em 27/07/2026; **este repositório não verificou esse apply** e o registra como tal. Nada daqui é promessa pública (Lei 7).
 
 ---
 
@@ -47,10 +49,12 @@ docs/
   balancos/    tecnologia + supabase            — de onde minerar cada peça
   historico/   catálogo anterior                — memória, não canon
 supabase/
-  migrations/  0001_core · 0002_recon · 0003_billing — provadas em CI; aplicar é ato do dono
+  migrations/  0001_core · 0002_recon           — APLICADAS em produção; não editar
+               0003_billing                     — arquivo; aplicar é ato do dono
   seed/        0001_platform.sql                — catálogo, idempotente
   tests/       shim + isolamento multi-tenant   — só CI, nunca no Supabase real
 docs/runbook/  APLICAR.md                       — passo a passo para o dono aplicar
+.github/scripts/ guarda de defasagem de documento — o CI barra doc que envelheceu
 apps/
   portal/                                       — ✅ CONSTRUÍDO (login + 4 telas)
   admin/  store/  api/                          — só README, NÃO INICIADO
@@ -78,7 +82,7 @@ Cada `README.md` de app e de package declara: o propósito, a fase do roadmap a 
 - **Stack SELADA pelo dono em 27/07/2026** — Linha A: TypeScript + Next.js + Supabase/Postgres + Vercel. Deixa de ser recomendação do Balanço e passa a ser a língua única da plataforma.
 - `@alsham/config` — constantes canônicas.
 - `@alsham/core` — **o contrato do Lego**: `ModuleManifest`, `EventEnvelope`, RBAC e auditoria como tipos. Zero runtime.
-- `supabase/migrations/0001_core.sql` — o schema do Core, com `tenant_id` e RLS real em todas as tabelas. **Arquivo; não aplicado.**
+- `supabase/migrations/0001_core.sql` — o schema do Core, com `tenant_id` e RLS real em todas as tabelas. **Hoje aplicado em produção — não se edita mais.**
 - [`docs/canon/CORE-SPEC.md`](docs/canon/CORE-SPEC.md) — o ciclo de vida de um módulo, que amarra as três peças.
 
 **Etapa 2 — O primeiro módulo** *(esta etapa)*: **Conciliação & Aprovações** — o Módulo 1, que prova o Lego.
@@ -120,7 +124,13 @@ Cada `README.md` de app e de package declara: o propósito, a fase do roadmap a 
 - `supabase/migrations/0003_billing.sql` — o livro-caixa, com isolamento de uso entre tenants provado no CI.
 - **ENGINE, não módulo:** o correio é serviço compartilhado (Taxonomia §4) — não aparece na Store.
 
-**O que NÃO existe:** o motor de execução. Validador de manifesto, registro em runtime, despachante da caixa de saída e resolvedor de permissão seguem **NÃO CONSTRUÍDOS** ([CORE-SPEC §5](docs/canon/CORE-SPEC.md)); no módulo, faltam UI, parser de OFX/CSV e persistência ([MODULO-RECON-SPEC §7](docs/canon/MODULO-RECON-SPEC.md)). Nenhum projeto Supabase foi criado, nenhuma migration aplicada, nenhum segredo existe aqui.
+**O que NÃO existe** — o estado corrente vive em [CORE-SPEC §5](docs/canon/CORE-SPEC.md) e [MODULO-RECON-SPEC §7](docs/canon/MODULO-RECON-SPEC.md), e há guarda no CI contra essas duas seções envelhecerem:
+
+- **O correio não está ligado.** A lógica existe e é testada; enquanto o job não roda ([runbook §6](docs/runbook/APLICAR.md)), todo evento fica em `pending`.
+- Do motor do Core, seguem **NÃO CONSTRUÍDOS** o validador de manifesto, o registro de módulo em runtime e o resolvedor de permissão — hoje quem barra acesso é a **RLS no banco**.
+- Sem **preço**, sem gateway de pagamento, sem fatura (Lei 7 — decisão do dono, com números medidos).
+- Sem leitor de **CAMT.053**, sem rateio N↔M, sem instalador de módulo.
+- **Nenhum segredo existe aqui**, e não há deploy configurado neste repositório.
 
 ---
 

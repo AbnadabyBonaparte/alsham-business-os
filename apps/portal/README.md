@@ -137,9 +137,9 @@ src/
 
 | Peça | Estado |
 |---|---|
-| Job que entrega `core.event_outbox` | **NÃO CONSTRUÍDO** — fechar grava o evento, mas ele fica `pending` na caixa |
+| Job que entrega `core.event_outbox` | lógica ✅ **construída** (`@alsham/workflow`), mas **NÃO LIGADA** — fechar grava o evento e ele fica `pending` na caixa até o dono ligar o correio (runbook §6) |
 | Convite de usuário pela tela | **NÃO CONSTRUÍDO** — o vínculo é criado no banco |
 | Edição de `settings` pela tela | **NÃO CONSTRUÍDA** — hoje é JSON no banco |
 | Leitor de CAMT.053 | **NÃO CONSTRUÍDO** — o parser diz isso em vez de tentar |
 | TanStack Query v5 | **não usado** — as telas são server components; entra quando houver estado de cliente que justifique |
-| Cobrança (billing) | **NÃO CONSTRUÍDO** — Etapa 6 |
+| Tela de consumo (billing) | **NÃO CONSTRUÍDA** — a contabilidade de uso existe em `@alsham/billing`; falta o rosto dela aqui |

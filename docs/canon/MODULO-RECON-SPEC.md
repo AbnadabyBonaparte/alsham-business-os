@@ -12,10 +12,11 @@
 
 | Peça | O que é |
 |---|---|
-| `packages/finance-reconciliation/` | manifesto + tipos + motor de sugestão (domínio puro) |
-| `supabase/migrations/0002_recon.sql` | schema `recon` — **arquivo, não aplicado** |
+| `packages/finance-reconciliation/` | manifesto + tipos + motor de sugestão + parser de OFX/CSV (domínio puro) |
+| `supabase/migrations/0002_recon.sql` | schema `recon` — **aplicado em produção** (§7) |
+| `apps/portal/` | as quatro telas do módulo — importar, conciliar, aprovar, fechar |
 
-> **Lei 7:** nada aqui está no ar. O que não foi construído está marcado **NÃO CONSTRUÍDO**.
+> **Lei 7:** o que não foi construído está marcado **NÃO CONSTRUÍDO**, e o estado corrente de cada peça está em **[§7](#7-estado-da-obra--o-que-existe-e-o-que-não-existe)** — atualizado a cada etapa, não congelado na etapa que escreveu este documento.
 
 ---
 
@@ -185,24 +186,40 @@ A pergunta em cada coluna: *"outra empresa do mesmo setor usaria isso exatamente
 
 ---
 
-## 7. O QUE ESTA ETAPA **NÃO** CONSTRUIU
+## 7. ESTADO DA OBRA — o que existe e o que não existe
+
+**Esta seção é do módulo, não da etapa que a escreveu.** Quem entregar uma peça atualiza a linha dela aqui; há guarda no CI contra deixá-la envelhecer.
+
+*Conferido em 27/07/2026, depois da Etapa 6.*
 
 | Peça | Estado |
 |---|---|
 | Manifesto, tipos do domínio, motor de sugestão | ✅ construído, com testes |
-| Schema `recon` (`0002_recon.sql`) | ✅ **arquivo**; **NÃO APLICADO** |
-| Qualquer UI | **NÃO CONSTRUÍDO** — Etapa 3 |
-| Parser de OFX / CSV / CAMT.053 | **NÃO CONSTRUÍDO** |
-| Persistência (repositório, cliente de banco) | **NÃO CONSTRUÍDO** |
-| Handler que consome `finance.payable.registered` | **NÃO CONSTRUÍDO** |
+| Schema `recon` (`0002_recon.sql`) | ✅ **APLICADO em produção** — ver aviso abaixo |
+| UI | ✅ construída — quatro telas em `apps/portal` |
+| Parser de OFX e CSV | ✅ construído em `packages/finance-reconciliation/src/parsing/`, com 35 testes. Ler extrato é regra de negócio, não tela |
+| Parser de CAMT.053 | **NÃO CONSTRUÍDO** — e o parser **diz isso** em vez de tentar adivinhar |
+| Handler que consome `finance.payable.registered` | **NÃO CONSTRUÍDO** — por isso `manifest.events.consumes` segue **vazio** (§5) |
 | Rateio automático (N linhas ↔ M títulos) | **NÃO CONSTRUÍDO** — hoje a sugestão é 1:1 |
 | IA que aprende padrões e explica divergência | **NÃO CONSTRUÍDO** — Fase 8 |
 
 Sobre o 1:1: a escolha é honesta, não ingênua. O schema **permite** baixa parcial e muitos-para-muitos, e o humano pode montar isso na tela. O que a sugestão automática não faz é adivinhar rateio — combinar N linhas com M títulos multiplica o risco de sugerir bobagem com cara de certeza.
 
+### ⛔ O apply de produção já aconteceu
+
+O dono informou em 27/07/2026 ter aplicado `0002_recon.sql` num projeto Supabase de produção, com um tenant piloto. **Este repositório NÃO VERIFICOU esse apply.** A regra que ele cria vale desde já: **`0002` não se edita mais** — correção é migration nova, a partir de `0004_*.sql`.
+
+### ⚠️ Dívida registrada: onde mora a persistência
+
+A §8.2 previa *"camada de persistência do módulo (repositório sobre o schema `recon`)"*. **Não foi isso que aconteceu.** A Etapa 5 pôs o adaptador de banco em `apps/portal/src/lib/data/supabase.ts`, atrás de uma porta (`port.ts`) que o domínio não conhece.
+
+Não é violação da Regra de Ouro — adaptador é I/O, não regra de negócio, e o motor continua puro. **Mas é dívida:** o dia em que `apps/api` precisar dos mesmos dados, ou o adaptador vira pacote, ou nasce um segundo, e dois adaptadores divergem em silêncio. Fica registrado para ser decisão, não descuido.
+
 ---
 
-## 8. O QUE A ETAPA 3 FARÁ — *lista, não obra*
+## 8. O PLANO QUE A ETAPA 2 DEIXOU ESCRITO — *lista, não obra*
+
+> **Registro histórico, não estado.** Quase tudo desta seção foi construído nas Etapas 4 a 6 — as três telas (e uma quarta, o fechamento), o parser, o correio. O que mudou de lugar está anotado. **O estado corrente é o [§7](#7-estado-da-obra--o-que-existe-e-o-que-não-existe), sempre.**
 
 ### 8.1 A UI real, em `apps/`
 
@@ -223,10 +240,10 @@ Três telas:
 
 ### 8.2 O resto da Etapa 3
 
-- parser de OFX e CSV, com o mapeamento vindo de `settings`;
-- camada de persistência do módulo (repositório sobre o schema `recon`);
-- o job do Core que entrega `event_outbox` e escreve `audit_log` — hoje **NÃO CONSTRUÍDO**, e sem ele os eventos ficam na caixa;
-- billing minerado da Casa (`packages/billing`), que a Etapa 2 listou e não construiu.
+- ✅ parser de OFX e CSV, com o mapeamento vindo de `settings` — **feito na Etapa 5**, dentro do pacote;
+- ⚠️ camada de persistência do módulo (repositório sobre o schema `recon`) — **feito em outro lugar**: adaptador em `apps/portal`, e a dívida está registrada em §7;
+- ✅ o job do Core que entrega `event_outbox` e escreve `audit_log` — **construído na Etapa 6** (`@alsham/workflow`). ⚠️ **A lógica existe e é testada; o job não está ligado** — enquanto não estiver (runbook §6), os eventos continuam na caixa;
+- ✅ billing minerado da Casa (`packages/billing`) — **a contabilidade de uso foi feita na Etapa 6**; preço e gateway seguem **NÃO CONSTRUÍDOS** por decisão (Lei 7).
 
 ---
 
