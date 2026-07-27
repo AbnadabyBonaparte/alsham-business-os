@@ -66,26 +66,67 @@ Corolário do roadmap: *cada linha de código escrita para um cliente deve aumen
 
 ---
 
-## 5. ESTADO ATUAL — ETAPA 2 (O PRIMEIRO MÓDULO)
+## 5. ESTADO ATUAL — ETAPA 3 (O MOTOR LIGADO)
 
 ### 5.1 Stack — SELADA
 
 A **Linha A** — **TypeScript + Next.js + Supabase/Postgres + Vercel**, monorepo com pnpm workspaces + turborepo — foi **SELADA pelo dono em 27/07/2026**. Deixa de ser recomendação (Balanço de Tecnologia §4, Balanço Supabase §3) e passa a ser a língua única da plataforma.
 
-Consequências que qualquer agente deve respeitar a partir daqui:
-
 - Postgres é o banco. **Não se abre discussão de MySQL/Drizzle neste repositório.**
 - Toda peça minerada vem da coluna PROVADO do Balanço, que é toda Postgres/Supabase.
-- **Nota pendente:** a Carta Magna do ALSHAM Platform Framework™ (repo `alsham-events-os`) ainda descreve a Linha B (MySQL/Drizzle). A **emenda de stack na Carta Magna está pendente** e será feita naquele repositório, não neste. Até lá, para o Business OS, vale o selo acima.
+- **Nota pendente:** a Carta Magna do ALSHAM Platform Framework™ (repo `alsham-events-os`) ainda descreve a Linha B (MySQL/Drizzle). A **emenda de stack na Carta Magna está pendente** e será feita naquele repositório, não neste.
 
-### 5.2 O que existe hoje
+### 5.2 VERSÃO-ALVO — escolhida pelo dono em 27/07/2026
+
+Cravada para o SaaS não nascer defasado **e** para que subir de major no futuro seja decisão informada, nunca pânico.
+
+| Camada | Versão-alvo | Observação |
+|---|---|---|
+| Framework | **Next.js 16.2.x** | linha estável atual. **NÃO 15** — é a geração anterior |
+| UI | **React 19** | |
+| Linguagem | **TypeScript 5.x**, `strict` | |
+| Runtime | **Node 20+** | |
+| Bundler | **Turbopack** | padrão na 16 |
+| Deploy | **Vercel** | |
+| Auth | **Supabase Auth** ou **Auth.js v5** | compatível com `proxy.ts`. **NUNCA construir auth próprio** |
+| Dados (servidor) | **Server Actions** nativos | |
+| Dados (cliente) | **TanStack Query v5** | |
+
+⚠️ **Armadilha da 16:** o `middleware.ts` virou **`proxy.ts`**. Todo tutorial e toda resposta de IA treinada até a 15 vão te mandar criar `middleware.ts`. Não crie.
+
+**Revisar quando sair o próximo major.** Esta tabela é uma decisão datada, não uma verdade eterna: quem a atualizar troca a data e diz por quê.
+
+### 5.3 ⭐ A REGRA DE OURO DA LONGEVIDADE
+
+> **Lógica de negócio vive em `packages/` — TypeScript puro e SQL. NUNCA em `apps/`.**
+>
+> **O Next.js é a PELE, não o coração. A tela consome; nunca decide.**
+
+É a regra mais importante deste arquivo, e a mais fácil de quebrar sem perceber — basta uma validação escrita direto no Server Action "porque era mais rápido".
+
+Onde vai cada coisa:
+
+| Vai em `packages/` (o coração) | Vai em `apps/` (a pele) |
+|---|---|
+| regra de negócio, cálculo, decisão | rota, layout, componente |
+| tipos e contratos (`@alsham/core`) | formulário, tabela, estado de tela |
+| motor de domínio (ex.: `suggestMatches`) | Server Action que **chama** o motor |
+| schema, RLS, policy, trigger | leitura e apresentação do resultado |
+
+**Teste de bolso:** *se eu apagar `apps/` inteiro, perco alguma regra de negócio?* Se a resposta for sim, a regra está no lugar errado.
+
+É isto — e só isto — que permite trocar o framework em 2028 sem tocar no schema nem na regra de negócio. Framework é aluguel; schema e domínio são patrimônio.
+
+### 5.4 O que existe hoje
 
 - `packages/config` e `packages/core` são pacotes reais. **`packages/core` é contrato puro: tipos TypeScript, zero runtime.**
 - `packages/finance-reconciliation` é o **Módulo 1** — manifesto, tipos e motor de sugestão de baixa. Contrato + domínio puro: sem UI, sem banco, sem parser.
 - Os demais 17 pacotes e os 4 apps continuam **só com `README.md`** — status NÃO INICIADO.
-- `supabase/migrations/0001_core.sql` e `0002_recon.sql` existem como **ARQUIVO, não aplicados**.
+- `supabase/migrations/0001_core.sql` e `0002_recon.sql` existem como **ARQUIVO, não aplicados** — mas agora **provados**: aplicam de verdade num Postgres 17 e passam num teste de isolamento com usuário real (`supabase/tests/`), rodado no CI a cada mudança.
+- `supabase/seed/0001_platform.sql` — o catálogo da plataforma, idempotente. **Zero tenant, zero usuário.**
+- `docs/runbook/APLICAR.md` — o passo a passo para quando o dono criar o projeto Supabase.
 
-### 5.3 A LEI DO LEGO — para todo módulo, deste em diante
+### 5.5 A LEI DO LEGO — para todo módulo, deste em diante
 
 O Módulo 1 é o padrão. Quem escrever o Módulo 2 obedece ao mesmo:
 
@@ -96,7 +137,7 @@ O Módulo 1 é o padrão. Quem escrever o Módulo 2 obedece ao mesmo:
 5. **Só o Core como dependência.** `requiresCore` é o único campo de dependência que existe — e a ausência de `dependsOn` é deliberada.
 6. **Consumo só com consumidor.** Não declare `consumes` sem o handler construído (Lei 7).
 
-### 5.4 Limites que continuam valendo
+### 5.6 Limites que continuam valendo
 
 - ❌ **Não criar projeto Supabase. Não aplicar migration. Não deployar. Não adicionar segredo.**
 - Migration nasce como arquivo versionado e é revisada em PR. Aplicar é ato do dono.
@@ -111,7 +152,10 @@ docs/canon/            taxonomia · roadmap · core-spec · identidade-visual
                        · modulo-recon-spec              — leitura obrigatória
 docs/balancos/         tecnologia + supabase            — de onde minerar
 docs/historico/        catálogo anterior                — memória, não canon
-supabase/migrations/   0001_core.sql · 0002_recon.sql   — ARQUIVO; aplicar é ato do dono
+supabase/migrations/   0001_core.sql · 0002_recon.sql   — aplicar em produção é ato do dono
+supabase/seed/         0001_platform.sql                — catálogo, idempotente; zero tenant
+supabase/tests/        shim + isolamento multi-tenant   — só CI; NUNCA no Supabase real
+docs/runbook/          APLICAR.md                       — o passo a passo do dono
 apps/                  admin · portal · store · api
 packages/              core auth organizations permissions workflow billing
                        notifications documents ai crm finance marketing
