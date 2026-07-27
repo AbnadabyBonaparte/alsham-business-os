@@ -41,7 +41,8 @@ Painel → **SQL Editor** → **New query**. Para cada arquivo: abra o arquivo d
 |---|---|---|---|
 | 1 | `supabase/migrations/0001_core.sql` | o Core: 10 tabelas, 19 policies | `Success. No rows returned` |
 | 2 | `supabase/migrations/0002_recon.sql` | o Módulo 1: schema `recon`, 5 tabelas, 16 policies | `Success. No rows returned` |
-| 3 | `supabase/seed/0001_platform.sql` | o catálogo: papéis, módulo `recon`, planos | `Success. No rows returned` |
+| 3 | `supabase/migrations/0003_billing.sql` | a contabilidade de uso: `usage_ledger` | `Success. No rows returned` |
+| 4 | `supabase/seed/0001_platform.sql` | o catálogo: papéis, módulo `recon`, planos | `Success. No rows returned` |
 
 ### ⚠️ NÃO aplique a pasta `supabase/tests/`
 
@@ -73,7 +74,7 @@ select n.nspname                                              as schema,
 
 | schema | tabelas | rls_ligada | rls_forcada |
 |---|---|---|---|
-| core | 10 | 10 | 10 |
+| core | 11 | 11 | 11 |
 | recon | 5 | 5 | 5 |
 
 ```sql
@@ -86,7 +87,7 @@ select n.nspname||'.'||c.relname as tabela,
  order by 2, 1;
 ```
 
-**Esperado:** 35 policies no total. Exatamente **duas** tabelas com `0`: `core.event_outbox` e `core.processed_events` — são encanamento, trancadas de propósito.
+**Esperado:** 36 policies no total. Exatamente **duas** tabelas com `0`: `core.event_outbox` e `core.processed_events` — são encanamento, trancadas de propósito.
 
 ```sql
 -- 3. O catálogo entrou?
@@ -110,7 +111,7 @@ Faça este passo **no mesmo dia**. É ele que separa este banco do `suna-core`, 
 
 ### 🔴 No banco
 
-- [ ] **RLS ligada e forçada em 15/15 tabelas** — consulta 1 do Passo 3, três colunas com o mesmo número.
+- [ ] **RLS ligada e forçada em 16/16 tabelas** — consulta 1 do Passo 3, três colunas com o mesmo número.
 - [ ] **Nada em `public`.** Rode:
   ```sql
   select count(*) from pg_class c join pg_namespace n on n.oid=c.relnamespace
@@ -165,14 +166,50 @@ Faça este passo **no mesmo dia**. É ele que separa este banco do `suna-core`, 
 
 ---
 
+## PASSO 6 — LIGAR O CORREIO DO CORE
+
+Sem o correio, todo evento emitido pelos módulos fica em `pending` para sempre. A lógica existe e é testada (`@alsham/workflow`); **ligá-la é ato seu**, e há dois caminhos.
+
+### Opção A — `pg_cron` dentro do Supabase (o padrão da Casa)
+
+É o padrão PROVADO do `casa-bonaparte-saas`: um job por minuto, sem servidor a manter, sem chave saindo do banco. Precisa das extensões `pg_cron` e `pg_net`, habilitadas no painel em **Database → Extensions**.
+
+**Vantagem:** roda dentro do banco; se a aplicação cair, a fila continua andando.
+**Custo:** a lógica de entrega precisa existir em SQL ou chamar um endpoint via `pg_net`.
+
+### Opção B — endpoint protegido + agendador externo
+
+Um endpoint no servidor chama `deliverDue()` e é acionado por um agendador (Vercel Cron, GitHub Actions, o que for).
+
+**Vantagem:** a lógica de entrega é a mesma TypeScript já testada.
+**Custo:** o endpoint precisa de segredo próprio, e quem o chama roda com `service_role`.
+
+⛔ **Nos dois casos:** quem entrega roda com `service_role`, **do servidor**. Essa chave nunca vai para o painel do cliente — `apps/portal` não a tem e há guarda no CI para que continue assim.
+
+### Como conferir se está andando
+
+```sql
+-- Quantos eventos estão parados na caixa, e há quanto tempo?
+select status, count(*), min(occurred_at) as mais_antigo
+  from core.event_outbox
+ group by status order by 2 desc;
+```
+
+**Esperado com o correio ligado:** `delivered` crescendo, `pending` perto de zero.
+**Se `pending` só cresce:** o correio não está rodando.
+**Se aparecer `dead`:** houve evento que falhou todas as tentativas — a linha tem o `last_error`. Isso pede olho humano, e é de propósito que não some.
+
+---
+
 ## O QUE AINDA NÃO EXISTE
 
 Honestidade de escopo, para você não procurar o que não foi construído:
 
 | Peça | Estado |
 |---|---|
-| Job que entrega `core.event_outbox` | **NÃO CONSTRUÍDO** — os eventos ficam na caixa, com `status='pending'` |
-| Job que escreve `core.audit_log` a partir dos eventos | **NÃO CONSTRUÍDO** |
+| Lógica do correio (`@alsham/workflow`) | ✅ **CONSTRUÍDA e testada** — mas **não ligada**: ver Passo 6 |
+| Consumidor de trilha (`core.audit_log`) | ✅ construído no pacote; grava quando o correio for ligado |
+| Preço em reais e gateway de pagamento | **NÃO CONSTRUÍDO** — `usage_ledger` conta uso, não dinheiro |
 | Instalador de módulo em runtime | **NÃO CONSTRUÍDO** — por isso o seed já põe as permissões do `recon` no papel `admin` |
 | Qualquer tela | **NÃO CONSTRUÍDO** |
 | Parser de OFX/CSV | **NÃO CONSTRUÍDO** |

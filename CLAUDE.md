@@ -66,7 +66,7 @@ Corolário do roadmap: *cada linha de código escrita para um cliente deve aumen
 
 ---
 
-## 5. ESTADO ATUAL — ETAPA 5 (OPERAÇÃO REAL)
+## 5. ESTADO ATUAL — ETAPA 6 (O CORREIO E A COBRANÇA)
 
 ### 5.1 Stack — SELADA
 
@@ -123,6 +123,9 @@ Onde vai cada coisa:
 - `packages/finance-reconciliation` é o **Módulo 1** — manifesto, tipos e motor de sugestão de baixa. Contrato + domínio puro: sem UI, sem banco, sem parser.
 - `apps/store`, `apps/admin`, `apps/api` e os demais 17 pacotes continuam **só com `README.md`** — status NÃO INICIADO.
 - `supabase/migrations/0001_core.sql` e `0002_recon.sql` existem como **ARQUIVO, não aplicados** — mas agora **provados**: aplicam de verdade num Postgres 17 e passam num teste de isolamento com usuário real (`supabase/tests/`), rodado no CI a cada mudança.
+- `packages/workflow` é **o correio do Core** — o entregador da caixa de saída: idempotência por consumidor, backoff exponencial, `dead` sem apagar. **ENGINE, não módulo** (Taxonomia §4): não aparece na Store. A lógica existe e é testada; **ligar em produção é ato do dono** (runbook §6).
+- `packages/billing` é a **contabilidade de uso** — `usage_ledger` + leitura de limite, minerados do kraken-v2 (PROVADO). **Sem preço, e há guarda no CI para que continue assim** (Lei 7).
+- `supabase/migrations/0003_billing.sql` — o livro-caixa de consumo. Correção é estorno, nunca edição.
 - `supabase/seed/0001_platform.sql` — o catálogo da plataforma, idempotente. **Zero tenant, zero usuário.**
 - `docs/runbook/APLICAR.md` — o passo a passo para quando o dono criar o projeto Supabase.
 - `apps/portal` tem **login (Supabase Auth) e quatro telas**: importar extrato, mesa de conciliação, fila de aprovação e fechar período. Next.js 16.2.12 + React 19 + Tailwind 4, toda cor vinda dos tokens `--bos-*`.
@@ -156,7 +159,7 @@ docs/canon/            taxonomia · roadmap · core-spec · identidade-visual
                        · modulo-recon-spec              — leitura obrigatória
 docs/balancos/         tecnologia + supabase            — de onde minerar
 docs/historico/        catálogo anterior                — memória, não canon
-supabase/migrations/   0001_core.sql · 0002_recon.sql   — aplicar em produção é ato do dono
+supabase/migrations/   0001_core · 0002_recon · 0003_billing — aplicar é ato do dono
 supabase/seed/         0001_platform.sql                — catálogo, idempotente; zero tenant
 supabase/tests/        shim + isolamento multi-tenant   — só CI; NUNCA no Supabase real
 docs/runbook/          APLICAR.md                       — o passo a passo do dono
@@ -165,6 +168,7 @@ packages/              core auth organizations permissions workflow billing
                        notifications documents ai crm finance marketing
                        legal hr analytics integrations ui sdk config
                        finance-reconciliation           — Módulo 1
+                       workflow (o correio) · billing (uso) — Engines do Core
 ```
 
 Um módulo novo é uma pasta em `packages/` **mais** uma migration com schema próprio. Nunca uma tabela a mais no `core`.
