@@ -24,14 +24,14 @@ export type {
   TenantId,
   UserId,
   Uuid,
-} from './primitives';
+} from './primitives.ts';
 
 export type {
   CapabilityDeclaration,
   DomainKey,
   ModuleTaxonomy,
   VerticalKey,
-} from './taxonomy';
+} from './taxonomy.ts';
 
 export type {
   Membership,
@@ -42,7 +42,7 @@ export type {
   RoleKey,
   Tenant,
   TenantStatus,
-} from './tenant';
+} from './tenant.ts';
 
 export type {
   DomainEvent,
@@ -51,7 +51,7 @@ export type {
   EventTypeDeclaration,
   OutboxEntry,
   OutboxStatus,
-} from './events';
+} from './events.ts';
 
 export type {
   AgentSlot,
@@ -61,6 +61,6 @@ export type {
   PlanLimit,
   TenantModule,
   TenantModuleStatus,
-} from './module';
+} from './module.ts';
 
-export type { AuditActor, AuditEntry } from './audit';
+export type { AuditActor, AuditEntry } from './audit.ts';
