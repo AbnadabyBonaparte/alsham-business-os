@@ -154,9 +154,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # ⚠️ SEM `version:` aqui, de propósito.
+      #
+      # A versão do pnpm tem UMA fonte só: `packageManager` no package.json da
+      # raiz. Declarar `version: 9` aqui também fazia a action abortar com
+      # "Multiple versions of pnpm specified" — e o job morria no setup, antes
+      # de instalar qualquer coisa. Sol Único vale para ferramenta também.
       - uses: pnpm/action-setup@v4
-        with:
-          version: 9
 
       - uses: actions/setup-node@v4
         with:
