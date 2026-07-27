@@ -43,7 +43,7 @@ function Loading() {
  * teatro; ter a policy sem esconder o botão seria frustração.
  */
 async function Conteudo() {
-  const port = getDataPort();
+  const port = await getDataPort();
 
   try {
     const [permissions, items] = await Promise.all([

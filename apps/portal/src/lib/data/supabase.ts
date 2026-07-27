@@ -1,7 +1,9 @@
-import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+import type { SupabaseClient } from '@supabase/supabase-js';
 
 import type {
   ApprovalItem,
+  BankStatement,
+  CsvMapping,
   MatchingSettings,
   Payable,
   StatementLine,
@@ -10,51 +12,32 @@ import type {
 import { DataPortError, type DataPort } from './port';
 
 /**
- * Adapter REAL — fala com o Supabase como o USUÁRIO, sob RLS.
+ * Adapter REAL — fala com o Supabase **como o usuário**, sob RLS.
  *
- * ⚠️ **A `service_role key` não aparece neste arquivo, e não pode aparecer.**
+ * ⛔ **A `service_role key` não aparece neste arquivo, e não pode aparecer.**
  * Ela ignora toda a RLS: quem a usa vê todos os tenants. O painel usa a chave
- * publicável e a sessão do usuário, e é isso que faz o isolamento ser real em
- * vez de confiança na tela.
+ * publicável e a sessão do usuário, e é isso que faz o isolamento provado no
+ * CI valer também na tela.
  *
  * ⚠️ Este arquivo **não** contém regra de negócio. Ele traduz linha de banco
- * em tipo do domínio e volta. Zero cálculo, zero decisão.
+ * em tipo do domínio e volta. Zero cálculo, zero decisão, zero parsing.
  *
- * **Estado honesto:** este adapter está escrito, mas **NÃO FOI EXERCITADO
- * CONTRA UM PROJETO SUPABASE** — nenhum projeto existe ainda (aplicar é ato
- * do dono, ver `docs/runbook/APLICAR.md`). O que foi provado é o schema que
- * ele consulta, no CI, contra um PostgreSQL 17 real.
+ * O `tenantId` chega resolvido da sessão (`lib/session.ts`) — nunca da URL.
  */
 
-/** O schema `recon` não é exposto por padrão — o acesso é explícito. */
 const RECON = 'recon';
 const CORE = 'core';
-
-function client(): SupabaseClient {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  if (!url || !key) {
-    throw new DataPortError(
-      'Supabase não configurado. Defina NEXT_PUBLIC_SUPABASE_URL e NEXT_PUBLIC_SUPABASE_ANON_KEY, ou rode sem elas para usar o modo de demonstração.',
-    );
-  }
-  return createClient(url, key, { auth: { persistSession: false } });
-}
 
 /** Traduz o erro do banco em mensagem apresentável. Nunca vaza stack na tela. */
 function fail(what: string, cause: unknown): never {
   throw new DataPortError(`Não foi possível ${what}.`, { cause });
 }
 
-export function createSupabasePort(tenantId: string): DataPort {
-  const db = client();
-
+export function createSupabasePort(db: SupabaseClient, tenantId: string): DataPort {
   return {
     kind: 'supabase',
 
     async listPermissions() {
-      // Lê as permissões efetivas do usuário no tenant. A RLS de
-      // `core.role_permissions` já limita o que ele enxerga.
       const { data, error } = await db
         .schema(CORE)
         .from('role_permissions')
@@ -65,22 +48,12 @@ export function createSupabasePort(tenantId: string): DataPort {
     },
 
     async loadMatchingSettings(): Promise<MatchingSettings> {
-      const { data, error } = await db
-        .schema(CORE)
-        .from('tenant_modules')
-        .select('settings')
-        .eq('tenant_id', tenantId)
-        .eq('module_id', 'recon')
-        .maybeSingle();
-      if (error) fail('carregar a configuração de conciliação', error);
-
-      const raw = (data?.settings ?? {}) as Record<string, unknown>;
+      const raw = await loadSettings(db, tenantId);
       const matching = (raw.matching ?? {}) as Record<string, unknown>;
 
-      // ⚠️ Sem valores padrão inventados aqui. Configuração ausente é um fato
-      // a reportar, não um número a chutar — chutar um limiar seria decidir
-      // política do tenant dentro do app, exatamente o que a Lei anti-viés
-      // proíbe.
+      // ⚠️ Sem valores padrão inventados. Configuração ausente é um fato a
+      // reportar, não um número a chutar — chutar um limiar seria decidir a
+      // política do tenant dentro do app.
       const { amountToleranceCents, dateToleranceDays, minScore } = matching;
       if (
         typeof amountToleranceCents !== 'number' ||
@@ -94,33 +67,64 @@ export function createSupabasePort(tenantId: string): DataPort {
       return { amountToleranceCents, dateToleranceDays, minScore };
     },
 
+    async loadCsvMapping(): Promise<CsvMapping | null> {
+      const raw = await loadSettings(db, tenantId);
+      const imp = (raw.import ?? {}) as Record<string, unknown>;
+      const mapping = imp.csvMapping;
+      // O formato é validado pelo parser, que devolve erro legível. Aqui só
+      // se distingue "não configurado" de "configurado".
+      return mapping && typeof mapping === 'object' ? (mapping as CsvMapping) : null;
+    },
+
     async loadStatementLines(): Promise<StatementLine[]> {
       const { data, error } = await db
         .schema(RECON)
         .from('statement_lines')
-        .select(
-          'id, tenant_id, statement_id, line_no, posted_at, value_date, amount_cents, currency, description, counterparty_name, counterparty_tax_id, external_id, balance_after_cents, status',
-        )
+        .select(LINE_COLS)
         .in('status', ['unmatched', 'suggested'])
         .order('posted_at', { ascending: true });
       if (error) fail('carregar as linhas do extrato', error);
+      return (data ?? []).map(toLine);
+    },
+
+    async loadLinesOfStatement(statementId): Promise<StatementLine[]> {
+      const { data, error } = await db
+        .schema(RECON)
+        .from('statement_lines')
+        .select(LINE_COLS)
+        .eq('statement_id', statementId)
+        .order('line_no', { ascending: true });
+      if (error) fail('carregar as linhas deste extrato', error);
+      return (data ?? []).map(toLine);
+    },
+
+    async loadOpenStatements(): Promise<BankStatement[]> {
+      const { data, error } = await db
+        .schema(RECON)
+        .from('bank_statements')
+        .select(
+          'id, tenant_id, account_ref, source_format, original_filename, content_hash, period_start, period_end, opening_balance_cents, closing_balance_cents, currency, status, imported_at',
+        )
+        .in('status', ['imported', 'reconciling'])
+        .order('period_end', { ascending: false });
+      if (error) fail('carregar os extratos abertos', error);
 
       return (data ?? []).map((r) => ({
         id: r.id as string,
         tenantId: r.tenant_id as string,
-        statementId: r.statement_id as string,
-        lineNo: r.line_no as number,
-        postedAt: r.posted_at as string,
-        valueDate: r.value_date as string | null,
-        amountCents: Number(r.amount_cents),
+        accountRef: r.account_ref as string,
+        sourceFormat: r.source_format as BankStatement['sourceFormat'],
+        originalFilename: r.original_filename as string | null,
+        contentHash: r.content_hash as string,
+        periodStart: r.period_start as string,
+        periodEnd: r.period_end as string,
+        openingBalanceCents:
+          r.opening_balance_cents === null ? null : Number(r.opening_balance_cents),
+        closingBalanceCents:
+          r.closing_balance_cents === null ? null : Number(r.closing_balance_cents),
         currency: r.currency as string,
-        description: (r.description ?? '') as string,
-        counterpartyName: r.counterparty_name as string | null,
-        counterpartyTaxId: r.counterparty_tax_id as string | null,
-        externalId: r.external_id as string | null,
-        balanceAfterCents:
-          r.balance_after_cents === null ? null : Number(r.balance_after_cents),
-        status: r.status as StatementLine['status'],
+        status: r.status as BankStatement['status'],
+        importedAt: r.imported_at as string,
       }));
     },
 
@@ -180,6 +184,79 @@ export function createSupabasePort(tenantId: string): DataPort {
       }));
     },
 
+    async importStatement({ accountRef, currency, format, originalFilename, contentHash, parsed }) {
+      const { data: stmt, error: stmtErr } = await db
+        .schema(RECON)
+        .from('bank_statements')
+        .insert({
+          tenant_id: tenantId,
+          account_ref: accountRef,
+          source_format: format,
+          original_filename: originalFilename,
+          content_hash: contentHash,
+          period_start: parsed.periodStart,
+          period_end: parsed.periodEnd,
+          opening_balance_cents: parsed.openingBalanceCents ?? null,
+          closing_balance_cents: parsed.closingBalanceCents ?? null,
+          currency,
+        })
+        .select('id')
+        .single();
+
+      if (stmtErr) {
+        // 23505 = unique_violation. É o `bank_statements_no_reimport`
+        // fazendo o trabalho dele: o mesmo arquivo, na mesma conta, duas vezes.
+        if ((stmtErr as { code?: string }).code === '23505') {
+          throw new DataPortError(
+            'Este extrato já foi importado antes (mesmo arquivo, mesma conta). Nada foi duplicado.',
+            { cause: stmtErr },
+          );
+        }
+        fail('gravar o extrato', stmtErr);
+      }
+
+      const statementId = stmt?.id as string;
+
+      const { error: linesErr } = await db
+        .schema(RECON)
+        .from('statement_lines')
+        .insert(
+          parsed.lines.map((l) => ({
+            tenant_id: tenantId,
+            statement_id: statementId,
+            line_no: l.lineNo,
+            posted_at: l.postedAt,
+            value_date: l.valueDate ?? null,
+            amount_cents: l.amountCents,
+            currency,
+            description: l.description,
+            counterparty_name: l.counterpartyName ?? null,
+            counterparty_tax_id: l.counterpartyTaxId ?? null,
+            external_id: l.externalId ?? null,
+            balance_after_cents: l.balanceAfterCents ?? null,
+          })),
+        );
+
+      if (linesErr) {
+        // O extrato ficou sem linhas. Dizer isso é melhor do que deixar o
+        // operador achar que importou um extrato vazio.
+        throw new DataPortError(
+          'O extrato foi criado mas as linhas não entraram. Descarte-o e importe de novo.',
+          { cause: linesErr },
+        );
+      }
+
+      return { statementId, lineCount: parsed.lines.length };
+    },
+
+    async closeStatement(statementId) {
+      await mudarStatus(db, statementId, 'closed', 'fechar o extrato');
+    },
+
+    async discardStatement(statementId) {
+      await mudarStatus(db, statementId, 'discarded', 'descartar o extrato');
+    },
+
     async decideMatch({ matchId, decision }) {
       const { data, error } = await db
         .schema(RECON)
@@ -188,7 +265,6 @@ export function createSupabasePort(tenantId: string): DataPort {
         .eq('id', matchId)
         .select('id');
       if (error) fail('registrar sua decisão sobre o casamento', error);
-      // Zero linhas = a policy barrou. Não é sucesso silencioso.
       if (!data || data.length === 0) {
         throw new DataPortError(
           'A decisão não foi gravada: você não tem permissão para gerir casamentos neste tenant.',
@@ -215,4 +291,67 @@ export function createSupabasePort(tenantId: string): DataPort {
       }
     },
   };
+}
+
+// ---------------------------------------------------------------------------
+// auxiliares — tradução de linha, nada mais
+// ---------------------------------------------------------------------------
+
+const LINE_COLS =
+  'id, tenant_id, statement_id, line_no, posted_at, value_date, amount_cents, currency, description, counterparty_name, counterparty_tax_id, external_id, balance_after_cents, status';
+
+function toLine(r: Record<string, unknown>): StatementLine {
+  return {
+    id: r.id as string,
+    tenantId: r.tenant_id as string,
+    statementId: r.statement_id as string,
+    lineNo: r.line_no as number,
+    postedAt: r.posted_at as string,
+    valueDate: r.value_date as string | null,
+    amountCents: Number(r.amount_cents),
+    currency: r.currency as string,
+    description: (r.description ?? '') as string,
+    counterpartyName: r.counterparty_name as string | null,
+    counterpartyTaxId: r.counterparty_tax_id as string | null,
+    externalId: r.external_id as string | null,
+    balanceAfterCents:
+      r.balance_after_cents === null ? null : Number(r.balance_after_cents),
+    status: r.status as StatementLine['status'],
+  };
+}
+
+async function loadSettings(
+  db: SupabaseClient,
+  tenantId: string,
+): Promise<Record<string, unknown>> {
+  const { data, error } = await db
+    .schema(CORE)
+    .from('tenant_modules')
+    .select('settings')
+    .eq('tenant_id', tenantId)
+    .eq('module_id', 'recon')
+    .maybeSingle();
+  if (error) fail('carregar a configuração do módulo', error);
+  return (data?.settings ?? {}) as Record<string, unknown>;
+}
+
+async function mudarStatus(
+  db: SupabaseClient,
+  statementId: string,
+  status: 'closed' | 'discarded',
+  oQue: string,
+): Promise<void> {
+  const { data, error } = await db
+    .schema(RECON)
+    .from('bank_statements')
+    .update({ status })
+    .eq('id', statementId)
+    .select('id');
+  if (error) fail(oQue, error);
+  // Zero linhas = a policy barrou. Não é sucesso silencioso.
+  if (!data || data.length === 0) {
+    throw new DataPortError(
+      `Nada foi alterado: você não tem a permissão recon.statement.import neste tenant.`,
+    );
+  }
 }

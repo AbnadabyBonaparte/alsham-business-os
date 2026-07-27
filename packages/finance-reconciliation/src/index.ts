@@ -22,10 +22,13 @@ export {
   suggestMatches,
   scorePair,
   unmatchedLines,
+  summarizeStatement,
   normalizeTaxId,
   normalizeText,
   daysBetween,
 } from './matching.ts';
+
+export type { StatementSummary } from './matching.ts';
 
 export type {
   ApprovalItem,
@@ -48,3 +51,23 @@ export type {
   StatementSourceFormat,
   StatementStatus,
 } from './types.ts';
+
+export {
+  parseStatement,
+  parseOfx,
+  parseCsv,
+  splitCsvLine,
+  parseAmountToCents,
+  parseDate,
+  parseOfxDate,
+  contentHash,
+  StatementParseError,
+} from './parsing/index.ts';
+
+export type {
+  ColumnRef,
+  CsvMapping,
+  DateOrder,
+  ParsedLine,
+  ParsedStatement,
+} from './parsing/index.ts';

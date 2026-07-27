@@ -270,3 +270,63 @@ export function unmatchedLines(
       (l.status === 'unmatched' || l.status === 'suggested') && !matched.has(l.id),
   );
 }
+
+/**
+ * O retrato de um extrato: o que casou e — o que interessa — o que sobrou.
+ *
+ * É o número que o operador olha antes de fechar o período, e o mesmo que
+ * viaja no evento `recon.reconciliation.completed`.
+ */
+export interface StatementSummary {
+  readonly totalLines: number;
+  readonly matchedLines: number;
+  /** A DIVERGÊNCIA. O número que interessa ao diretor. */
+  readonly unmatchedLines: number;
+  readonly ignoredLines: number;
+  readonly matchedAmountCents: Cents;
+  readonly unmatchedAmountCents: Cents;
+  /** Um extrato só deveria fechar quando não sobrou nada em aberto. */
+  readonly readyToClose: boolean;
+}
+
+/**
+ * Resume um extrato a partir das suas linhas.
+ *
+ * ⭐ Vive aqui, e não na tela, porque **define o que conta como conciliado** —
+ * e isso é regra de negócio. `ignored` sai da conta de divergência de
+ * propósito: linha marcada como ignorada foi uma decisão humana, não uma
+ * pendência.
+ *
+ * `readyToClose` é uma LEITURA, não uma permissão: quem pode fechar é a
+ * policy no banco, e se o tenant quiser fechar com divergência em aberto,
+ * isso é política dele (`settings.approval.*`), não trava do produto.
+ */
+export function summarizeStatement(lines: readonly StatementLine[]): StatementSummary {
+  let matched = 0;
+  let ignored = 0;
+  let open = 0;
+  let matchedAmount = 0;
+  let unmatchedAmount = 0;
+
+  for (const l of lines) {
+    if (l.status === 'matched') {
+      matched += 1;
+      matchedAmount += Math.abs(l.amountCents);
+    } else if (l.status === 'ignored') {
+      ignored += 1;
+    } else {
+      open += 1;
+      unmatchedAmount += Math.abs(l.amountCents);
+    }
+  }
+
+  return {
+    totalLines: lines.length,
+    matchedLines: matched,
+    unmatchedLines: open,
+    ignoredLines: ignored,
+    matchedAmountCents: matchedAmount,
+    unmatchedAmountCents: unmatchedAmount,
+    readyToClose: open === 0 && lines.length > 0,
+  };
+}

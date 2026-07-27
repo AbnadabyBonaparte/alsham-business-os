@@ -4,7 +4,7 @@
 
 A empresa não compra "um sistema". Ela monta o sistema dela — Core + módulos, como Lego. Cada cliente novo financia um módulo que vira patrimônio da plataforma para todos os próximos.
 
-> **Status: Core contratado, Módulo 1 com rosto.** O contrato do Lego, o schema (provado em CI contra PostgreSQL 17) e as duas primeiras telas existem. **Nada está no ar:** nenhum projeto Supabase foi criado e nenhum deploy foi feito. Nada daqui é promessa pública (Lei 7).
+> **Status: Módulo 1 operável.** O contrato do Lego, o schema (provado em CI contra PostgreSQL 17) e as duas primeiras telas existem. **Nada está no ar:** nenhum projeto Supabase foi criado e nenhum deploy foi feito. Nada daqui é promessa pública (Lei 7).
 
 ---
 
@@ -52,7 +52,7 @@ supabase/
   tests/       shim + isolamento multi-tenant   — só CI, nunca no Supabase real
 docs/runbook/  APLICAR.md                       — passo a passo para o dono aplicar
 apps/
-  portal/                                       — ✅ CONSTRUÍDO (2 telas do Módulo 1)
+  portal/                                       — ✅ CONSTRUÍDO (login + 4 telas)
   admin/  store/  api/                          — só README, NÃO INICIADO
 packages/
   config/                                       — ✅ CONSTRUÍDO
@@ -102,6 +102,14 @@ Cada `README.md` de app e de package declara: o propósito, a fase do roadmap a 
 - A tela **não decide nada**: chama `suggestMatches()` e `unmatchedLines()` do pacote. O CI barra se o motor for reimplementado em `apps/`.
 - Sem env var, roda em **modo demonstração** com dado fabricado e anônimo — a UI se prova sem banco no ar.
 - Decisão e ação destrutiva sempre com **confirmação explícita em dois passos**; estados vazio, erro e carregando desenhados.
+
+**Etapa 5 — Operação real** *(esta etapa)*: o cliente loga e usa com dado real.
+
+- **Supabase Auth** — login por senha ou magic link; `proxy.ts` (o "middleware" da Next 16) protege as rotas.
+- **O `tenant_id` vem da sessão cruzada com `core.memberships`, nunca do cliente.** Cookie de tenant é preferência, não autoridade.
+- **Portal ligado ao banco real**, sob RLS, com a chave publicável. A `service_role` não entra no app — há guarda no CI olhando o bundle de cliente.
+- **Importar extrato** (OFX e CSV) — o parser vive em `packages/`, com 35 testes. O layout do CSV é `settings` do tenant, nunca código.
+- **Fechar período** — mostra o resumo, e o fechamento dispara `recon.reconciliation.completed` na caixa de saída do Core.
 
 **O que NÃO existe:** o motor de execução. Validador de manifesto, registro em runtime, despachante da caixa de saída e resolvedor de permissão seguem **NÃO CONSTRUÍDOS** ([CORE-SPEC §5](docs/canon/CORE-SPEC.md)); no módulo, faltam UI, parser de OFX/CSV e persistência ([MODULO-RECON-SPEC §7](docs/canon/MODULO-RECON-SPEC.md)). Nenhum projeto Supabase foi criado, nenhuma migration aplicada, nenhum segredo existe aqui.
 
