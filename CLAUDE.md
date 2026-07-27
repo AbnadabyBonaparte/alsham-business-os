@@ -66,7 +66,7 @@ Corolário do roadmap: *cada linha de código escrita para um cliente deve aumen
 
 ---
 
-## 5. ESTADO ATUAL — ETAPA 3 (O MOTOR LIGADO)
+## 5. ESTADO ATUAL — ETAPA 4 (A PRIMEIRA TELA)
 
 ### 5.1 Stack — SELADA
 
@@ -121,10 +121,11 @@ Onde vai cada coisa:
 
 - `packages/config` e `packages/core` são pacotes reais. **`packages/core` é contrato puro: tipos TypeScript, zero runtime.**
 - `packages/finance-reconciliation` é o **Módulo 1** — manifesto, tipos e motor de sugestão de baixa. Contrato + domínio puro: sem UI, sem banco, sem parser.
-- Os demais 17 pacotes e os 4 apps continuam **só com `README.md`** — status NÃO INICIADO.
+- `apps/store`, `apps/admin`, `apps/api` e os demais 17 pacotes continuam **só com `README.md`** — status NÃO INICIADO.
 - `supabase/migrations/0001_core.sql` e `0002_recon.sql` existem como **ARQUIVO, não aplicados** — mas agora **provados**: aplicam de verdade num Postgres 17 e passam num teste de isolamento com usuário real (`supabase/tests/`), rodado no CI a cada mudança.
 - `supabase/seed/0001_platform.sql` — o catálogo da plataforma, idempotente. **Zero tenant, zero usuário.**
 - `docs/runbook/APLICAR.md` — o passo a passo para quando o dono criar o projeto Supabase.
+- `apps/portal` é o **primeiro app com código**: mesa de conciliação e fila de aprovação. Next.js 16.2.12 + React 19 + Tailwind 4, toda cor vinda dos tokens `--bos-*`.
 
 ### 5.5 A LEI DO LEGO — para todo módulo, deste em diante
 
@@ -141,7 +142,8 @@ O Módulo 1 é o padrão. Quem escrever o Módulo 2 obedece ao mesmo:
 
 - ❌ **Não criar projeto Supabase. Não aplicar migration. Não deployar. Não adicionar segredo.**
 - Migration nasce como arquivo versionado e é revisada em PR. Aplicar é ato do dono.
-- **Zero UI** — as telas são da Etapa 3, e nascem consumindo os tokens `--bos-*` de `docs/canon/IDENTIDADE-VISUAL.md`.
+- **Toda UI nasce consumindo os tokens `--bos-*`** de `docs/canon/IDENTIDADE-VISUAL.md`. Nenhum HEX em componente — o CI barra.
+- **A Regra de Ouro (§5.3) é verificada no CI**, não só recomendada: se o motor de domínio for redeclarado em `apps/`, ou se a tela deixar de chamá-lo, o build falha.
 
 ---
 
@@ -156,7 +158,7 @@ supabase/migrations/   0001_core.sql · 0002_recon.sql   — aplicar em produç�
 supabase/seed/         0001_platform.sql                — catálogo, idempotente; zero tenant
 supabase/tests/        shim + isolamento multi-tenant   — só CI; NUNCA no Supabase real
 docs/runbook/          APLICAR.md                       — o passo a passo do dono
-apps/                  admin · portal · store · api
+apps/                  portal (2 telas do Módulo 1) · admin · store · api
 packages/              core auth organizations permissions workflow billing
                        notifications documents ai crm finance marketing
                        legal hr analytics integrations ui sdk config

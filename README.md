@@ -4,7 +4,7 @@
 
 A empresa não compra "um sistema". Ela monta o sistema dela — Core + módulos, como Lego. Cada cliente novo financia um módulo que vira patrimônio da plataforma para todos os próximos.
 
-> **Status: FUNDAÇÃO (pré-obra).** Este repositório contém, por enquanto, a PLANTA — nenhum código de produto foi escrito ainda. Nada daqui está no ar, nada daqui é promessa pública (Lei 7).
+> **Status: Core contratado, Módulo 1 com rosto.** O contrato do Lego, o schema (provado em CI contra PostgreSQL 17) e as duas primeiras telas existem. **Nada está no ar:** nenhum projeto Supabase foi criado e nenhum deploy foi feito. Nada daqui é promessa pública (Lei 7).
 
 ---
 
@@ -52,7 +52,8 @@ supabase/
   tests/       shim + isolamento multi-tenant   — só CI, nunca no Supabase real
 docs/runbook/  APLICAR.md                       — passo a passo para o dono aplicar
 apps/
-  admin/  portal/  store/  api/                 — só README, NÃO INICIADO
+  portal/                                       — ✅ CONSTRUÍDO (2 telas do Módulo 1)
+  admin/  store/  api/                          — só README, NÃO INICIADO
 packages/
   config/                                       — ✅ CONSTRUÍDO
   core/                                         — ✅ CONSTRUÍDO (contrato, zero runtime)
@@ -93,6 +94,14 @@ Cada `README.md` de app e de package declara: o propósito, a fase do roadmap a 
 - `supabase/seed/0001_platform.sql` — o catálogo da plataforma, idempotente. **Zero tenant, zero usuário.**
 - [`docs/runbook/APLICAR.md`](docs/runbook/APLICAR.md) — o passo a passo do dono, com checklist de segurança pós-apply.
 - [`.github/workflows/db-verify.yml`](.github/workflows/db-verify.yml) — o SENTINELA em CI: toda mudança que quebrar o isolamento é barrada antes da main.
+
+**Etapa 4 — A primeira tela** *(esta etapa)*: o Módulo 1 ganha rosto, em `apps/portal`.
+
+- **Mesa de conciliação** e **fila de aprovação**, em Next.js 16.2.12 + React 19 + Tailwind 4.
+- Toda cor vem dos 18 tokens `--bos-*` do canon — **zero HEX em componente**, verificado no CI.
+- A tela **não decide nada**: chama `suggestMatches()` e `unmatchedLines()` do pacote. O CI barra se o motor for reimplementado em `apps/`.
+- Sem env var, roda em **modo demonstração** com dado fabricado e anônimo — a UI se prova sem banco no ar.
+- Decisão e ação destrutiva sempre com **confirmação explícita em dois passos**; estados vazio, erro e carregando desenhados.
 
 **O que NÃO existe:** o motor de execução. Validador de manifesto, registro em runtime, despachante da caixa de saída e resolvedor de permissão seguem **NÃO CONSTRUÍDOS** ([CORE-SPEC §5](docs/canon/CORE-SPEC.md)); no módulo, faltam UI, parser de OFX/CSV e persistência ([MODULO-RECON-SPEC §7](docs/canon/MODULO-RECON-SPEC.md)). Nenhum projeto Supabase foi criado, nenhuma migration aplicada, nenhum segredo existe aqui.
 
