@@ -1,0 +1,16 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "composite": false,
+    "declaration": false,
+    "declarationMap": false,
+    "types": ["node"],
+    "paths": {
+      "@alsham/core": ["../../packages/core/src/index.ts"],
+      "@alsham/workflow": ["../../packages/workflow/src/index.ts"],
+      "@alsham/billing": ["../../packages/billing/src/index.ts"],
+      "@alsham/marketing": ["../../packages/marketing/src/index.ts"]
+    }
+  },
+  "include": ["src/**/*.ts"]
+}

@@ -17,9 +17,11 @@ Em **27/07/2026** o dono informou ter aplicado `0001_core.sql`, `0002_recon.sql`
 | `0001_core.sql` | **APLICADO** — não editar |
 | `0002_recon.sql` | **APLICADO** — não editar |
 | `seed/0001_platform.sql` | **APLICADO** — idempotente, pode rodar de novo sem estragar |
-| `0003_billing.sql` | **ARQUIVO, ainda não aplicado** — é o único que falta |
+| `0003_billing.sql` | **ARQUIVO, ainda não aplicado** |
+| `0004_marketing.sql` | **ARQUIVO, ainda não aplicado** — o Módulo 2 |
+| `0005_courier_cron.sql` | **ARQUIVO, ainda não aplicado** — a saúde da fila e o agendador |
 
-**Se o seu projeto já existe**, o passo 1 não é para você: pule para o Passo 2 e rode **só o `0003`**, depois confira o Passo 3 e o Passo 4.
+**Se o seu projeto já existe**, o passo 1 não é para você: pule para o Passo 2 e rode **`0003`, `0004` e `0005`, nesta ordem**, depois confira o Passo 3, o Passo 4 e — para dar vida ao Lego — o **Passo 6**.
 
 **Este documento continua valendo inteiro** para o próximo ambiente — homologação, um segundo tenant, uma restauração. É por isso que ele descreve o zero, e não o meio.
 
@@ -59,7 +61,9 @@ Painel → **SQL Editor** → **New query**. Para cada arquivo: abra o arquivo d
 | 1 | `supabase/migrations/0001_core.sql` | o Core: 10 tabelas, 19 policies | `Success. No rows returned` |
 | 2 | `supabase/migrations/0002_recon.sql` | o Módulo 1: schema `recon`, 5 tabelas, 16 policies | `Success. No rows returned` |
 | 3 | `supabase/migrations/0003_billing.sql` | a contabilidade de uso: `usage_ledger` | `Success. No rows returned` |
-| 4 | `supabase/seed/0001_platform.sql` | o catálogo: papéis, módulo `recon`, planos | `Success. No rows returned` |
+| 4 | `supabase/migrations/0004_marketing.sql` | o Módulo 2: schema `marketing`, 4 tabelas, 11 policies | `Success. No rows returned` |
+| 5 | `supabase/migrations/0005_courier_cron.sql` | a saúde da fila (o agendador vem comentado) | `Success. No rows returned` |
+| 6 | `supabase/seed/0001_platform.sql` | o catálogo: papéis, módulos `recon` e `marketing`, planos | `Success. No rows returned` |
 
 ### ⚠️ NÃO aplique a pasta `supabase/tests/`
 
@@ -83,7 +87,7 @@ select n.nspname                                              as schema,
        count(*) filter (where c.relforcerowsecurity)          as rls_forcada
   from pg_class c
   join pg_namespace n on n.oid = c.relnamespace
- where n.nspname in ('core','recon') and c.relkind = 'r'
+ where n.nspname in ('core','recon','marketing') and c.relkind = 'r'
  group by 1 order by 1;
 ```
 
@@ -92,6 +96,7 @@ select n.nspname                                              as schema,
 | schema | tabelas | rls_ligada | rls_forcada |
 |---|---|---|---|
 | core | 11 | 11 | 11 |
+| marketing | 4 | 4 | 4 |
 | recon | 5 | 5 | 5 |
 
 ```sql
@@ -100,11 +105,13 @@ select n.nspname                                              as schema,
 select n.nspname||'.'||c.relname as tabela,
        (select count(*) from pg_policy p where p.polrelid = c.oid) as policies
   from pg_class c join pg_namespace n on n.oid = c.relnamespace
- where n.nspname in ('core','recon') and c.relkind = 'r'
+ where n.nspname in ('core','recon','marketing') and c.relkind = 'r'
  order by 2, 1;
 ```
 
-**Esperado:** 36 policies no total. Exatamente **duas** tabelas com `0`: `core.event_outbox` e `core.processed_events` — são encanamento, trancadas de propósito.
+**Esperado:** 47 policies no total. Exatamente **duas** tabelas com `0`: `core.event_outbox` e `core.processed_events` — são encanamento, trancadas de propósito.
+
+⚠️ `marketing.spend_approvals` aparece com **1** policy, e só de leitura. É deliberado: aquela tabela é escrita pelo correio, com `service_role`. Se ela ganhar uma policy de INSERT, o cliente passa a poder aprovar a própria verba.
 
 ```sql
 -- 3. O catálogo entrou?
@@ -116,7 +123,9 @@ select (select count(*) from core.roles            where tenant_id is null) as p
        (select count(*) from auth.users)                                     as usuarios_deve_ser_zero;
 ```
 
-**Esperado:** `2 · 11 · 1 · 12 · 0 · 0`
+**Esperado:** `2 · 14 · 2 · 12 · 0 · 0`
+
+Os dois módulos publicados são `recon` e `marketing`; as 14 permissões incluem as 3 do Módulo 2.
 
 Os dois últimos zeros são o ponto: **o seed é catálogo, não cliente.** Se aparecer tenant ou usuário aqui, alguém aplicou algo que não devia.
 
@@ -128,7 +137,7 @@ Faça este passo **no mesmo dia**. É ele que separa este banco do `suna-core`, 
 
 ### 🔴 No banco
 
-- [ ] **RLS ligada e forçada em 16/16 tabelas** — consulta 1 do Passo 3, três colunas com o mesmo número.
+- [ ] **RLS ligada e forçada em 20/20 tabelas** — consulta 1 do Passo 3, três colunas com o mesmo número.
 - [ ] **Nada em `public`.** Rode:
   ```sql
   select count(*) from pg_class c join pg_namespace n on n.oid=c.relnamespace
@@ -138,7 +147,7 @@ Faça este passo **no mesmo dia**. É ele que separa este banco do `suna-core`, 
 - [ ] **`anon` não tem nada.** Rode:
   ```sql
   select count(*) from information_schema.role_table_grants
-   where grantee='anon' and table_schema in ('core','recon');
+   where grantee='anon' and table_schema in ('core','recon','marketing');
   ```
   **Esperado: `0`.** Ninguém lê o Business OS sem estar autenticado.
 - [ ] **Nenhuma policy `USING (true)`.** Rode:
@@ -147,7 +156,7 @@ Faça este passo **no mesmo dia**. É ele que separa este banco do `suna-core`, 
     from pg_policy p
     join pg_class c on c.oid=p.polrelid
     join pg_namespace n on n.oid=c.relnamespace
-   where n.nspname in ('core','recon')
+   where n.nspname in ('core','recon','marketing')
      and pg_get_expr(p.polqual, p.polrelid) = 'true';
   ```
   **Esperado: nenhuma linha.**
@@ -185,36 +194,117 @@ Faça este passo **no mesmo dia**. É ele que separa este banco do `suna-core`, 
 
 ## PASSO 6 — LIGAR O CORREIO DO CORE
 
-Sem o correio, todo evento emitido pelos módulos fica em `pending` para sempre. A lógica existe e é testada (`@alsham/workflow`); **ligá-la é ato seu**, e há dois caminhos.
+Sem o correio, todo evento emitido pelos módulos fica em `pending` para sempre — e, desde a Etapa 7, **dois módulos dependem disso**: é assim que a campanha fica sabendo da verba aprovada.
 
-### Opção A — `pg_cron` dentro do Supabase (o padrão da Casa)
+A partir da Etapa 8 existe tudo o que faltava: a persistência real, a composição que liga os consumidores, o endpoint e a visão de saúde. **Ligar continua sendo ato seu**, e são quatro passos.
 
-É o padrão PROVADO do `casa-bonaparte-saas`: um job por minuto, sem servidor a manter, sem chave saindo do banco. Precisa das extensões `pg_cron` e `pg_net`, habilitadas no painel em **Database → Extensions**.
+> ⚠️ **Nada disto está no ar.** Este repositório não cria projeto, não faz deploy e não guarda segredo. O que segue é o roteiro para você fazer.
 
-**Vantagem:** roda dentro do banco; se a aplicação cair, a fila continua andando.
-**Custo:** a lógica de entrega precisa existir em SQL ou chamar um endpoint via `pg_net`.
+### 6.1 — Aplicar o `0005`
 
-### Opção B — endpoint protegido + agendador externo
+`supabase/migrations/0005_courier_cron.sql`, pelo SQL Editor, como os outros.
 
-Um endpoint no servidor chama `deliverDue()` e é acionado por um agendador (Vercel Cron, GitHub Actions, o que for).
+Ele cria **só a visão de saúde** (`core.courier_health` e `core.courier_status()`). O agendamento vem comentado dentro do arquivo, de propósito: um `cron.schedule` com URL falsa criaria um job que falha a cada minuto, para sempre.
 
-**Vantagem:** a lógica de entrega é a mesma TypeScript já testada.
-**Custo:** o endpoint precisa de segredo próprio, e quem o chama roda com `service_role`.
-
-⛔ **Nos dois casos:** quem entrega roda com `service_role`, **do servidor**. Essa chave nunca vai para o painel do cliente — `apps/portal` não a tem e há guarda no CI para que continue assim.
-
-### Como conferir se está andando
+Confira que subiu:
 
 ```sql
--- Quantos eventos estão parados na caixa, e há quanto tempo?
-select status, count(*), min(occurred_at) as mais_antigo
-  from core.event_outbox
- group by status order by 2 desc;
+select * from core.courier_status();
 ```
 
-**Esperado com o correio ligado:** `delivered` crescendo, `pending` perto de zero.
-**Se `pending` só cresce:** o correio não está rodando.
-**Se aparecer `dead`:** houve evento que falhou todas as tentativas — a linha tem o `last_error`. Isso pede olho humano, e é de propósito que não some.
+Deve responder `OK` (ou `PARADO`, se já houver evento esperando — o que é a resposta certa, porque o correio ainda não está rodando).
+
+### 6.2 — Subir o `apps/api`
+
+É o servidor que entrega. Um processo Node, sem framework, com duas rotas.
+
+| Variável | O que é |
+|---|---|
+| `DATABASE_URL` | a conexão do Postgres **com privilégio de serviço** — Supabase → Project Settings → Database → Connection string (URI) |
+| `COURIER_SECRET` | um valor aleatório e longo que você gera (`openssl rand -hex 32`) |
+| `PORT` | opcional, padrão 8080 |
+
+```bash
+pnpm --filter @alsham/api start
+```
+
+⛔ **Este app NÃO vai junto com o `apps/portal`.** A `DATABASE_URL` de serviço ignora toda a RLS: quem a tem enxerga todos os tenants. O painel do cliente fala com o banco pela chave publicável, sob RLS, e há guarda no CI para que a fronteira continue de pé.
+
+Onde subir é sua escolha — qualquer lugar com HTTPS e IP de saída estável serve. O que **não** serve é o mesmo deploy do painel.
+
+Confira que respondeu:
+
+```bash
+curl -s -H "x-correio-secret: $COURIER_SECRET" https://SEU-ENDPOINT/correio/saude
+```
+
+Sem o cabeçalho tem de dar **401**. Se der 200, pare: o endpoint está aberto.
+
+### 6.3 — Guardar a URL e o segredo no Vault
+
+No painel: **Database → Vault → Add new secret**. Dois segredos:
+
+| Nome | Valor |
+|---|---|
+| `courier_url` | `https://SEU-ENDPOINT/correio/entregar` |
+| `courier_secret` | o mesmo `COURIER_SECRET` do passo anterior |
+
+⛔ **Não escreva esses valores dentro de uma migration.** Migration é arquivo deste repositório, que é o registro público da obra. É por isso que o `insert` no Vault não está no `0005`.
+
+### 6.4 — Habilitar as extensões e agendar
+
+Painel → **Database → Extensions** → ligar **`pg_cron`** e **`pg_net`**.
+
+Depois, no SQL Editor, cole o bloco que está comentado no fim do `0005_courier_cron.sql` — ele agenda uma rodada por minuto lendo a URL e o segredo do Vault.
+
+Para desligar a qualquer momento:
+
+```sql
+select cron.unschedule('correio-do-core');
+```
+
+---
+
+### A alternativa: agendador externo, sem `pg_cron`
+
+Se preferir não habilitar extensão nenhuma, o mesmo endpoint funciona chamado de fora — Vercel Cron, GitHub Actions, um cron de máquina. É um `POST` por minuto com o cabeçalho do segredo.
+
+**Vantagem:** nada de novo no banco; o agendador fica onde você já tem observabilidade.
+**Custo:** se o agendador externo cair, a fila para — e você descobre pela §6.5, não por um alarme.
+
+**Não implementei as duas.** O `0005` traz o caminho do `pg_cron` porque é o padrão PROVADO da Casa (`casa-bonaparte-saas`) e porque roda dentro do banco: se a aplicação cair, a fila continua andando.
+
+---
+
+### 6.5 — Como conferir se está andando
+
+**O número que importa não é quantos estão parados — é há quanto tempo o mais antigo espera.** Um `pending` alto depois de um pico é normal; um `pending` **velho** significa que o correio não está rodando.
+
+```sql
+select * from core.courier_status();
+```
+
+| Resposta | O que fazer |
+|---|---|
+| `OK` | nada |
+| `ATRASADO` | o mais antigo passa de 10 min — o ciclo está engasgando |
+| `PARADO` | passa de 30 min — o correio provavelmente não está rodando |
+| `ATENCAO` | **há evento morto**. Conferência humana |
+
+E o detalhe, por estado:
+
+```sql
+select * from core.courier_health order by status;
+```
+
+**Se aparecer `dead`:** um evento falhou todas as tentativas. A linha **continua na caixa, com o `last_error`** — desistir de entregar não é desistir de guardar. Veja o erro:
+
+```sql
+select event_id, event_type, attempts, last_error
+  from core.event_outbox where status = 'dead' order by occurred_at desc;
+```
+
+⚠️ **O `pg_cron` não vai te avisar de erro.** `net.http_post` é assíncrono: o job dispara e não espera resposta. Se o endpoint responder 401 ou 500, o `cron.job_run_details` continua dizendo *success*. A conferência de verdade é a consulta acima — se o `pending` não cai, não está entregando, não importa o que o cron diga.
 
 ---
 
@@ -224,16 +314,20 @@ Honestidade de escopo, para você não procurar o que não foi construído:
 
 | Peça | Estado |
 |---|---|
-| Lógica do correio (`@alsham/workflow`) | ✅ **CONSTRUÍDA e testada** — mas **não ligada**: ver Passo 6 |
-| Consumidor de trilha (`core.audit_log`) | ✅ construído no pacote; grava quando o correio for ligado |
-| Telas (`apps/portal`) | ✅ construídas — login e quatro telas do Módulo 1 |
+| Correio (`@alsham/workflow` + `apps/api`) | ✅ **CONSTRUÍDO, testado contra Postgres e LIGÁVEL** — o Passo 6 é o roteiro. **Não está no ar** |
+| Consumidor de trilha (`core.audit_log`) | ✅ construído e inscrito na composição |
+| Consumidor do Módulo 2 (verba da campanha) | ✅ construído e inscrito na composição |
+| Telas (`apps/portal`) | ✅ construídas — login, quatro telas do Módulo 1 e a carteira de campanhas |
 | Parser de OFX/CSV | ✅ construído em `@alsham/finance-reconciliation` |
+| Visão de saúde da fila | ✅ construída — `core.courier_status()` e `core.courier_health` (§6.5) |
 | Leitor de CAMT.053 | **NÃO CONSTRUÍDO** |
 | Preço em reais e gateway de pagamento | **NÃO CONSTRUÍDO** — `usage_ledger` conta uso, não dinheiro |
-| Instalador de módulo em runtime | **NÃO CONSTRUÍDO** — por isso o seed já põe as permissões do `recon` no papel `admin` |
+| Instalador de módulo em runtime | **NÃO CONSTRUÍDO** — por isso o seed já põe as permissões no papel `admin`, e por isso a lista de consumidores é escrita à mão na composição |
+| Alarme automático de fila parada | **NÃO CONSTRUÍDO** — a §6.5 é consulta, não notificação. Quem olha é você |
+| Publicação real em canal (rede social, e-mail) | **NÃO CONSTRUÍDO** — "publicar" muda o estado e conta o fato |
 | Deploy configurado neste repositório | **NÃO EXISTE** — não há `vercel.json`; publicar é ato do dono |
 
-Aplicar este banco **não** põe o produto no ar. Põe a fundação no ar, provada e trancada.
+Aplicar este banco **não** põe o produto no ar. Põe a fundação no ar, provada e trancada — e, com o Passo 6, o Lego passa a conversar de verdade.
 
 ---
 

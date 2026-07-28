@@ -67,7 +67,7 @@ Corolário do roadmap: *cada linha de código escrita para um cliente deve aumen
 
 ---
 
-## 5. ESTADO ATUAL — ETAPA 7 (O SEGUNDO MÓDULO)
+## 5. ESTADO ATUAL — ETAPA 8 (O CORREIO LIGÁVEL)
 
 ### 5.1 Stack — SELADA
 
@@ -123,7 +123,7 @@ Onde vai cada coisa:
 - `packages/config` e `packages/core` são pacotes reais. **`packages/core` é contrato puro: tipos TypeScript, zero runtime.**
 - `packages/finance-reconciliation` é o **Módulo 1** — manifesto, tipos, motor de sugestão de baixa e o **parser de OFX/CSV**. Domínio puro: sem UI e sem banco.
 - `packages/marketing` é o **Módulo 2** — campanhas. ⭐ **É ele que prova o Lego com dois módulos:** consome `recon.approval.decided` **sem importar o outro módulo, sem ler o schema dele e sem conhecer o correio**. Ver `docs/canon/MODULO-MARKETING-SPEC.md`.
-- `apps/store`, `apps/admin`, `apps/api` e os demais 14 pacotes continuam **só com `README.md`** — status NÃO INICIADO.
+- `apps/store` e `apps/admin` e os demais 14 pacotes continuam **só com `README.md`** — status NÃO INICIADO.
 - **As migrations são provadas no CI:** `0001` → `0002` → `0003` → seed aplicam de verdade num Postgres 17 limpo e passam nos testes de isolamento com usuário real (`supabase/tests/`), a cada mudança.
 
 #### ⛔ 5.4.1 O apply de produção já aconteceu — `0001` e `0002` estão CONGELADAS
@@ -134,8 +134,11 @@ A consequência é operacional e não é opinião:
 
 - ❌ **Não edite `0001_core.sql` nem `0002_recon.sql`.** Arquivo aplicado é história. Se estivessem só no papel, corrigir no lugar seria certo; aplicados, editar faz o próximo ambiente nascer diferente da produção **em silêncio**. Correção vira migration nova.
 - ✅ `0003_billing.sql` **ainda é só arquivo** — criado depois do apply, e a Etapa 6 foi instruída a não aplicá-lo. Aplicá-lo é ato do dono (runbook).
-- `0004_marketing.sql` foi criada na Etapa 7 e **também é só arquivo**. A próxima é **`0005_*.sql`**.
-- `packages/workflow` é **o correio do Core** — o entregador da caixa de saída: idempotência por consumidor, backoff exponencial, `dead` sem apagar. **ENGINE, não módulo** (Taxonomia §4): não aparece na Store. A lógica existe e é testada; **ligar em produção é ato do dono** (runbook §6).
+- `0004_marketing.sql` (Etapa 7) e `0005_courier_cron.sql` (Etapa 8) **também são só arquivo**. A próxima é **`0006_*.sql`**.
+- `packages/workflow` é **o correio do Core** — o entregador da caixa de saída: idempotência por consumidor, backoff exponencial, `dead` sem apagar. **ENGINE, não módulo** (Taxonomia §4): não aparece na Store.
+- `apps/api` é **a COMPOSIÇÃO** — o único lugar do repositório onde os módulos se conhecem. Ele importa `workflow`, `marketing` e `billing`; **nenhum deles importa nenhum outro**. Traz a persistência real do correio (contra Postgres, com arrendamento e `skip locked`), os adaptadores dos consumidores, o endpoint protegido e a saúde da fila.
+  ⛔ **Roda com `service_role` e NÃO vai junto com `apps/portal`.** Há guarda no CI sobre essa fronteira.
+  ⚠️ **Construído ≠ no ar.** Nada está agendado; ligar é ato do dono (runbook §6).
 - `packages/billing` é a **contabilidade de uso** — `usage_ledger` + leitura de limite, minerados do kraken-v2 (PROVADO). **Sem preço, e há guarda no CI para que continue assim** (Lei 7).
 - `supabase/migrations/0003_billing.sql` — o livro-caixa de consumo. Correção é estorno, nunca edição.
 - `supabase/seed/0001_platform.sql` — o catálogo da plataforma, idempotente. **Zero tenant, zero usuário.**
@@ -176,13 +179,16 @@ docs/canon/            taxonomia · roadmap · core-spec · identidade-visual
 docs/balancos/         tecnologia + supabase            — de onde minerar
 docs/historico/        catálogo anterior                — memória, não canon
 supabase/migrations/   0001_core · 0002_recon — APLICADAS, não editar (§5.4.1)
-                       0003_billing · 0004_marketing — arquivo; aplicar é ato do dono
+                       0003_billing · 0004_marketing · 0005_courier_cron
+                                              — arquivo; aplicar é ato do dono
 supabase/seed/         0001_platform.sql                — catálogo, idempotente; zero tenant
 supabase/tests/        shim · isolamento · uso · consumo entre módulos
                                                         — só CI; NUNCA no Supabase real
 docs/runbook/          APLICAR.md                       — o passo a passo do dono
 .github/scripts/       guarda de defasagem de documento — encanamento de CI
-apps/                  portal (login + 4 telas do Módulo 1 + campanhas) · admin · store · api
+apps/                  portal (login + 4 telas do Módulo 1 + campanhas)
+                       api    — A COMPOSIÇÃO; roda com service_role
+                       admin · store — só README
 packages/              core auth organizations permissions workflow billing
                        notifications documents ai crm finance
                        legal hr analytics integrations ui sdk config

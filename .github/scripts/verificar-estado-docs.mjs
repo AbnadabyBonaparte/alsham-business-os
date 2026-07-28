@@ -110,6 +110,20 @@ export const PECAS = [
     onde: 'packages/marketing/',
   },
   {
+    nome: 'A composição do Core (apps/api)',
+    detector: [
+      'apps/api/src/composition.ts',
+      'apps/api/src/outbox-store.ts',
+      'supabase/migrations/0005_courier_cron.sql',
+    ],
+    // `apps/api` foi declarado NÃO INICIADO desde a Etapa 0, em três
+    // documentos. Construí-lo sem apagar essas linhas seria a defasagem de
+    // sempre — e desta vez com consequência operacional: quem lesse o canon
+    // acharia que o correio ainda não tem onde rodar.
+    padrao: /(apps\/api|@alsham\/api|a composi[çc][ãa]o do core)/i,
+    onde: 'apps/api/',
+  },
+  {
     nome: 'Contabilidade de uso',
     detector: ['packages/billing/src/usage.ts'],
     // Preço, fatura e gateway seguem não construídos DE PROPÓSITO (Lei 7) —
@@ -127,6 +141,30 @@ export const PECAS = [
 export const APLICADAS = {
   padrao: /(0001_core|0002_recon)/i,
   marcador: /n[ãa]o\s+aplicad|arquivo,\s*n[ãa]o\s+aplicad/i,
+};
+
+/**
+ * O outro lado da Lei 7, e a novidade da Etapa 8.
+ *
+ * A guarda acima pega documento que NEGA o que existe. Esta pega o inverso
+ * para o caso mais perigoso do repositório hoje: dizer que o correio está
+ * **rodando**. Ele está construído, testado e ligável — e **não está no ar**.
+ * Confundir as duas coisas faria alguém parar de conferir a fila.
+ */
+const NO_AR_PROIBIDO = {
+  padrao: /correio/i,
+  /**
+   * Exige a forma AFIRMATIVA, não a palavra solta.
+   *
+   * A primeira versão pegava `ligado` em qualquer lugar — e reprovou
+   * *"um segundo correio **ligado** por engano"*, que é uma hipótese num
+   * comentário sobre idempotência, não uma afirmação de estado. É a quarta vez
+   * neste repositório que uma guarda tropeça na documentação que ela deveria
+   * proteger: leia a afirmação, não o vocabulário.
+   */
+  marcador: /\b(est[áa]|foi|ficou|segue|passou a estar)\s+(no ar|rodando|ligado|em produ[çc][ãa]o)/i,
+  /** O que salva a frase: dizer que NÃO está. */
+  negado: /(n[ãa]o|nunca|ainda|lig[áa]vel|ato do dono|falta)/i,
 };
 
 /** Seções que são a fonte de estado — renomeá-las quebra os ponteiros. */
@@ -205,6 +243,25 @@ for (const arquivo of arquivos) {
   });
 }
 console.log(`${migracoes ? '❌' : '✅'} Migrations aplicadas — ${migracoes} declaração(ões) defasada(s)`);
+
+let noAr = 0;
+for (const arquivo of arquivos) {
+  const linhas = readFileSync(arquivo, 'utf8').split('\n');
+  linhas.forEach((linha, i) => {
+    if (
+      NO_AR_PROIBIDO.padrao.test(linha) &&
+      NO_AR_PROIBIDO.marcador.test(linha) &&
+      !NO_AR_PROIBIDO.negado.test(linha)
+    ) {
+      falhas.push(
+        `${relative(RAIZ, arquivo)}:${i + 1} afirma que o correio está no ar — ele está CONSTRUÍDO e LIGÁVEL, ` +
+          `mas ninguém agendou nada (runbook §6)\n      → ${linha.trim()}`,
+      );
+      noAr++;
+    }
+  });
+}
+console.log(`${noAr ? '❌' : '✅'} O correio não é dado como no ar — ${noAr} afirmação(ões) indevida(s)`);
 
 for (const secao of SECOES) {
   const caminho = join(RAIZ, secao.arquivo);
