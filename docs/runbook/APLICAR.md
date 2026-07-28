@@ -16,10 +16,10 @@ O dono informou ter aplicado **`0001` a `0005` e o seed** num projeto Supabase d
 |---|---|
 | `0001_core.sql` … `0006_install.sql` | **APLICADAS** — não editar |
 | `seed/0001_platform.sql` | **APLICADO** — idempotente, pode rodar de novo sem estragar |
-| `0007_ap.sql` | **ARQUIVO, ainda não aplicado** — o Módulo 3 (Contas a Pagar) |
-| `0008_recon_ap_projection.sql` | **ARQUIVO, ainda não aplicado** — a porta pela qual o Módulo 1 recebe o título |
+| `0007_ap.sql` · `0008_recon_ap_projection.sql` | **APLICADAS** em 28/07/2026 — não editar |
+| `0009_crm.sql` | **ARQUIVO, ainda não aplicado** — o Módulo 4 (Relacionamentos) |
 
-**Se o seu projeto já existe**, o passo 1 não é para você: pule para o **Passo 8**, que é o roteiro só do `0007` + `0008`.
+**Se o seu projeto já existe**, o passo 1 não é para você: pule para o **Passo 9**, que é o roteiro só do `0009`.
 
 **Este documento continua valendo inteiro** para o próximo ambiente — homologação, um segundo tenant, uma restauração. É por isso que ele descreve o zero, e não o meio.
 
@@ -64,10 +64,11 @@ Painel → **SQL Editor** → **New query**. Para cada arquivo: abra o arquivo d
 | 6 | `supabase/migrations/0006_install.sql` | o instalador: `core.install_module` e `core.uninstall_module` | `Success. No rows returned` |
 | 7 | `supabase/migrations/0007_ap.sql` | o Módulo 3: schema `ap`, 1 tabela, 3 policies | `Success. No rows returned` |
 | 8 | `supabase/migrations/0008_recon_ap_projection.sql` | a porta pela qual o Módulo 1 recebe o título | `Success. No rows returned` |
-| 9 | `supabase/seed/0001_platform.sql` | o catálogo: papéis, módulos `recon`, `marketing` e `ap`, planos | `Success. No rows returned` |
+| 9 | `supabase/migrations/0009_crm.sql` | o Módulo 4: schema `crm`, 2 tabelas, 4 policies | `Success. No rows returned` |
+| 10 | `supabase/seed/0001_platform.sql` | o catálogo: papéis, módulos `recon`, `marketing`, `ap` e `crm`, planos | `Success. No rows returned` |
 
 ⚠️ **Num projeto NOVO, exponha os schemas na Data API antes de usar o portal:**
-Project Settings → API → *Exposed schemas* → `core`, `recon`, `marketing`, `ap`.
+Project Settings → API → *Exposed schemas* → `core`, `recon`, `marketing`, `ap`, `crm`.
 Sem isso as telas carregam vazias, sem erro que diga o motivo (§8.0).
 
 ### ⚠️ NÃO aplique a pasta `supabase/tests/`
@@ -389,10 +390,24 @@ select role_key, permission_key, module_id
 
 ---
 
-## PASSO 8 — APLICAR O `0007` + `0008` (o Módulo 3 e o triângulo)
+## PASSO 8 — APLICAR O `0007` + `0008` (o Módulo 3 e o triângulo) — ✅ **FEITO em 28/07/2026**
 
-Este é o passo da **Etapa 10**, e o único que ainda falta. São **duas**
-migrations, e a ordem importa.
+> ⚠️ **Este passo já foi executado.** O dono informou ter aplicado `0007` e
+> `0008`, reaplicado o seed, instalado o módulo `ap` no tenant piloto **pela
+> Store** e registrado o primeiro título real, cujo `ap.payable.registered` foi
+> **emitido e entregue** pelo correio. ⚠️ **NÃO VERIFICADO** por este
+> repositório.
+>
+> ⚠️ **A projeção no `recon` ainda não aconteceu em produção, e o motivo é de
+> INFRAESTRUTURA, não de código:** o host do `apps/api` ainda roda o build
+> anterior ao consumidor novo. **Falta o redeploy do `apps/api`, que é ato do
+> dono.** Assim que ele subir, o correio reentrega — a caixa de saída guarda o
+> evento, e é exatamente para isso que ela existe. Nada precisa ser corrigido
+> aqui: o teste do triângulo no CI é a prova que vale, e ele está verde.
+>
+> O texto abaixo continua valendo inteiro para o **próximo ambiente**.
+
+São **duas** migrations, e a ordem importa.
 
 ### 8.0 — ⚠️ ANTES DE TUDO: EXPOR O SCHEMA `ap` NA DATA API
 
@@ -568,6 +583,137 @@ instalado, ou porque já existia um título com aquela referência marcado
 
 ---
 
+## PASSO 9 — APLICAR O `0009` (o Módulo 4, Relacionamentos)
+
+Este é o passo da **Etapa 11**, e o único que ainda falta. Uma migration só.
+
+### 9.0 — ⚠️ ANTES DE TUDO: EXPOR O SCHEMA `crm` NA DATA API
+
+**Terceira vez que este aviso aparece, e é o mesmo aviso.** É a lição paga na
+Etapa 9 com o `marketing` e repetida na 10 com o `ap`. O sintoma é traiçoeiro:
+as telas carregam **vazias**, sem erro de permissão, sem erro de rede, sem nada
+no log que diga o motivo.
+
+> Painel do Supabase → **Project Settings → API → Exposed schemas** →
+> acrescente **`crm`** à lista (que já deve conter `core`, `recon`, `marketing`,
+> `ap`) → **Save**.
+
+Confira depois de aplicar, com a chave publicável:
+
+```
+curl -s "https://<PROJETO>.supabase.co/rest/v1/parties?select=id&limit=1" \
+  -H "apikey: <ANON_KEY>" -H "Accept-Profile: crm"
+```
+
+**Esperado:** `[]` (lista vazia — você não está autenticado, a RLS barra tudo).
+**Se vier** `{"message":"The schema must be one of the following: ..."}`, o
+schema não foi exposto. Volte ao painel.
+
+### 9.1 — Aplicar o `0009_crm.sql`
+
+SQL Editor → cole `supabase/migrations/0009_crm.sql` inteiro → **Run**.
+
+Cria o schema `crm`, **duas** tabelas (`parties` e `interactions`), a porta de
+saída (`crm.emit_event`), a tabela de transições e os gatilhos que emitem os
+quatro eventos.
+
+⛔ Repare no que ele **não** cria: nenhuma policy de DELETE em tabela nenhuma, e
+nenhuma policy de UPDATE em `interactions`. **Arquivar é estado, nunca apagar**;
+**interação é fato consumado e não se edita.**
+
+### 9.2 — Reaplicar o seed
+
+```
+supabase/seed/0001_platform.sql
+```
+
+É ele que põe o **4º cartão** na Store. O seed continua idempotente e continua
+`do update` no catálogo — reaplicá-lo traz as quatro linhas para a verdade dos
+manifestos, e desfaz edição feita à mão no `core.module_registry`.
+
+### 9.3 — Conferir
+
+```sql
+-- 1. As duas tabelas subiram, com RLS ligada E forçada.
+select c.relname, c.relrowsecurity as rls, c.relforcerowsecurity as forcada
+  from pg_class c join pg_namespace n on n.oid = c.relnamespace
+ where n.nspname = 'crm' and c.relkind = 'r' order by 1;
+```
+**Esperado:** `interactions | t | t` e `parties | t | t`.
+
+```sql
+-- 2. ⛔ A interação é imutável. Filtre o grantee: o DONO da tabela sempre tem
+--    tudo, implicitamente. A regra é que o CLIENTE não tem a porta.
+select coalesce(string_agg(privilege_type, ','), 'nenhum') as portas_de_escrita
+  from information_schema.role_table_grants
+ where table_schema='crm' and table_name='interactions'
+   and privilege_type in ('UPDATE','DELETE')
+   and grantee in ('anon','authenticated','PUBLIC');
+```
+**Esperado: `nenhum`.** Se vier qualquer coisa, pare.
+
+```sql
+-- 3. E a terceira camada, que protege de nós mesmos:
+select tgname from pg_trigger t
+  join pg_class c on c.oid = t.tgrelid
+  join pg_namespace n on n.oid = c.relnamespace
+ where n.nspname='crm' and c.relname='interactions' and not t.tgisinternal;
+```
+**Esperado:** entre eles, `interactions_immutable`.
+
+```sql
+-- 4. O catálogo tem QUATRO cartões, e o novo consome ZERO.
+select module_id, status,
+       jsonb_array_length(events_emits)    as emite,
+       jsonb_array_length(events_consumes) as consome
+  from core.module_registry order by module_id;
+```
+**Esperado:**
+
+| module_id | status | emite | consome |
+|---|---|---|---|
+| `ap` | published | 3 | 0 |
+| `crm` | published | 4 | 0 |
+| `marketing` | published | 3 | 1 |
+| `recon` | published | 3 | 3 |
+
+Se `crm` não aparecer, o seed não foi reaplicado.
+
+```sql
+-- 5. E o seed continua sem conceder permissão de módulo a papel de sistema.
+select count(*) from core.role_permissions
+ where tenant_id is null and module_id <> 'core';
+```
+**Esperado: zero.**
+
+### 9.4 — Instalar o módulo no tenant
+
+**Store → Relacionamentos → Instalar**, escolhendo um papel **DO TENANT**.
+
+Depois de instalar, o item **Relacionamentos** aparece no menu do portal — ele
+só existe para quem tem alguma das três permissões `crm.*`.
+
+### 9.5 — A prova de que está vivo
+
+Cadastre uma contraparte pela tela e registre um contato. Depois:
+
+```sql
+select event_type, produced_by, status
+  from core.event_outbox
+ where event_type like 'crm.%'
+ order by occurred_at desc limit 5;
+```
+**Esperado:** `crm.party.registered` e `crm.interaction.registered`, os dois com
+`produced_by = crm`, e `delivered` depois de um minuto (o correio roda de 1 em 1
+minuto).
+
+⚠️ **`delivered` aqui significa "a trilha registrou".** Nenhum módulo escuta
+`crm.*` — `events_consumes` do CRM é vazio e nenhum outro módulo o declara. É o
+esperado: o módulo funciona inteiro sozinho, e quem quiser reagir aos fatos dele
+constrói o handler primeiro (Lei 7).
+
+---
+
 ## O QUE AINDA NÃO EXISTE
 
 Honestidade de escopo, para você não procurar o que não foi construído:
@@ -579,7 +725,8 @@ Honestidade de escopo, para você não procurar o que não foi construído:
 | Store (vitrine + instalar/desinstalar) | ✅ construída em `apps/portal/src/app/store/` |
 | Consumidor de trilha (`core.audit_log`) | ✅ construído e inscrito na composição |
 | Consumidor do Módulo 2 (verba da campanha) | ✅ construído e inscrito na composição |
-| Módulo 3 — Contas a Pagar (`0007_ap.sql`) | ✅ **CONSTRUÍDO** — arquivo, ainda não aplicado (§8) |
+| Módulo 3 — Contas a Pagar (`0007_ap.sql`) | ✅ **CONSTRUÍDO** e **APLICADO em produção** em 28/07/2026, informado pelo dono — ⚠️ **NÃO VERIFICADO** por este repositório |
+| Módulo 4 — Relacionamentos (`0009_crm.sql`) | ✅ **CONSTRUÍDO** — arquivo, ainda não aplicado (§9) |
 | Consumidor do Módulo 1 (título vindo de outro módulo) | ✅ construído e inscrito na composição — fecha o triângulo |
 | Registro de liquidação e estorno **pela tela** | **NÃO CONSTRUÍDO** — o ciclo de vida aceita os dois e é provado; o botão é etapa própria |
 | Pagamento de verdade (remessa, integração bancária) | **NÃO CONSTRUÍDO**, e é Lei 3: integra-se, não se constrói |

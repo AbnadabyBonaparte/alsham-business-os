@@ -377,6 +377,86 @@ on conflict (module_id) do update set
 -- num papel DO TENANT, quando alguém clica em instalar na Store.
 
 -- =============================================================================
+-- 4.3 O MÓDULO `crm` NO CATÁLOGO DA STORE — o 4º cartão
+-- Transcrito de packages/crm/src/manifest.ts.
+-- -----------------------------------------------------------------------------
+-- ⚠️ Mesma regra dos outros três: este bloco e o `MANIFEST` do pacote andam
+-- juntos, e há teste no CI que compara os dois campo a campo.
+--
+-- ⚠️ **UMA capacidade, e o Domain tem doze.** A Taxonomia §5 lista *CRM ·
+-- Pipeline · Propostas · Orçamentos · Follow-up · Visitas · Clientes · Leads ·
+-- WhatsApp · Ligações · Comissão · Metas*. Onze estão NÃO CONSTRUÍDAS.
+--
+-- ⚠️ **E uma delas nunca vira schema: `WhatsApp`.** A Taxonomia nomeia as
+-- capacidades como o MERCADO as nomeia — é um mapa do que empresas fazem, não
+-- um projeto de tabela. Congelar o instrumento de um país e de uma década numa
+-- coluna faria o produto envelhecer junto com ele. O canal da interação é
+-- texto livre, e é assim que a capacidade continua atendida.
+--
+-- ⭐ **O que este cartão marca no catálogo:** quatro módulos publicados, e
+-- `events_consumes` vazio de novo — depois do `marketing` (consome 1) e do
+-- `recon` (consome 3). A vitrine passa a mostrar que consumir é escolha de
+-- cada módulo, não obrigação de nenhum.
+-- =============================================================================
+
+insert into core.module_registry (
+  module_id, name, version, summary,
+  layer, domain_key,
+  capabilities, permissions, events_emits, events_consumes, agents,
+  requires_core, status
+)
+values (
+  'crm',
+  'Relacionamentos',
+  '0.1.0',
+  'O cadastro de quem a empresa se relaciona — pessoas e organizações — e o histórico de contato com cada um, inteiro num lugar só.',
+  'domain', 'crm',
+  '[
+     {"key":"crm","canonicalName":"CRM"}
+   ]'::jsonb,
+  '[
+     {"key":"crm.party.manage","moduleId":"crm","description":"Cadastrar e editar contrapartes."},
+     {"key":"crm.interaction.record","moduleId":"crm","description":"Registrar um contato no histórico de uma contraparte."},
+     {"key":"crm.party.archive","moduleId":"crm","description":"Arquivar uma contraparte e trazê-la de volta — a ação destrutiva deste módulo."}
+   ]'::jsonb,
+  '[
+     {"type":"crm.party.registered","version":1,"description":"Uma contraparte entrou na carteira: pessoa ou organização, com identificador, contato e etiquetas."},
+     {"type":"crm.party.updated","version":1,"description":"Mudou algo que interessa a quem escuta: nome, identificador fiscal, contato ou etiquetas."},
+     {"type":"crm.party.archived","version":1,"description":"Uma contraparte saiu da carteira — a ação destrutiva deste módulo. Some da operação, nunca da trilha, e nunca do banco."},
+     {"type":"crm.interaction.registered","version":1,"description":"Um contato foi registrado no histórico de uma contraparte, com quando, por onde e o que ficou anotado."}
+   ]'::jsonb,
+  -- Vazio, e é Lei 7. A integração óbvia — o fornecedor de um título a pagar
+  -- virar contraparte sozinho — daria tecnicamente hoje, porque o envelope do
+  -- `ap` já carrega nome e identificador. Não entra porque o handler não
+  -- existe, e porque QUANDO criar contraparte a partir de um pagamento é
+  -- decisão de dono, que vira `settings` do tenant e nunca constante.
+  '[]'::jsonb,
+  '[]'::jsonb,
+  '0.0.x',
+  'published'
+)
+on conflict (module_id) do update set
+  -- Ver o comentário longo no bloco 3: catálogo é vocabulário de plataforma, e
+  -- reaplicar o seed traz a linha para a verdade do manifesto.
+  name            = excluded.name,
+  version         = excluded.version,
+  summary         = excluded.summary,
+  layer           = excluded.layer,
+  domain_key      = excluded.domain_key,
+  vertical_key    = excluded.vertical_key,
+  capabilities    = excluded.capabilities,
+  permissions     = excluded.permissions,
+  events_emits    = excluded.events_emits,
+  events_consumes = excluded.events_consumes,
+  agents          = excluded.agents,
+  requires_core   = excluded.requires_core,
+  status          = excluded.status,
+  updated_at      = now();
+
+-- ⛔ E aqui também NÃO entra permissão de módulo. Quatro módulos no catálogo,
+-- zero permissão concedida pelo seed. Quem concede é o instalador.
+
+-- =============================================================================
 -- 5. PLANOS-BASE
 -- Minerado de: `plan_limits` (5 planos) do kraken-v2 (PROVADO em produção).
 -- -----------------------------------------------------------------------------

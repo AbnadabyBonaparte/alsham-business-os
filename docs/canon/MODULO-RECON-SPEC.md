@@ -200,7 +200,7 @@ A pergunta em cada coluna: *"outra empresa do mesmo setor usaria isso exatamente
 | Parser de OFX e CSV | ✅ construído em `packages/finance-reconciliation/src/parsing/`, com 35 testes. Ler extrato é regra de negócio, não tela |
 | Parser de CAMT.053 | **NÃO CONSTRUÍDO** — e o parser **diz isso** em vez de tentar adivinhar |
 | ⭐ Handler que consome o título de outro módulo | ✅ **CONSTRUÍDO na Etapa 10** (`src/external-payable.ts`) — e é ele que fecha o triângulo. `manifest.events.consumes` **deixou de ser vazio**, na ordem certa: primeiro o handler, depois a promessa |
-| Porta de projeção (`0008_recon_ap_projection.sql`) | ✅ **CONSTRUÍDA** — **arquivo, ainda não aplicado**. Não acrescenta coluna nenhuma: `recon.payables` já tinha `source='event'` e `source_module_id` desde a Etapa 2 |
+| Porta de projeção (`0008_recon_ap_projection.sql`) | ✅ **CONSTRUÍDA** e **APLICADO em produção** em 28/07/2026, informado pelo dono — ⚠️ **NÃO VERIFICADO** por este repositório. Não acrescentou coluna nenhuma: `recon.payables` já tinha `source='event'` e `source_module_id` desde a Etapa 2 |
 | Rateio automático (N linhas ↔ M títulos) | **NÃO CONSTRUÍDO** — hoje a sugestão é 1:1 |
 | IA que aprende padrões e explica divergência | **NÃO CONSTRUÍDO** — Fase 8 |
 

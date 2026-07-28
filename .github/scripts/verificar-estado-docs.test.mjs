@@ -87,8 +87,7 @@ for (const linha of MIGRACOES_DEFASADAS) {
  * não este teste que está errado.
  */
 for (const linha of [
-  '| `0007_ap.sql` | **ARQUIVO, ainda não aplicado** — o Módulo 3 |',
-  '| `0008_recon_ap_projection.sql` | **ARQUIVO, ainda não aplicado** |',
+  '| `0009_crm.sql` | **ARQUIVO, ainda não aplicado** — o Módulo 4 |',
 ]) {
   test(`pode continuar sendo declarada não aplicada, porque não foi: ${linha.slice(0, 34)}…`, () => {
     assert.equal(APLICADAS.padrao.test(linha), false);
@@ -99,6 +98,8 @@ for (const linha of [
 for (const linha of [
   '| `0003_billing.sql` | **ARQUIVO, ainda não aplicado** |',
   '| `0006_install.sql` | **ARQUIVO, ainda não aplicado** — o instalador |',
+  '| `0007_ap.sql` | **ARQUIVO, ainda não aplicado** — o Módulo 3 |',
+  '| `0008_recon_ap_projection.sql` | **ARQUIVO, ainda não aplicado** |',
 ]) {
   test(`morde a recém-aplicada dita pendente: ${linha.slice(0, 34)}…`, () => {
     assert.ok(APLICADAS.padrao.test(linha) && APLICADAS.marcador.test(linha), 'passou batido');

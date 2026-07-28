@@ -112,6 +112,10 @@ jobs:
       - name: aplicar 0008_recon_ap_projection.sql
         run: $PSQL -f supabase/migrations/0008_recon_ap_projection.sql
 
+      # ⭐ ETAPA 11 — o Módulo 4, Relacionamentos (CRM base).
+      - name: aplicar 0009_crm.sql
+        run: $PSQL -f supabase/migrations/0009_crm.sql
+
       # ---------------------------------------------------------------------
       # 2. SEED — e a prova de que reaplicar não muda nada
       # ---------------------------------------------------------------------
@@ -139,12 +143,12 @@ jobs:
           FALTA=$($PSQL -tAc "
             select coalesce(string_agg(n.nspname||'.'||c.relname, ', '), '')
               from pg_class c join pg_namespace n on n.oid = c.relnamespace
-             where n.nspname in ('core','recon','marketing','ap') and c.relkind = 'r'
+             where n.nspname in ('core','recon','marketing','ap','crm') and c.relkind = 'r'
                and (not c.relrowsecurity or not c.relforcerowsecurity);")
           [ -z "$FALTA" ] || { echo "::error::sem RLS enable+force: $FALTA"; exit 1; }
           $PSQL -c "select n.nspname as schema, count(*) as tabelas
                       from pg_class c join pg_namespace n on n.oid=c.relnamespace
-                     where n.nspname in ('core','recon','marketing','ap') and c.relkind='r'
+                     where n.nspname in ('core','recon','marketing','ap','crm') and c.relkind='r'
                      group by 1 order by 1;"
 
       - name: nenhuma policy USING (true)
@@ -154,7 +158,7 @@ jobs:
               from pg_policy p
               join pg_class c on c.oid = p.polrelid
               join pg_namespace n on n.oid = c.relnamespace
-             where n.nspname in ('core','recon','marketing','ap')
+             where n.nspname in ('core','recon','marketing','ap','crm')
                and pg_get_expr(p.polqual, p.polrelid) = 'true';")
           [ -z "$ABERTAS" ] || { echo "::error::policy aberta (lição paga do suna-core): $ABERTAS"; exit 1; }
 
@@ -165,7 +169,7 @@ jobs:
                              where n.nspname='public' and c.relkind='r';")
           [ "$PUB" = "0" ] || { echo "::error::$PUB tabela(s) em public — expostas via API"; exit 1; }
           ANON=$($PSQL -tAc "select count(*) from information_schema.role_table_grants
-                              where grantee='anon' and table_schema in ('core','recon','marketing','ap');")
+                              where grantee='anon' and table_schema in ('core','recon','marketing','ap','crm');")
           [ "$ANON" = "0" ] || { echo "::error::anon tem $ANON grant(s) no Business OS"; exit 1; }
 
       - name: o seed não semeou tenant nem usuário
@@ -219,6 +223,93 @@ jobs:
       #     um título "vindo de outro módulo" por dentro da RLS.
       - name: teste do triângulo (Módulo 3 → Módulo 1)
         run: $PSQL -f supabase/tests/05_ap_triangle.sql
+
+      # ⭐ A PROVA DA ETAPA 11: o Módulo 4 no banco.
+      #
+      # Nove cenários, e três deles são o que nenhum teste de pacote alcança:
+      #
+      #   · a interação é IMUTÁVEL — negada até para quem roda como DONO DO
+      #     BANCO, que é onde as outras duas camadas não valem;
+      #   · arquivar a contraparte NÃO leva o histórico junto;
+      #   · a chave estrangeira COMPOSTA impede a interação de apontar para a
+      #     contraparte de outro tenant. Sem ela, a RLS de leitura esconderia o
+      #     estrago em vez de impedi-lo — o dado errado existiria, calado.
+      - name: teste do Módulo 4 (isolamento, imutabilidade, histórico)
+        run: $PSQL -f supabase/tests/06_crm_isolation.sql
+
+      # ⛔ A INTERAÇÃO É IMUTÁVEL, CONFERIDA NO BANCO APLICADO.
+      #
+      # Fato consumado não se edita. A decisão vive em três camadas, e esta
+      # guarda confere as duas que são de privilégio — no banco, não no
+      # arquivo: é a diferença entre a regra escrita e a regra em vigor.
+      - name: nenhuma porta de escrita em crm.interactions
+        run: |
+          G=$($PSQL -tAc "select coalesce(string_agg(privilege_type, ','), '')
+                            from information_schema.role_table_grants
+                           where table_schema='crm' and table_name='interactions'
+                             and privilege_type in ('UPDATE','DELETE')
+                             and grantee in ('anon','authenticated','PUBLIC');")
+          [ -z "$G" ] || { echo "::error::alguém concedeu $G em crm.interactions — fato consumado não se edita"; exit 1; }
+          P=$($PSQL -tAc "select count(*) from pg_policy p
+                            join pg_class c on c.oid=p.polrelid
+                            join pg_namespace n on n.oid=c.relnamespace
+                           where n.nspname='crm' and c.relname='interactions'
+                             and p.polcmd in ('w','d');")
+          [ "$P" = "0" ] || { echo "::error::apareceu policy de UPDATE/DELETE em crm.interactions"; exit 1; }
+          # E a terceira camada, que protege de nós mesmos: o gatilho que
+          # recusa até para o dono do banco.
+          T=$($PSQL -tAc "select count(*) from pg_trigger t
+                            join pg_class c on c.oid=t.tgrelid
+                            join pg_namespace n on n.oid=c.relnamespace
+                           where n.nspname='crm' and c.relname='interactions'
+                             and t.tgname='interactions_immutable' and not t.tgisinternal;")
+          [ "$T" = "1" ] || { echo "::error::o gatilho de imutabilidade sumiu de crm.interactions"; exit 1; }
+          echo "crm.interactions continua imutável nas três camadas."
+
+      # ⛔ ARQUIVAR É ESTADO, NUNCA DELETE — nas duas tabelas do módulo.
+      - name: nenhuma porta de DELETE em crm
+        run: |
+          G=$($PSQL -tAc "select count(*) from information_schema.role_table_grants
+                            where table_schema='crm' and privilege_type='DELETE'
+                              and grantee in ('anon','authenticated','PUBLIC');")
+          [ "$G" = "0" ] || { echo "::error::alguém concedeu DELETE em crm ao cliente"; exit 1; }
+          P=$($PSQL -tAc "select count(*) from pg_policy p
+                            join pg_class c on c.oid=p.polrelid
+                            join pg_namespace n on n.oid=c.relnamespace
+                           where n.nspname='crm' and p.polcmd='d';")
+          [ "$P" = "0" ] || { echo "::error::apareceu policy de DELETE em crm"; exit 1; }
+
+      # ⭐ O CATÁLOGO TEM QUATRO CARTÕES, e o quarto consome ZERO.
+      #
+      # Não é enfeite: é a Lei 7 conferida no banco. Se alguém declarar consumo
+      # no seed sem handler construído, a Store passa a anunciar uma integração
+      # que não acontece — e ninguém veria erro nenhum.
+      - name: o catálogo conta a verdade sobre quem consome o quê
+        run: |
+          $PSQL -c "select module_id, status,
+                           jsonb_array_length(events_emits)    as emite,
+                           jsonb_array_length(events_consumes) as consome
+                      from core.module_registry order by module_id;"
+          # ⚠️ **CONTA OS MÓDULOS REAIS, não a tabela inteira** — e a distinção
+          # custou uma falha antes de entrar.
+          #
+          # `04_install_module.sql` insere módulos FICTÍCIOS no catálogo para
+          # provar o instalador: um `rascunho` (para provar que draft não
+          # aparece na vitrine) e um `terceiro` publicado (para provar o teto do
+          # plano). Uma contagem ingênua de `status='published'` daria 5 e
+          # reprovaria o repositório inteiro, por causa do fixture de outro
+          # teste.
+          #
+          # Só apareceu porque os números foram conferidos contra o banco.
+          N=$($PSQL -tAc "select count(*) from core.module_registry
+                           where status='published'
+                             and module_id in ('recon','marketing','ap','crm');")
+          [ "$N" = "4" ] || { echo "::error::o catálogo tem $N dos 4 módulos reais publicados"; exit 1; }
+          C=$($PSQL -tAc "select jsonb_array_length(events_consumes)
+                            from core.module_registry where module_id='crm';")
+          [ "$C" = "0" ] || {
+            echo "::error::o módulo crm declara $C consumo(s) no catálogo — e o handler não existe (Lei 7)"
+            exit 1; }
 
       # ⛔ CANCELAR É ESTADO, NUNCA DELETE.
       #
@@ -350,6 +441,7 @@ jobs:
           $PSQL -q -f supabase/migrations/0006_install.sql
           $PSQL -q -f supabase/migrations/0007_ap.sql
           $PSQL -q -f supabase/migrations/0008_recon_ap_projection.sql
+          $PSQL -q -f supabase/migrations/0009_crm.sql
           $PSQL -q -f supabase/seed/0001_platform.sql
 
       # ⚠️ Sem `DATABASE_URL` os testes do store se PULAM — de propósito, para
@@ -506,6 +598,42 @@ jobs:
             echo "$ATRASO"; exit 1
           fi
 
+          # Módulo 4: a busca da carteira, o resumo e o ciclo de vida são
+          # DECISÃO. A forma mais provável de migrarem para a pele é alguém
+          # escrever `p.displayName.includes(busca)` no componente da lista
+          # "porque era mais rápido" — e aí a mesma pergunta passa a ter duas
+          # respostas no dia em que a busca também acontecer no servidor.
+          if grep -rInE 'function (validateNewParty|validateNewInteraction|matchesQuery|summarizeParties|normalizeTags)' \
+               apps --include='*.ts' --include='*.tsx'; then
+            echo "::error::o domínio de relacionamentos foi redeclarado em apps/"; exit 1
+          fi
+          CRM=$(grep -Ev '^\s*(\*|//|/\*)' apps/portal/src/app/crm-actions.ts)
+          for FN in validateNewParty validateNewInteraction canTransition; do
+            echo "$CRM" | grep -Eq "\b$FN\(" \
+              || { echo "::error::a ação de relacionamentos deixou de chamar $FN() do pacote"; exit 1; }
+          done
+          PLISTA=$(grep -Ev '^\s*(\*|//|/\*)' apps/portal/src/components/party-list.tsx)
+          echo "$PLISTA" | grep -Eq '\bmatchesQuery\(' \
+            || { echo "::error::a lista deixou de usar a busca do pacote"; exit 1; }
+          # E o jeito mais provável de a busca migrar para a tela.
+          BUSCA=$(grep -rIn --include='*.tsx' --include='*.ts' -E '(displayName|display_name)[^;]{0,40}\.(includes|indexOf|match)\(' apps 2>/dev/null \
+                  | grep -Ev '^[^:]+:[0-9]+:\s*(\*|//|/\*)' || true)
+          if [ -n "$BUSCA" ]; then
+            echo "::error::a busca da carteira apareceu em apps/ — ela é matchesQuery(), no pacote"
+            echo "$BUSCA"; exit 1
+          fi
+
+          # ⛔ E a tela NÃO reimplementa a imutabilidade da interação com um
+          # `if`. Ela não oferece o botão porque a operação não existe — três
+          # camadas de banco a recusam. Um caminho de edição em apps/ seria a
+          # tela prometendo o que o schema nega.
+          EDITA=$(grep -rIn --include='*.ts' --include='*.tsx' -E "from\('interactions'\)[^;]{0,60}\.(update|delete)\(|updateInteraction|deleteInteraction" apps 2>/dev/null \
+                  | grep -Ev '^[^:]+:[0-9]+:\s*(\*|//|/\*)' || true)
+          if [ -n "$EDITA" ]; then
+            echo "::error::apareceu caminho de editar/apagar interação em apps/ — fato consumado não se edita"
+            echo "$EDITA"; exit 1
+          fi
+
       # ⭐⭐ A LEI DO LEGO, VERIFICADA (CLAUDE.md §5.5, regras 3 e 5).
       #
       # A Etapa 7 pôs dois módulos conversando. A tese inteira da plataforma é
@@ -518,7 +646,7 @@ jobs:
       - name: módulo não conhece módulo
         run: |
           FALHOU=0
-          MODULOS="finance-reconciliation marketing accounts-payable"
+          MODULOS="finance-reconciliation marketing accounts-payable crm"
 
           # 1. Nenhum módulo importa outro módulo, em nenhuma forma.
           for MOD in $MODULOS; do
@@ -536,7 +664,7 @@ jobs:
           #    `devDependencies` de teste também não vale — se o teste precisa
           #    do outro módulo, o acoplamento é real.
           for MOD in $MODULOS; do
-            if grep -qE '"@alsham/(finance-reconciliation|marketing|accounts-payable)"' \
+            if grep -qE '"@alsham/(finance-reconciliation|marketing|accounts-payable|crm)"' \
                  <(grep -v "\"@alsham/$MOD\"" "packages/$MOD/package.json"); then
               echo "::error::packages/$MOD declara outro módulo como dependência"
               FALHOU=1
@@ -553,23 +681,38 @@ jobs:
           #    porta de projeção morasse dentro do arquivo do módulo de Contas
           #    a Pagar, esta guarda precisaria aprender a ignorar um caso. É
           #    justamente o que se evitou. Ela é conferida abaixo, no item 4.
-          for PAR in "0002_recon.sql:marketing" "0002_recon.sql:ap" \
-                     "0004_marketing.sql:recon" "0004_marketing.sql:ap" \
-                     "0007_ap.sql:recon" "0007_ap.sql:marketing"; do
-            ARQ="supabase/migrations/${PAR%%:*}"; ALHEIO="${PAR##*:}"
-            CODIGO=$(sed 's/--.*//' "$ARQ")
-            if echo "$CODIGO" | grep -qE "\b$ALHEIO\."; then
-              echo "::error::$ARQ acessa o schema $ALHEIO — projeção local, nunca join"
-              echo "$CODIGO" | grep -nE "\b$ALHEIO\." | head -5
-              FALHOU=1
-            fi
+          #
+          #    ⚠️ **A MATRIZ É GERADA, não escrita à mão — e mudou na Etapa 11.**
+          #
+          #    Com três módulos eram 6 pares e dava para listar. Com quatro são
+          #    12, e com cinco serão 20: uma lista escrita à mão é uma lista que
+          #    um dia esquece um par, em silêncio, e justamente o par novo.
+          #    Aqui os pares saem do produto cartesiano dos schemas, nos DOIS
+          #    sentidos — acrescentar um módulo é acrescentar uma linha ao mapa.
+          declare -A SCHEMA_DE=(
+            [0002_recon.sql]=recon
+            [0004_marketing.sql]=marketing
+            [0007_ap.sql]=ap
+            [0009_crm.sql]=crm
+          )
+          for ARQUIVO in "${!SCHEMA_DE[@]}"; do
+            DONO="${SCHEMA_DE[$ARQUIVO]}"
+            CODIGO=$(sed 's/--.*//' "supabase/migrations/$ARQUIVO")
+            for OUTRO in "${SCHEMA_DE[@]}"; do
+              [ "$DONO" = "$OUTRO" ] && continue
+              if echo "$CODIGO" | grep -qE "\b$OUTRO\."; then
+                echo "::error::$ARQUIVO acessa o schema $OUTRO — projeção local, nunca join"
+                echo "$CODIGO" | grep -nE "\b$OUTRO\." | head -5
+                FALHOU=1
+              fi
+            done
           done
 
           # 4. E a porta de projeção do `recon` não pode ler o schema de quem
           #    produz o evento. Ela recebe TUDO por argumento, do payload — que
           #    o produtor monta autossuficiente exatamente por isso.
           PROJ=$(sed 's/--.*//' supabase/migrations/0008_recon_ap_projection.sql)
-          if echo "$PROJ" | grep -qE "\b(ap|marketing)\."; then
+          if echo "$PROJ" | grep -qE "\b(ap|marketing|crm)\."; then
             echo "::error::a projeção lê o schema de outro módulo — ela só pode ler o payload"
             FALHOU=1
           fi
@@ -589,7 +732,7 @@ jobs:
             || { echo "::error::o consumidor deixou de ler a procedência do envelope"; FALHOU=1; }
 
           [ "$FALHOU" = "0" ] || exit 1
-          echo "Lego intacto: três módulos, zero dependência entre eles."
+          echo "Lego intacto: quatro módulos, zero dependência entre eles."
 
       # ⛔⛔ A FRONTEIRA DA CHAVE-MÃE (Etapa 8).
       #

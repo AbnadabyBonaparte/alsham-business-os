@@ -5,9 +5,10 @@ import Link from 'next/link';
 import { PRODUCT, COMPANY } from '@alsham/config';
 
 import { PERMISSIONS as AP_PERMISSIONS } from '@alsham/accounts-payable';
+import { PERMISSIONS as CRM_PERMISSIONS } from '@alsham/crm';
 
 import { resolveSession } from '@/lib/session';
-import { getApPort } from '@/lib/data';
+import { getApPort, getCrmPort } from '@/lib/data';
 import { TenantSwitcher } from '@/components/tenant-switcher';
 
 import './globals.css';
@@ -24,6 +25,7 @@ type Rota =
   | '/fechamento'
   | '/campanhas'
   | '/contas-a-pagar'
+  | '/relacionamentos'
   | '/store';
 
 /**
@@ -61,6 +63,20 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
    * carona nesta etapa acrescentaria uma consulta por item sem ninguém ter
    * pedido.
    */
+  const temRelacionamentos = logado
+    ? await (async () => {
+        try {
+          const port = await getCrmPort();
+          const permissoes = await port.listPermissions();
+          // Qualquer uma das três dá acesso ao módulo — é o mesmo conjunto que
+          // `crm.can_access()` confere no banco.
+          return Object.values(CRM_PERMISSIONS).some((p) => permissoes.has(p));
+        } catch {
+          return false;
+        }
+      })()
+    : false;
+
   const temContasAPagar = logado
     ? await (async () => {
         try {
@@ -104,6 +120,9 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
                   <NavLink href="/campanhas">Campanhas</NavLink>
                   {temContasAPagar ? (
                     <NavLink href="/contas-a-pagar">Contas a pagar</NavLink>
+                  ) : null}
+                  {temRelacionamentos ? (
+                    <NavLink href="/relacionamentos">Relacionamentos</NavLink>
                   ) : null}
                   <NavLink href="/store">Store</NavLink>
                 </nav>
