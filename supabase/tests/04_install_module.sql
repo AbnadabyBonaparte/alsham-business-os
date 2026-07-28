@@ -112,9 +112,10 @@ begin
   set local request.jwt.claim.sub = '11111111-1111-4111-8111-111111111111';
 
   begin
-    -- `admin` existe, mas é papel de SISTEMA (tenant_id null).
+    -- `owner` existe SÓ como papel de sistema (tenant_id null) — nenhum
+    -- fixture cria um `owner` de tenant. É o caso puro.
     perform core.install_module(
-      'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', 'recon', 'admin');
+      'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', 'recon', 'owner');
     raise exception '  ❌ FALHOU: concedeu permissão de módulo a papel de sistema';
   exception
     when others then

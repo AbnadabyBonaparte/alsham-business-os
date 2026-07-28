@@ -49,11 +49,23 @@ after(async () => {
 
 beforeEach(async () => {
   if (SEM_BANCO) return;
-  // Caixa limpa a cada teste. `delete` e não `truncate`: `core.audit_log` tem
-  // trigger que recusa TRUNCATE (lição paga da Etapa 3), e a trilha é escrita
-  // por alguns destes testes.
-  await pool.query('delete from core.processed_events where tenant_id = $1', [TENANT]);
-  await pool.query('delete from core.event_outbox where tenant_id = $1', [TENANT]);
+  // ⚠️ A caixa INTEIRA, não a do tenant do teste — e a distinção custou uma
+  // quebra intermitente.
+  //
+  // O correio é da PLATAFORMA: `deliverDue()` pega tudo que estiver vencido,
+  // de qualquer tenant, porque é isso que ele tem de fazer. Limpar só o
+  // próprio tenant fazia estes testes passarem num banco recém-criado e
+  // falharem num banco onde a suíte SQL já tinha rodado — `delivered` vinha 7
+  // em vez de 1, contando os `core.module.*` que o teste do instalador
+  // deixou.
+  //
+  // Teste que afirma "uma rodada entregou N" tem de começar com a fila vazia.
+  //
+  // `delete` e não `truncate`: `core.audit_log` tem trigger que recusa
+  // TRUNCATE (lição paga da Etapa 3), e a trilha é escrita por alguns destes
+  // testes.
+  await pool.query('delete from core.processed_events');
+  await pool.query('delete from core.event_outbox');
   await pool.query('delete from core.usage_ledger where tenant_id = $1', [TENANT]);
 });
 
@@ -426,6 +438,8 @@ describe('a composição, contra o banco', { skip: SEM_BANCO }, () => {
 });
 
 describe('a saúde da fila', { skip: SEM_BANCO }, () => {
+  // A saúde lê a fila INTEIRA — é a visão do operador da plataforma, e está
+  // certa assim. O `beforeEach` do arquivo já a esvazia.
   test('conta pendente, entregue e morto, e acha o mais antigo', async () => {
     await enfileirar({ quando: '2026-07-01T00:00:00.000Z' });
     await enfileirar();

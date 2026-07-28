@@ -77,6 +77,28 @@ select r.id, r.key, v.k, 'recon'
  where r.tenant_id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa' and r.key = 'conciliador'
 on conflict (role_id, permission_key) do nothing;
 
+-- ⚠️ O PAPEL `admin` DE CADA TENANT — e por que ele existe desde a Etapa 9.
+--
+-- Até aqui, `user-a` e `user-b` enxergavam dado de módulo porque o SEED
+-- concedia as permissões de `recon` ao papel de SISTEMA `admin`, que vale em
+-- todo tenant. Esse era o vazamento que o instalador veio fechar: qualquer
+-- tenant novo nascia com os módulos sem instalar.
+--
+-- Tirada a ponte, este fixture passou a conceder o que precisa **num papel DO
+-- TENANT** — que é exatamente o que `core.install_module()` faz. O teste
+-- deixou de depender do vazamento para provar o isolamento.
+insert into core.roles (tenant_id, key, name, description) values
+  ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', 'admin', 'Administrador do tenant', 'Papel de tenant que recebe as permissões dos módulos instalados.'),
+  ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', 'admin', 'Administrador do tenant', 'Papel de tenant que recebe as permissões dos módulos instalados.')
+on conflict (tenant_id, key) do nothing;
+
+insert into core.role_permissions (role_id, role_key, permission_key, module_id)
+select r.id, r.key, v.k, 'recon'
+  from core.roles r
+ cross join (values ('recon.statement.import'), ('recon.match.manage'), ('recon.approval.decide')) v(k)
+ where r.tenant_id in ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb') and r.key = 'admin'
+on conflict (role_id, permission_key) do nothing;
+
 insert into core.memberships (tenant_id, user_id, role_key, status) values
   ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', '11111111-1111-4111-8111-111111111111', 'admin',       'active'),
   ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', '22222222-2222-4222-8222-222222222222', 'admin',       'active'),
