@@ -6,18 +6,22 @@ import { createStoreSupabasePort } from './store-supabase';
 import { createMarketingSupabasePort } from './marketing-supabase';
 import { createApMockPort } from './ap-mock';
 import { createApSupabasePort } from './ap-supabase';
+import { createCrmMockPort } from './crm-mock';
+import { createCrmSupabasePort } from './crm-supabase';
 import { createSupabaseServerClient } from '../supabase/server';
 import { resolveSession } from '../session';
 import type { DataPort } from './port';
 import type { MarketingPort } from './marketing-port';
 import type { StorePort } from './store-port';
 import type { ApPort } from './ap-port';
+import type { CrmPort } from './crm-port';
 
 export { DataPortError } from './port';
 export type { DataPort } from './port';
 export type { MarketingPort } from './marketing-port';
 export type { StorePort } from './store-port';
 export type { ApPort, PayableRow } from './ap-port';
+export type { CrmPort, PartyRow, InteractionRow } from './crm-port';
 
 /**
  * Escolhe o adapter — e é só isto que muda entre demonstração e produção.
@@ -105,4 +109,23 @@ export async function getApPort(): Promise<ApPort> {
   if (!db) return createApMockPort();
 
   return createApSupabasePort(db, session.activeTenant.id);
+}
+
+/**
+ * A porta do Módulo 4 — **quarta porta, mesmo encanamento**.
+ *
+ * A repetição destas oito linhas continua deliberada e continua registrada: um
+ * `getPort(factory)` genérico economizaria linhas e custaria a fronteira — a
+ * assinatura genérica convidaria a primeira porta que serve dois módulos. Ver
+ * a nota em `getMarketingPort()` sobre a dívida do `@alsham/sdk`, que segue
+ * pendente e segue sendo decisão do dono.
+ */
+export async function getCrmPort(): Promise<CrmPort> {
+  const session = await resolveSession();
+  if (session.mode !== 'authenticated') return createCrmMockPort();
+
+  const db = await createSupabaseServerClient();
+  if (!db) return createCrmMockPort();
+
+  return createCrmSupabasePort(db, session.activeTenant.id);
 }

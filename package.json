@@ -12,7 +12,7 @@
     "build": "turbo run build",
     "dev": "turbo run dev",
     "lint": "turbo run lint",
-    "typecheck": "tsc --noEmit -p packages/config/tsconfig.json && tsc --noEmit -p packages/core/tsconfig.json && tsc --noEmit -p packages/workflow/tsconfig.json && tsc --noEmit -p packages/billing/tsconfig.json && tsc --noEmit -p packages/finance-reconciliation/tsconfig.json && tsc --noEmit -p packages/marketing/tsconfig.json && tsc --noEmit -p packages/accounts-payable/tsconfig.json && tsc --noEmit -p packages/permissions/tsconfig.json && tsc --noEmit -p apps/api/tsconfig.json && tsc --noEmit -p apps/portal/tsconfig.json",
+    "typecheck": "tsc --noEmit -p packages/config/tsconfig.json && tsc --noEmit -p packages/core/tsconfig.json && tsc --noEmit -p packages/workflow/tsconfig.json && tsc --noEmit -p packages/billing/tsconfig.json && tsc --noEmit -p packages/finance-reconciliation/tsconfig.json && tsc --noEmit -p packages/marketing/tsconfig.json && tsc --noEmit -p packages/accounts-payable/tsconfig.json && tsc --noEmit -p packages/crm/tsconfig.json && tsc --noEmit -p packages/permissions/tsconfig.json && tsc --noEmit -p apps/api/tsconfig.json && tsc --noEmit -p apps/portal/tsconfig.json",
     "build:portal": "pnpm --filter @alsham/portal build",
     "test": "node --test \"packages/*/src/**/*.test.ts\"",
     "test:docs": "node --test .github/scripts/verificar-estado-docs.test.mjs",

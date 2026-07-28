@@ -13,6 +13,7 @@
     "@alsham/accounts-payable": "workspace:*",
     "@alsham/config": "workspace:*",
     "@alsham/core": "workspace:*",
+    "@alsham/crm": "workspace:*",
     "@alsham/finance-reconciliation": "workspace:*",
     "@alsham/marketing": "workspace:*",
     "@alsham/permissions": "workspace:*",

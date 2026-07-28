@@ -57,6 +57,9 @@ importers:
       '@alsham/core':
         specifier: workspace:*
         version: link:../../packages/core
+      '@alsham/crm':
+        specifier: workspace:*
+        version: link:../../packages/crm
       '@alsham/finance-reconciliation':
         specifier: workspace:*
         version: link:../../packages/finance-reconciliation
@@ -135,6 +138,19 @@ importers:
 
   packages/core:
     devDependencies:
+      typescript:
+        specifier: ^5.7.2
+        version: 5.9.3
+
+  packages/crm:
+    dependencies:
+      '@alsham/core':
+        specifier: workspace:*
+        version: link:../core
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.2
+        version: 22.20.1
       typescript:
         specifier: ^5.7.2
         version: 5.9.3

@@ -196,23 +196,37 @@ export const PECAS = [
     padrao: /(a\s+store\b|vitrine\s+de\s+m[óo]dulos|apps\/portal\/src\/app\/store)/i,
     onde: 'apps/portal/src/app/store/',
   },
+  {
+    nome: 'Módulo 4 — Relacionamentos (CRM base)',
+    detector: [
+      'packages/crm/src/manifest.ts',
+      'packages/crm/src/party.ts',
+      'supabase/migrations/0009_crm.sql',
+    ],
+    // `packages/crm` era README vazio, declarado NÃO INICIADO em três
+    // documentos desde a Etapa 0 — e "CRM" é palavra que aparece em linhas
+    // corretas sobre as 11 capacidades que seguem não construídas. Por isso o
+    // padrão exige o NOME DA PEÇA: o módulo, o pacote ou o schema.
+    padrao: /(m[óo]dulo 4|packages\/crm|@alsham\/crm|relacionamentos \(crm)/i,
+    onde: 'packages/crm/',
+  },
 ];
 
 /**
  * Migrations que o dono aplicou: declará-las pendentes convida a editá-las.
  *
- * ⚠️ A lista cresce a cada apply informado pelo dono. Na Etapa 10 ela passou de
- * `0001`–`0002` para `0001`–`0006`: o dono informou o apply do `0006` em
- * 28/07/2026, junto com a limpeza do §7.3 do runbook. Uma migration aplicada
- * que o canon ainda chama de "arquivo, não aplicada" é um convite a editá-la —
- * e arquivo aplicado editado faz o próximo ambiente nascer diferente da
- * produção EM SILÊNCIO.
+ * ⚠️ A lista cresce a cada apply informado pelo dono — `0001`–`0002` na Etapa
+ * 10, `0001`–`0006` depois, e `0001`–`0008` na Etapa 11, quando o dono
+ * informou ter aplicado o Módulo 3 e a porta de projeção em 28/07/2026. Uma
+ * migration aplicada que o canon ainda chama de "arquivo, não aplicada" é um
+ * convite a editá-la — e arquivo aplicado editado faz o próximo ambiente nascer
+ * diferente da produção EM SILÊNCIO.
  *
- * `0007` e `0008` NÃO entram: elas são, de fato, só arquivo. Aplicá-las é ato
- * do dono (runbook §8), e declará-las pendentes é a verdade.
+ * `0009` NÃO entra: ela é, de fato, só arquivo. Aplicá-la é ato do dono
+ * (runbook §9), e declará-la pendente é a verdade.
  */
 export const APLICADAS = {
-  padrao: /(0001_core|0002_recon|0003_billing|0004_marketing|0005_courier_cron|0006_install)/i,
+  padrao: /(0001_core|0002_recon|0003_billing|0004_marketing|0005_courier_cron|0006_install|0007_ap|0008_recon_ap_projection)/i,
   marcador: /n[ãa]o\s+aplicad|arquivo,\s*n[ãa]o\s+aplicad/i,
 };
 
@@ -253,6 +267,7 @@ const SECOES = [
   { arquivo: 'docs/canon/MODULO-RECON-SPEC.md', titulo: '## 7. ESTADO DA OBRA' },
   { arquivo: 'docs/canon/MODULO-MARKETING-SPEC.md', titulo: '## 6. ESTADO DA OBRA' },
   { arquivo: 'docs/canon/MODULO-AP-SPEC.md', titulo: '## 6. ESTADO DA OBRA' },
+  { arquivo: 'docs/canon/MODULO-CRM-SPEC.md', titulo: '## 6. ESTADO DA OBRA' },
 ];
 
 /**
