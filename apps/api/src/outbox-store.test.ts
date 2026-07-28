@@ -171,7 +171,16 @@ describe('o OutboxStore real cumpre o mesmo contrato do mock', { skip: SEM_BANCO
 
   test('backoff: falhar reagenda no futuro, com o erro gravado', async () => {
     const id = await enfileirar();
-    const agora = new Date('2026-07-28T10:00:00.000Z');
+    // ⚠️ Relógio REAL, não data fixa — e a lição custou uma quebra.
+    //
+    // A primeira versão usava `new Date('2026-07-28T10:00:00Z')`, que estava
+    // no futuro quando o teste foi escrito. Cinco horas depois virou passado,
+    // `claimDue` deixou de enxergar o evento (que é enfileirado com `now()` do
+    // banco) e o teste quebrou sozinho, sem ninguém tocar em código.
+    //
+    // Data fixa num teste que compara com `now()` do banco é bomba-relógio:
+    // passa no dia em que foi escrita e falha num dia qualquer depois.
+    const agora = new Date();
 
     const r = await deliverDue({
       store: createPgOutboxStore(pool),

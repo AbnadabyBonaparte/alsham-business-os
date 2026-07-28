@@ -10,18 +10,15 @@
 
 ## ⛔ LEIA ANTES: parte disto JÁ FOI APLICADO
 
-Em **27/07/2026** o dono informou ter aplicado `0001_core.sql`, `0002_recon.sql` e o seed num projeto Supabase de produção, com um tenant piloto. **O repositório não verificou esse apply** — nenhum agente daqui conecta a banco com dado de cliente, e o registro fica assim, literalmente (Lei 7).
+O dono informou ter aplicado **`0001` a `0005` e o seed** num projeto Supabase de produção, com um tenant piloto — e, em **28/07/2026**, ter **ligado o correio**. **O repositório não verificou nada disso** — nenhum agente daqui conecta a banco com dado de cliente, e o registro fica assim, literalmente (Lei 7).
 
 | Arquivo | Estado |
 |---|---|
-| `0001_core.sql` | **APLICADO** — não editar |
-| `0002_recon.sql` | **APLICADO** — não editar |
+| `0001_core.sql` … `0005_courier_cron.sql` | **APLICADAS** — não editar |
 | `seed/0001_platform.sql` | **APLICADO** — idempotente, pode rodar de novo sem estragar |
-| `0003_billing.sql` | **ARQUIVO, ainda não aplicado** |
-| `0004_marketing.sql` | **ARQUIVO, ainda não aplicado** — o Módulo 2 |
-| `0005_courier_cron.sql` | **ARQUIVO, ainda não aplicado** — a saúde da fila e o agendador |
+| `0006_install.sql` | **ARQUIVO, ainda não aplicado** — o instalador. É o único que falta |
 
-**Se o seu projeto já existe**, o passo 1 não é para você: pule para o Passo 2 e rode **`0003`, `0004` e `0005`, nesta ordem**, depois confira o Passo 3, o Passo 4 e — para dar vida ao Lego — o **Passo 6**.
+**Se o seu projeto já existe**, o passo 1 não é para você: pule para o **Passo 7**, que é o roteiro só do `0006`.
 
 **Este documento continua valendo inteiro** para o próximo ambiente — homologação, um segundo tenant, uma restauração. É por isso que ele descreve o zero, e não o meio.
 
@@ -63,7 +60,8 @@ Painel → **SQL Editor** → **New query**. Para cada arquivo: abra o arquivo d
 | 3 | `supabase/migrations/0003_billing.sql` | a contabilidade de uso: `usage_ledger` | `Success. No rows returned` |
 | 4 | `supabase/migrations/0004_marketing.sql` | o Módulo 2: schema `marketing`, 4 tabelas, 11 policies | `Success. No rows returned` |
 | 5 | `supabase/migrations/0005_courier_cron.sql` | a saúde da fila (o agendador vem comentado) | `Success. No rows returned` |
-| 6 | `supabase/seed/0001_platform.sql` | o catálogo: papéis, módulos `recon` e `marketing`, planos | `Success. No rows returned` |
+| 6 | `supabase/migrations/0006_install.sql` | o instalador: `core.install_module` e `core.uninstall_module` | `Success. No rows returned` |
+| 7 | `supabase/seed/0001_platform.sql` | o catálogo: papéis, módulos `recon` e `marketing`, planos | `Success. No rows returned` |
 
 ### ⚠️ NÃO aplique a pasta `supabase/tests/`
 
@@ -123,9 +121,9 @@ select (select count(*) from core.roles            where tenant_id is null) as p
        (select count(*) from auth.users)                                     as usuarios_deve_ser_zero;
 ```
 
-**Esperado:** `2 · 14 · 2 · 12 · 0 · 0`
+**Esperado:** `2 · 8 · 2 · 12 · 0 · 0`
 
-Os dois módulos publicados são `recon` e `marketing`; as 14 permissões incluem as 3 do Módulo 2.
+⚠️ **Eram 14 permissões até a Etapa 8; agora são 8.** A diferença são as 6 permissões de módulo que o seed concedia ao papel de sistema `admin` — a ponte provisória que **saiu** quando o instalador nasceu. Quem concede agora é `core.install_module()`, num papel do tenant, quando alguém instala. O porquê está no §7.3.
 
 Os dois últimos zeros são o ponto: **o seed é catálogo, não cliente.** Se aparecer tenant ou usuário aqui, alguém aplicou algo que não devia.
 
@@ -212,7 +210,7 @@ Confira que subiu:
 select * from core.courier_status();
 ```
 
-Deve responder `OK` (ou `PARADO`, se já houver evento esperando — o que é a resposta certa, porque o correio ainda não está rodando).
+Deve responder `OK` — ou `PARADO`, se houver evento esperando de antes de o job existir.
 
 ### 6.2 — Subir o `apps/api`
 
@@ -278,7 +276,7 @@ Se preferir não habilitar extensão nenhuma, o mesmo endpoint funciona chamado 
 
 ### 6.5 — Como conferir se está andando
 
-**O número que importa não é quantos estão parados — é há quanto tempo o mais antigo espera.** Um `pending` alto depois de um pico é normal; um `pending` **velho** significa que o correio não está rodando.
+**O número que importa não é quantos estão parados — é há quanto tempo o mais antigo espera.** Um `pending` alto depois de um pico é normal; um `pending` **velho** significa que o correio parou.
 
 ```sql
 select * from core.courier_status();
@@ -288,7 +286,7 @@ select * from core.courier_status();
 |---|---|
 | `OK` | nada |
 | `ATRASADO` | o mais antigo passa de 10 min — o ciclo está engasgando |
-| `PARADO` | passa de 30 min — o correio provavelmente não está rodando |
+| `PARADO` | passa de 30 min — o correio provavelmente parou |
 | `ATENCAO` | **há evento morto**. Conferência humana |
 
 E o detalhe, por estado:
@@ -308,13 +306,82 @@ select event_id, event_type, attempts, last_error
 
 ---
 
+## PASSO 7 — APLICAR O `0006` (o instalador) — o único que falta
+
+Este passo é para o projeto que **já existe**. São três coisas: aplicar, conferir, e uma limpeza opcional que muda o comportamento.
+
+### 7.1 — Aplicar
+
+SQL Editor → cole `supabase/migrations/0006_install.sql` inteiro → **Run**.
+
+Ele **não cria tabela nenhuma**. Cria três funções (`core.emit_event`, `core.install_module`, `core.uninstall_module`) e concede as duas últimas a `authenticated` — porque é o painel do cliente que instala, com a sessão dele. A permissão é conferida dentro da função, na primeira linha.
+
+### 7.2 — Conferir
+
+```sql
+-- As funções existem?
+select proname from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+ where n.nspname = 'core' and proname in ('install_module','uninstall_module','emit_event')
+ order by 1;
+```
+
+**Esperado: três linhas.**
+
+```sql
+-- E ninguém instala sem permissão. Como service_role você NÃO tem
+-- core.module.install (a permissão é de usuário, não de papel de banco),
+-- então isto TEM de dar erro:
+select core.install_module(
+  (select id from core.tenants limit 1), 'recon', 'admin');
+```
+
+**Esperado: erro.** Se funcionar, pare — a checagem de permissão não subiu.
+
+### 7.3 — ⚠️ A limpeza opcional, e o que ela muda
+
+**Leia inteiro antes de rodar.**
+
+Até esta etapa, o seed concedia as permissões de `recon` e `marketing` ao papel de **sistema** `admin`. Papel de sistema vale em **todo** tenant — então qualquer tenant novo com um usuário `admin` já nasce com os dois módulos, **sem instalar e sem ocupar vaga no plano**.
+
+Com um tenant só, isso não aparece. Com o segundo, é o módulo inteiro de graça.
+
+O bloco **saiu do seed**, mas tirar de lá **não apaga o que já está no banco**. Para fechar de verdade:
+
+```sql
+-- 1. Veja o que existe hoje (só confere, não muda nada):
+select role_key, permission_key, module_id
+  from core.role_permissions
+ where tenant_id is null and module_id <> 'core'
+ order by module_id, permission_key;
+
+-- 2. Instale os módulos DE VERDADE no tenant que já os usa, num papel DELE.
+--    Troque <TENANT> e <PAPEL> — o papel precisa existir e ser do tenant.
+--    Rode como o usuário dono, pelo painel da Store, ou aqui com um papel que
+--    tenha core.module.install.
+-- select core.install_module('<TENANT>'::uuid, 'recon',     '<PAPEL>');
+-- select core.install_module('<TENANT>'::uuid, 'marketing', '<PAPEL>');
+
+-- 3. SÓ DEPOIS de conferir que o tenant continua enxergando tudo,
+--    remova a concessão global:
+-- delete from core.role_permissions
+--  where tenant_id is null and module_id in ('recon','marketing');
+```
+
+⛔ **Não rode o passo 3 antes do 2.** Entre um e outro, quem depende da concessão global perde o acesso — os dados continuam intactos, mas as telas ficam vazias até a instalação existir.
+
+**Se você preferir não mexer agora**, não mexa: o vazamento só tem consequência quando existir um segundo tenant. Fica registrado aqui para ser decisão, não descuido.
+
+---
+
 ## O QUE AINDA NÃO EXISTE
 
 Honestidade de escopo, para você não procurar o que não foi construído:
 
 | Peça | Estado |
 |---|---|
-| Correio (`@alsham/workflow` + `apps/api`) | ✅ **CONSTRUÍDO, testado contra Postgres e LIGÁVEL** — o Passo 6 é o roteiro. **Não está no ar** |
+| Correio (`@alsham/workflow` + `apps/api`) | ✅ **NO AR desde 28/07/2026** — job de 1 em 1 minuto (informado pelo dono; **NÃO VERIFICADO** aqui) |
+| Instalador de módulo em runtime | ✅ **CONSTRUÍDO** (`0006_install.sql`) — arquivo, ainda não aplicado |
+| Store (vitrine + instalar/desinstalar) | ✅ construída em `apps/portal/src/app/store/` |
 | Consumidor de trilha (`core.audit_log`) | ✅ construído e inscrito na composição |
 | Consumidor do Módulo 2 (verba da campanha) | ✅ construído e inscrito na composição |
 | Telas (`apps/portal`) | ✅ construídas — login, quatro telas do Módulo 1 e a carteira de campanhas |
@@ -322,7 +389,7 @@ Honestidade de escopo, para você não procurar o que não foi construído:
 | Visão de saúde da fila | ✅ construída — `core.courier_status()` e `core.courier_health` (§6.5) |
 | Leitor de CAMT.053 | **NÃO CONSTRUÍDO** |
 | Preço em reais e gateway de pagamento | **NÃO CONSTRUÍDO** — `usage_ledger` conta uso, não dinheiro |
-| Instalador de módulo em runtime | **NÃO CONSTRUÍDO** — por isso o seed já põe as permissões no papel `admin`, e por isso a lista de consumidores é escrita à mão na composição |
+| Instalação automática de CONSUMIDOR de evento | **NÃO CONSTRUÍDA** — instalar dá acesso e permissões; o handler é código, inscrito à mão na composição. Não há plugin dinâmico |
 | Alarme automático de fila parada | **NÃO CONSTRUÍDO** — a §6.5 é consulta, não notificação. Quem olha é você |
 | Publicação real em canal (rede social, e-mail) | **NÃO CONSTRUÍDO** — "publicar" muda o estado e conta o fato |
 | Deploy configurado neste repositório | **NÃO EXISTE** — não há `vercel.json`; publicar é ato do dono |

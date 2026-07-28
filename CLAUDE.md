@@ -67,7 +67,7 @@ Corolário do roadmap: *cada linha de código escrita para um cliente deve aumen
 
 ---
 
-## 5. ESTADO ATUAL — ETAPA 8 (O CORREIO LIGÁVEL)
+## 5. ESTADO ATUAL — ETAPA 9 (A STORE E O INSTALADOR)
 
 ### 5.1 Stack — SELADA
 
@@ -134,11 +134,11 @@ A consequência é operacional e não é opinião:
 
 - ❌ **Não edite `0001_core.sql` nem `0002_recon.sql`.** Arquivo aplicado é história. Se estivessem só no papel, corrigir no lugar seria certo; aplicados, editar faz o próximo ambiente nascer diferente da produção **em silêncio**. Correção vira migration nova.
 - ✅ `0003_billing.sql` **ainda é só arquivo** — criado depois do apply, e a Etapa 6 foi instruída a não aplicá-lo. Aplicá-lo é ato do dono (runbook).
-- `0004_marketing.sql` (Etapa 7) e `0005_courier_cron.sql` (Etapa 8) **também são só arquivo**. A próxima é **`0006_*.sql`**.
+- **`0001` a `0005` e o seed estão APLICADOS** (informado pelo dono). `0006_install.sql` (Etapa 9) é o único que ainda é **só arquivo**; a próxima é **`0007_*.sql`**.
 - `packages/workflow` é **o correio do Core** — o entregador da caixa de saída: idempotência por consumidor, backoff exponencial, `dead` sem apagar. **ENGINE, não módulo** (Taxonomia §4): não aparece na Store.
 - `apps/api` é **a COMPOSIÇÃO** — o único lugar do repositório onde os módulos se conhecem. Ele importa `workflow`, `marketing` e `billing`; **nenhum deles importa nenhum outro**. Traz a persistência real do correio (contra Postgres, com arrendamento e `skip locked`), os adaptadores dos consumidores, o endpoint protegido e a saúde da fila.
   ⛔ **Roda com `service_role` e NÃO vai junto com `apps/portal`.** Há guarda no CI sobre essa fronteira.
-  ⚠️ **Construído ≠ no ar.** Nada está agendado; ligar é ato do dono (runbook §6).
+  ⚡ **NO AR desde 28/07/2026** — o dono ligou: `apps/api` publicado, `pg_cron` + `pg_net`, job de 1 em 1 minuto. ⚠️ **NÃO VERIFICADO** por este repositório.
 - `packages/billing` é a **contabilidade de uso** — `usage_ledger` + leitura de limite, minerados do kraken-v2 (PROVADO). **Sem preço, e há guarda no CI para que continue assim** (Lei 7).
 - `supabase/migrations/0003_billing.sql` — o livro-caixa de consumo. Correção é estorno, nunca edição.
 - `supabase/seed/0001_platform.sql` — o catálogo da plataforma, idempotente. **Zero tenant, zero usuário.**
@@ -167,6 +167,8 @@ O Módulo 1 é o padrão. Quem escrever o Módulo 2 obedece ao mesmo:
 - Migration nasce como arquivo versionado e é revisada em PR. Aplicar é ato do dono.
 - **Toda UI nasce consumindo os tokens `--bos-*`** de `docs/canon/IDENTIDADE-VISUAL.md`. Nenhum HEX em componente — o CI barra.
 - **A Regra de Ouro (§5.3) é verificada no CI**, não só recomendada: se o motor de domínio for redeclarado em `apps/`, ou se a tela deixar de chamá-lo, o build falha.
+- **O instalador existe** (`0006_install.sql`): quem concede permissão de módulo é `core.install_module()`, num papel **DO TENANT**. Papel de sistema é recusado — ele vale em todos os tenants e faria o módulo vazar para quem não o instalou. **Nunca volte a conceder permissão de módulo no seed.**
+- **Desinstalar não apaga dado.** Corta acesso e revoga permissão; o que o módulo gravou continua no banco. Há teste no CI.
 - **Entregou peça? Atualize a linha dela** em `CORE-SPEC §5` e `MODULO-RECON-SPEC §7` — são a fonte de estado, e o CI (`pnpm verificar:docs`) falha se um documento declarar **NÃO CONSTRUÍDO** algo que já existe no disco. Negar o que existe é a Lei 7 com o sinal trocado, e é o erro mais fácil de cometer: não exige escrever nada, basta não apagar.
 
 ---
@@ -178,9 +180,8 @@ docs/canon/            taxonomia · roadmap · core-spec · identidade-visual
                        · modulo-recon-spec              — leitura obrigatória
 docs/balancos/         tecnologia + supabase            — de onde minerar
 docs/historico/        catálogo anterior                — memória, não canon
-supabase/migrations/   0001_core · 0002_recon — APLICADAS, não editar (§5.4.1)
-                       0003_billing · 0004_marketing · 0005_courier_cron
-                                              — arquivo; aplicar é ato do dono
+supabase/migrations/   0001_core … 0005_courier_cron — APLICADAS, não editar
+                       0006_install           — arquivo; aplicar é ato do dono
 supabase/seed/         0001_platform.sql                — catálogo, idempotente; zero tenant
 supabase/tests/        shim · isolamento · uso · consumo entre módulos
                                                         — só CI; NUNCA no Supabase real
@@ -189,7 +190,8 @@ docs/runbook/          APLICAR.md                       — o passo a passo do d
 apps/                  portal (login + 4 telas do Módulo 1 + campanhas)
                        api    — A COMPOSIÇÃO; roda com service_role
                        admin · store — só README
-packages/              core auth organizations permissions workflow billing
+packages/              core auth organizations workflow billing
+                       permissions                      — visão de catálogo da Store
                        notifications documents ai crm finance
                        legal hr analytics integrations ui sdk config
                        finance-reconciliation           — Módulo 1

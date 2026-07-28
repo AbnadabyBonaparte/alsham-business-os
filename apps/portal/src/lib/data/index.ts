@@ -1,15 +1,19 @@
 import { createMockPort } from './mock';
 import { createSupabasePort } from './supabase';
 import { createMarketingMockPort } from './marketing-mock';
+import { createStoreMockPort } from './store-mock';
+import { createStoreSupabasePort } from './store-supabase';
 import { createMarketingSupabasePort } from './marketing-supabase';
 import { createSupabaseServerClient } from '../supabase/server';
 import { resolveSession } from '../session';
 import type { DataPort } from './port';
 import type { MarketingPort } from './marketing-port';
+import type { StorePort } from './store-port';
 
 export { DataPortError } from './port';
 export type { DataPort } from './port';
 export type { MarketingPort } from './marketing-port';
+export type { StorePort } from './store-port';
 
 /**
  * Escolhe o adapter — e é só isto que muda entre demonstração e produção.
@@ -61,4 +65,21 @@ export async function getMarketingPort(): Promise<MarketingPort> {
   if (!db) return createMarketingMockPort();
 
   return createMarketingSupabasePort(db, session.activeTenant.id);
+}
+
+/**
+ * A porta da Store — a vitrine do Core.
+ *
+ * Mesmo encanamento das outras duas: sessão resolvida no servidor, tenant
+ * cruzado com `core.memberships`, chave publicável, sob RLS. A Store não é
+ * módulo, mas ganha porta própria pelo mesmo motivo que eles ganham.
+ */
+export async function getStorePort(): Promise<StorePort> {
+  const session = await resolveSession();
+  if (session.mode !== 'authenticated') return createStoreMockPort();
+
+  const db = await createSupabaseServerClient();
+  if (!db) return createStoreMockPort();
+
+  return createStoreSupabasePort(db, session.activeTenant.id);
 }

@@ -14,7 +14,13 @@ export const metadata: Metadata = {
   description: 'Painel do tenant — Módulo 1: Conciliação & Aprovações.',
 };
 
-type Rota = '/conciliacao' | '/aprovacoes' | '/importar' | '/fechamento' | '/campanhas';
+type Rota =
+  | '/conciliacao'
+  | '/aprovacoes'
+  | '/importar'
+  | '/fechamento'
+  | '/campanhas'
+  | '/store';
 
 /**
  * O layout raiz.
@@ -56,6 +62,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
                   <NavLink href="/aprovacoes">Aprovações</NavLink>
                   <NavLink href="/fechamento">Fechamento</NavLink>
                   <NavLink href="/campanhas">Campanhas</NavLink>
+                  <NavLink href="/store">Store</NavLink>
                 </nav>
               ) : null}
 

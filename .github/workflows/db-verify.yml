@@ -96,6 +96,9 @@ jobs:
       - name: aplicar 0005_courier_cron.sql
         run: $PSQL -f supabase/migrations/0005_courier_cron.sql
 
+      - name: aplicar 0006_install.sql
+        run: $PSQL -f supabase/migrations/0006_install.sql
+
       # ---------------------------------------------------------------------
       # 2. SEED — e a prova de que reaplicar não muda nada
       # ---------------------------------------------------------------------
@@ -185,6 +188,30 @@ jobs:
       # A visão de saúde tem de responder assim que o arquivo é aplicado — ela
       # é como o dono descobre que o correio parou. Uma visão que só existe no
       # papel não avisa ninguém de nada.
+      # ⭐ A PROVA DA ETAPA 9: instalar dá acesso, desinstalar NÃO apaga dado.
+      - name: teste do instalador em runtime
+        run: $PSQL -f supabase/tests/04_install_module.sql
+
+      # ⛔ O SEED NÃO CONCEDE PERMISSÃO DE MÓDULO.
+      #
+      # Ele concedia, ao papel de SISTEMA `admin`, como ponte até o instalador
+      # existir. Papel de sistema vale em TODO tenant: qualquer tenant novo já
+      # nascia com os módulos, sem instalar e sem ocupar vaga no plano.
+      #
+      # O instalador nasceu e a ponte saiu. Esta guarda existe para que ela não
+      # volte por conveniência — o sintoma seria invisível com um tenant só.
+      - name: nenhuma permissão de módulo em papel de sistema
+        run: |
+          VAZOU=$($PSQL -tAc "
+            select coalesce(string_agg(permission_key, ', '), '')
+              from core.role_permissions
+             where tenant_id is null and module_id <> 'core';")
+          [ -z "$VAZOU" ] || {
+            echo "::error::o seed concedeu permissão de módulo a papel de sistema: $VAZOU"
+            echo "isso vaza o módulo para TODO tenant, sem instalar e sem ocupar vaga no plano"
+            exit 1; }
+          echo "nenhum vazamento: permissão de módulo só existe onde alguém instalou."
+
       - name: a visão de saúde da fila responde
         run: |
           $PSQL -c "select * from core.courier_health order by status;"
@@ -263,6 +290,7 @@ jobs:
           $PSQL -q -f supabase/migrations/0003_billing.sql
           $PSQL -q -f supabase/migrations/0004_marketing.sql
           $PSQL -q -f supabase/migrations/0005_courier_cron.sql
+          $PSQL -q -f supabase/migrations/0006_install.sql
           $PSQL -q -f supabase/seed/0001_platform.sql
 
       # ⚠️ Sem `DATABASE_URL` os testes do store se PULAM — de propósito, para
@@ -493,6 +521,49 @@ jobs:
             || { echo "::error::a composição deixou de inscrever o consumidor do Módulo 2"; exit 1; }
           echo "$COMP" | grep -Eq 'auditSubscription\(' \
             || { echo "::error::a composição deixou de inscrever a trilha"; exit 1; }
+
+      # ⭐ A STORE NÃO DECIDE — nem o que mostra, nem quem instala.
+      #
+      # Dois jeitos de a Store apodrecer, e os dois são um `if` inocente:
+      #   1. filtrar `status = 'published'` na tela. A policy já faz isso, e
+      #      depender dela é o ponto — no dia em que alguém escrever uma
+      #      segunda consulta sem o filtro, a tela mostraria rascunho.
+      #   2. checar permissão ou teto de plano no app. Essas regras vivem em
+      #      `core.install_module()`, e só lá.
+      - name: a Store consome a decisão, não a reescreve
+        run: |
+          APP=$(grep -rEv '^\s*(\*|//|/\*)' apps/portal/src/app/store apps/portal/src/app/store-actions.ts apps/portal/src/components/store-shelf.tsx apps/portal/src/lib/data/store-supabase.ts)
+
+          if echo "$APP" | grep -Eq "eq\(\s*'status'\s*,\s*'published'\s*\)"; then
+            echo "::error::a Store filtra 'published' na tela — quem filtra é a policy do banco"; exit 1
+          fi
+          # ⚠️ A COMPARAÇÃO, não a leitura.
+          #
+          # A primeira versão proibia a string `limit_value` e reprovou o
+          # `loadModuleLimit()`, que só LÊ o número para a tela mostrar
+          # "3 de 5". A segunda proibia qualquer comparação e reprovou
+          # `limite !== null`, que é checagem de nulo para exibir.
+          #
+          # O que a tela não pode fazer é comparar a CONTAGEM DE INSTALADOS com
+          # o teto — que é literalmente a decisão de `core.install_module()`.
+          if echo "$APP" | grep -Eq '(installed|instalados|count|length)[^;]{0,20}(>=|<=|>|<)[^;]{0,20}(limite|limit_value|moduleLimit)|(limite|limit_value|moduleLimit)[^;]{0,20}(>=|<=|>|<)[^;]{0,20}(installed|instalados|count|length)'; then
+            echo "::error::a Store passou a DECIDIR o teto do plano — a regra vive em core.install_module()"; exit 1
+          fi
+          if grep -rInE 'function (buildShelf|summarizeShelf|producerOf)' apps --include='*.ts' --include='*.tsx'; then
+            echo "::error::a visão de catálogo foi redeclarada em apps/ — ela vive em packages/permissions"; exit 1
+          fi
+          PAGE=$(grep -Ev '^\s*(\*|//|/\*)' apps/portal/src/app/store/page.tsx)
+          echo "$PAGE" | grep -Eq 'buildShelf\(' \
+            || { echo "::error::a Store deixou de usar buildShelf do pacote"; exit 1; }
+
+          # E o instalador é chamado, não reimplementado.
+          ADAPTER=$(grep -Ev '^\s*(\*|//|/\*)' apps/portal/src/lib/data/store-supabase.ts)
+          echo "$ADAPTER" | grep -Eq "rpc\('install_module'" \
+            || { echo "::error::a Store não chama core.install_module — quem decide é o banco"; exit 1; }
+          if echo "$ADAPTER" | grep -Eq "from\('role_permissions'\)[^;]*insert|insert.*role_permissions"; then
+            echo "::error::a Store concede permissão direto — isso é ato do instalador"; exit 1
+          fi
+          echo "a Store consome a decisão do banco."
 
       # ⚠️ LEI 7 — BILLING CONTA USO, NÃO DINHEIRO.
       #
