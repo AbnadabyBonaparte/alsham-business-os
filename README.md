@@ -4,7 +4,7 @@
 
 A empresa não compra "um sistema". Ela monta o sistema dela — Core + módulos, como Lego. Cada cliente novo financia um módulo que vira patrimônio da plataforma para todos os próximos.
 
-> **Status: quatro módulos, e o 4º cartão na Store.** O Módulo 3 (Contas a Pagar) emite, e o **Módulo 1 — o mais antigo, o que ninguém escreveu para escutar — projeta o título** sem que uma linha do schema dele mudasse. Era a última ponta do Lego que faltava demonstrar: a direção não estava escondida no desenho. O Módulo 4 (Relacionamentos) acrescenta o cadastro de contrapartes e o histórico de contato. Existem o contrato do Lego, o schema (provado em CI contra PostgreSQL 17), o correio de eventos no ar, o instalador em runtime, a Store, a contabilidade de uso e oito telas.
+> **Status: cinco módulos, e o espelho consciente.** O Módulo 3 (Contas a Pagar) emite, e o **Módulo 1 — o mais antigo, o que ninguém escreveu para escutar — projeta o título** sem que uma linha do schema dele mudasse. Era a última ponta do Lego que faltava demonstrar: a direção não estava escondida no desenho. O Módulo 4 (Relacionamentos) acrescenta o cadastro de contrapartes e o histórico de contato; o Módulo 5 (Contas a Receber) é o **espelho consciente** do Módulo 3 — mesma estrutura, **uma divergência declarada e provada**. Existem o contrato do Lego, o schema (provado em CI contra PostgreSQL 17), o correio de eventos no ar, o instalador em runtime, a Store, a contabilidade de uso e nove telas.
 >
 > **⚡ O correio está no ar.** O dono ligou em 28/07/2026: `apps/api` publicado, `pg_cron` + `pg_net` habilitados, job de 1 em 1 minuto. Fechar um período de conciliação **realmente** faz o Marketing saber. O apply de `0001`→`0005` e do seed também está feito.
 >
@@ -50,7 +50,7 @@ Todo módulo: independente, instalável/removível sem recompilar, comunicação
 docs/
   canon/       taxonomia · roadmap · core-spec · identidade-visual
                · modulo-recon-spec · modulo-marketing-spec · modulo-ap-spec
-               · modulo-crm-spec
+               · modulo-crm-spec · modulo-ar-spec
                                                 — leitura obrigatória (VERTEX)
   balancos/    tecnologia + supabase            — de onde minerar cada peça
   historico/   catálogo anterior                — memória, não canon
@@ -58,6 +58,7 @@ supabase/
   migrations/  0001_core · 0002_recon           — APLICADAS em produção; não editar
                0003_billing · 0004_marketing · 0005_courier_cron
                0006_install · 0007_ap · 0008_recon_ap_projection · 0009_crm
+               0010_ar
                                                 — APLICADAS em produção
                0006_install                     — arquivo; aplicar é ato do dono
   seed/        0001_platform.sql                — catálogo, idempotente
@@ -76,6 +77,7 @@ packages/
   marketing/                                    — ✅ CONSTRUÍDO (Módulo 2 — prova o Lego)
   accounts-payable/                             — ✅ CONSTRUÍDO (Módulo 3 — fecha o triângulo)
   crm/                                          — ✅ CONSTRUÍDO (Módulo 4 — anti-viés difícil)
+  accounts-receivable/                          — ✅ CONSTRUÍDO (Módulo 5 — espelho consciente)
   workflow/                                     — ✅ CONSTRUÍDO (o correio do Core)
   billing/                                      — ✅ CONSTRUÍDO (uso, sem preço)
   permissions/                                  — ✅ CONSTRUÍDO (visão de catálogo da Store)
@@ -172,7 +174,7 @@ Cada `README.md` de app e de package declara: o propósito, a fase do roadmap a 
 - **Telas de contas a pagar** com porta de dados própria, e o item de menu só para quem tem acesso ao módulo.
 - ⚠️ **O ciclo de vida vive em dois lugares** — no SQL e no TypeScript — e um teste **lê o arquivo da migration** e compara par a par. É o que torna a duplicação arquitetura em vez de descuido.
 
-**Etapa 11 — O 4º cartão da Store** *(esta etapa)*: Relacionamentos, o CRM base.
+**Etapa 11 — O 4º cartão da Store**: Relacionamentos, o CRM base.
 
 - **`@alsham/crm` + `0009_crm.sql` — o Módulo 4.** Contrapartes (pessoa ou organização) e o histórico de contato de cada uma, inteiro num lugar só. Schema próprio, RLS forçada, porta única de saída, quatro fatos contados ao mundo.
 - ⚖️ **O anti-viés onde ele é mais difícil.** A Taxonomia lista *WhatsApp* como capacidade do Domain — e ela nomeia as capacidades como o **mercado** as nomeia, não como o schema deve. O canal da interação é **texto livre**; "cliente" e "fornecedor" são **etiquetas** escolhidas pelo tenant, nunca um enum; o identificador fiscal é neutro e **não tem formato** (nem 11 dígitos, nem 14, nem dígito verificador). Cada uma dessas recusas tem teste.
@@ -181,13 +183,22 @@ Cada `README.md` de app e de package declara: o propósito, a fase do roadmap a 
 - ⚖️ **Lei 4 aplicada, com divergência declarada.** Minerou-se o schema de `accounts`/`contacts` da pedreira `alsham-core` — e virou **uma** tabela com `kind`, porque duas forçam a hierarquia "contato pertence a conta", que presume um organograma de venda B2B.
 - **A guarda "módulo não conhece módulo" passou a GERAR a matriz de pares.** Com três módulos eram 6; com quatro são 12; com cinco serão 20. Lista escrita à mão é lista que um dia esquece um par — e justamente o novo.
 
-**O que NÃO existe** — o estado corrente vive em [CORE-SPEC §5](docs/canon/CORE-SPEC.md), [MODULO-RECON-SPEC §7](docs/canon/MODULO-RECON-SPEC.md), [MODULO-MARKETING-SPEC §6](docs/canon/MODULO-MARKETING-SPEC.md), [MODULO-AP-SPEC §6](docs/canon/MODULO-AP-SPEC.md) e [MODULO-CRM-SPEC §6](docs/canon/MODULO-CRM-SPEC.md), e há guarda no CI contra essas seções envelhecerem:
+**Etapa 12 — O espelho consciente** *(esta etapa)*: Contas a Receber, o Módulo 5.
+
+- **`@alsham/accounts-receivable` + `0010_ar.sql` — o Módulo 5.** Título a receber com referência única por tenant, vencimento, valor, moeda e contraparte neutra. Schema próprio, RLS forçada, porta única de saída.
+- ⭐ **Espelho CONSCIENTE, não cópia.** Cada decisão do Módulo 3 foi re-perguntada, e a resposta está escrita — inclusive as dez que se **mantiveram**. A mais fácil de errar era `received → cancelled`, e ela foi feita de novo: cancelar um título recebido apagaria a fronteira entre *"não tínhamos a receber"* e *"recebemos o dinheiro"*, e o segundo é mais grave porque **o dinheiro entrou na conta**.
+- ⭐⭐ **A divergência: receber a maior é PERMITIDO.** O `ap` tem `payables_no_overpay`; aqui essa constraint **não existe**. Pagar a mais é erro de quem paga, e o sistema que paga pode recusar. Receber a mais é o que o pagador fez — arredondou, incluiu encargos, quitou dois documentos numa transferência só — e **o dinheiro já está na conta**. Recusar obrigaria o operador a **mentir sobre o que entrou**. As consequências estão tratadas: o saldo devolve **zero** e nunca negativo, e o excedente aparece na tela em voz alta.
+- **Três guardas para o espelho:** um teste de pacote que lê as duas migrations e compara as tabelas de transição traduzidas; o teste SQL que insere um recebimento a maior (passa) **e** um pagamento a maior (é recusado) **no mesmo banco**; e uma guarda de CI contra as constraints aplicadas. Um "conserto por simetria" em qualquer lado reprova em três lugares.
+- ⚠️ **`consumes` vazio, e é decisão de canon documentada.** A conciliação de recebimentos exigiria reescrever o motor do Módulo 1 — que recusa linha de crédito na primeira linha de `scorePair()` — e derrubar um `NOT NULL` de tabela aplicada em produção. Está declarado NÃO CONSTRUÍDO, com arquivo e linha do que falta.
+
+**O que NÃO existe** — o estado corrente vive em [CORE-SPEC §5](docs/canon/CORE-SPEC.md), [MODULO-RECON-SPEC §7](docs/canon/MODULO-RECON-SPEC.md), [MODULO-MARKETING-SPEC §6](docs/canon/MODULO-MARKETING-SPEC.md), [MODULO-AP-SPEC §6](docs/canon/MODULO-AP-SPEC.md), [MODULO-CRM-SPEC §6](docs/canon/MODULO-CRM-SPEC.md) e [MODULO-AR-SPEC §5](docs/canon/MODULO-AR-SPEC.md), e há guarda no CI contra essas seções envelhecerem:
 
 - **Nenhum alarme.** A saúde da fila é consulta, não notificação — quem olha é o dono. Se a fila parar de madrugada, ninguém é avisado.
 - **Instalar não carrega código.** Um módulo que escuta o fato de outro só reage porque o handler existe no repositório e está inscrito à mão na composição. Instalar dá **acesso e permissões**; integração é código. Não há plugin dinâmico, e a Store diz isso na própria tela.
 - Do motor do Core, seguem **NÃO CONSTRUÍDOS** o validador de manifesto, o registro de módulo em runtime e o resolvedor de permissão — hoje quem barra acesso é a **RLS no banco**.
 - Sem **preço**, sem gateway de pagamento, sem fatura (Lei 7 — decisão do dono, com números medidos).
 - Sem leitor de **CAMT.053** e sem rateio N↔M.
+- **Sem conciliação de RECEBIMENTOS**, sem registro de recebimento pela tela, e sem **baixa por perda** — a última está registrada como buraco conhecido em [MODULO-AR-SPEC §5](docs/canon/MODULO-AR-SPEC.md): sem ela, um título que nunca vai entrar só tem dois destinos, e os dois mentem.
 - **O Módulo 4 não envia mensagem nenhuma.** Ele registra que o contato aconteceu; não fala com ninguém. Integrar canal é Lei 3. E não há Pipeline, Propostas, Follow-up, Leads, Comissão nem Metas — 11 das 12 capacidades do Domain seguem **NÃO CONSTRUÍDAS**.
 - **O Módulo 3 não paga nada.** Registra o que se deve e conta o fato; remessa bancária e integração de pagamento são Lei 3 (INTEGRAR, não construir). Registrar liquidação e estorno **pela tela** também não existe — o ciclo de vida aceita os dois e é provado, mas o botão é etapa própria.
 - **Nenhum segredo existe aqui**, e não há deploy configurado neste repositório.

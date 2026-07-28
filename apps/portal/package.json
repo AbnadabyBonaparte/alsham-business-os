@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@alsham/accounts-payable": "workspace:*",
+    "@alsham/accounts-receivable": "workspace:*",
     "@alsham/config": "workspace:*",
     "@alsham/core": "workspace:*",
     "@alsham/crm": "workspace:*",

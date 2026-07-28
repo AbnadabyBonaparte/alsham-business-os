@@ -116,6 +116,10 @@ jobs:
       - name: aplicar 0009_crm.sql
         run: $PSQL -f supabase/migrations/0009_crm.sql
 
+      # ⭐ ETAPA 12 — o Módulo 5, Contas a Receber: o espelho consciente do 3.
+      - name: aplicar 0010_ar.sql
+        run: $PSQL -f supabase/migrations/0010_ar.sql
+
       # ---------------------------------------------------------------------
       # 2. SEED — e a prova de que reaplicar não muda nada
       # ---------------------------------------------------------------------
@@ -143,12 +147,12 @@ jobs:
           FALTA=$($PSQL -tAc "
             select coalesce(string_agg(n.nspname||'.'||c.relname, ', '), '')
               from pg_class c join pg_namespace n on n.oid = c.relnamespace
-             where n.nspname in ('core','recon','marketing','ap','crm') and c.relkind = 'r'
+             where n.nspname in ('core','recon','marketing','ap','crm','ar') and c.relkind = 'r'
                and (not c.relrowsecurity or not c.relforcerowsecurity);")
           [ -z "$FALTA" ] || { echo "::error::sem RLS enable+force: $FALTA"; exit 1; }
           $PSQL -c "select n.nspname as schema, count(*) as tabelas
                       from pg_class c join pg_namespace n on n.oid=c.relnamespace
-                     where n.nspname in ('core','recon','marketing','ap','crm') and c.relkind='r'
+                     where n.nspname in ('core','recon','marketing','ap','crm','ar') and c.relkind='r'
                      group by 1 order by 1;"
 
       - name: nenhuma policy USING (true)
@@ -158,7 +162,7 @@ jobs:
               from pg_policy p
               join pg_class c on c.oid = p.polrelid
               join pg_namespace n on n.oid = c.relnamespace
-             where n.nspname in ('core','recon','marketing','ap','crm')
+             where n.nspname in ('core','recon','marketing','ap','crm','ar')
                and pg_get_expr(p.polqual, p.polrelid) = 'true';")
           [ -z "$ABERTAS" ] || { echo "::error::policy aberta (lição paga do suna-core): $ABERTAS"; exit 1; }
 
@@ -169,7 +173,7 @@ jobs:
                              where n.nspname='public' and c.relkind='r';")
           [ "$PUB" = "0" ] || { echo "::error::$PUB tabela(s) em public — expostas via API"; exit 1; }
           ANON=$($PSQL -tAc "select count(*) from information_schema.role_table_grants
-                              where grantee='anon' and table_schema in ('core','recon','marketing','ap','crm');")
+                              where grantee='anon' and table_schema in ('core','recon','marketing','ap','crm','ar');")
           [ "$ANON" = "0" ] || { echo "::error::anon tem $ANON grant(s) no Business OS"; exit 1; }
 
       - name: o seed não semeou tenant nem usuário
@@ -237,6 +241,68 @@ jobs:
       - name: teste do Módulo 4 (isolamento, imutabilidade, histórico)
         run: $PSQL -f supabase/tests/06_crm_isolation.sql
 
+      # ⭐⭐ A PROVA DA ETAPA 12: o espelho, com o contraste no mesmo banco.
+      #
+      # Sete cenários, e o que nenhum teste de pacote alcança é o par 5 / 5.1:
+      # **receber a maior PASSA no `ar`, e pagar a maior é RECUSADO no `ap`** —
+      # as duas afirmações rodam contra o mesmo Postgres, no mesmo arquivo. Se
+      # alguém "uniformizar" os dois módulos, um dos dois cenários quebra.
+      - name: teste do Módulo 5 (isolamento, transições e a divergência)
+        run: $PSQL -f supabase/tests/07_ar_isolation.sql
+
+      # ⛔ CANCELAR É ESTADO, NUNCA DELETE — conferido no banco aplicado.
+      - name: nenhuma porta de DELETE em ar.receivables
+        run: |
+          # Filtra o grantee: o DONO da tabela sempre tem DELETE, implicitamente
+          # e sem como tirar. A regra é que o CLIENTE não tem a porta. (Lição da
+          # Etapa 10, onde a primeira versão desta guarda reprovou o repositório
+          # inteiro por contar o privilégio do owner.)
+          G=$($PSQL -tAc "select count(*) from information_schema.role_table_grants
+                            where table_schema='ar' and privilege_type='DELETE'
+                              and grantee in ('anon','authenticated','PUBLIC');")
+          [ "$G" = "0" ] || { echo "::error::alguém concedeu DELETE em ar ao cliente"; exit 1; }
+          P=$($PSQL -tAc "select count(*) from pg_policy p
+                            join pg_class c on c.oid=p.polrelid
+                            join pg_namespace n on n.oid=c.relnamespace
+                           where n.nspname='ar' and p.polcmd='d';")
+          [ "$P" = "0" ] || { echo "::error::apareceu policy de DELETE em ar"; exit 1; }
+
+      # ⭐⭐ O ESPELHO É CONSCIENTE — conferido NO BANCO, não no arquivo.
+      #
+      # O `ap` recusa pagar a maior; o `ar` aceita receber a maior. As duas
+      # coisas são decisões, e as duas têm de continuar verdadeiras ao mesmo
+      # tempo. Aqui elas são conferidas contra as constraints APLICADAS: um
+      # "conserto por simetria" em qualquer um dos lados reprova.
+      - name: a divergência do espelho continua de pé
+        run: |
+          AP=$($PSQL -tAc "select count(*) from pg_constraint c
+                             join pg_class t on t.oid = c.conrelid
+                             join pg_namespace n on n.oid = t.relnamespace
+                            where n.nspname='ap' and c.conname='payables_no_overpay';")
+          [ "$AP" = "1" ] || {
+            echo "::error::o ap perdeu payables_no_overpay — o espelho perdeu o contraste"; exit 1; }
+          AR=$($PSQL -tAc "select count(*) from pg_constraint c
+                             join pg_class t on t.oid = c.conrelid
+                             join pg_namespace n on n.oid = t.relnamespace
+                            where n.nspname='ar'
+                              and pg_get_constraintdef(c.oid) ilike '%received_amount_cents <= amount_cents%';")
+          [ "$AR" = "0" ] || {
+            echo "::error::o ar ganhou uma constraint de não receber a maior — ver 0010_ar.sql §2.1"; exit 1; }
+          echo "espelho intacto: o ap recusa pagar a maior, o ar aceita receber a maior."
+
+      # ⭐ O CATÁLOGO TEM CINCO CARTÕES, e o quinto consome ZERO.
+      #
+      # Lei 7 conferida no banco: o Módulo 1 ainda não casa crédito, então
+      # declarar consumo faria a Store anunciar uma conciliação de recebimentos
+      # que não acontece.
+      - name: o quinto cartão não promete o que o Módulo 1 não faz
+        run: |
+          C=$($PSQL -tAc "select jsonb_array_length(events_consumes)
+                            from core.module_registry where module_id='ar';")
+          [ "$C" = "0" ] || {
+            echo "::error::o módulo ar declara $C consumo(s) — e o motor do recon recusa linha de crédito (Lei 7)"
+            exit 1; }
+
       # ⛔ A INTERAÇÃO É IMUTÁVEL, CONFERIDA NO BANCO APLICADO.
       #
       # Fato consumado não se edita. A decisão vive em três camadas, e esta
@@ -303,8 +369,8 @@ jobs:
           # Só apareceu porque os números foram conferidos contra o banco.
           N=$($PSQL -tAc "select count(*) from core.module_registry
                            where status='published'
-                             and module_id in ('recon','marketing','ap','crm');")
-          [ "$N" = "4" ] || { echo "::error::o catálogo tem $N dos 4 módulos reais publicados"; exit 1; }
+                             and module_id in ('recon','marketing','ap','crm','ar');")
+          [ "$N" = "5" ] || { echo "::error::o catálogo tem $N dos 5 módulos reais publicados"; exit 1; }
           C=$($PSQL -tAc "select jsonb_array_length(events_consumes)
                             from core.module_registry where module_id='crm';")
           [ "$C" = "0" ] || {
@@ -442,6 +508,7 @@ jobs:
           $PSQL -q -f supabase/migrations/0007_ap.sql
           $PSQL -q -f supabase/migrations/0008_recon_ap_projection.sql
           $PSQL -q -f supabase/migrations/0009_crm.sql
+          $PSQL -q -f supabase/migrations/0010_ar.sql
           $PSQL -q -f supabase/seed/0001_platform.sql
 
       # ⚠️ Sem `DATABASE_URL` os testes do store se PULAM — de propósito, para
@@ -634,6 +701,32 @@ jobs:
             echo "$EDITA"; exit 1
           fi
 
+          # Módulo 5: saldo, excedente e ciclo de vida são DECISÃO. E aqui há
+          # uma armadilha específica do espelho: a conta do saldo escrita à mão
+          # (`amountCents - receivedAmountCents`) devolve NEGATIVO no caso de
+          # recebimento a maior, que é exatamente o que o pacote evita — e o
+          # negativo entraria somando no total em aberto da tela.
+          if grep -rInE 'function (validateNewReceivable|statusForReceipt|outstandingCents|overpaidCents|summarizeReceivables)' \
+               apps --include='*.ts' --include='*.tsx'; then
+            echo "::error::o domínio de contas a receber foi redeclarado em apps/"; exit 1
+          fi
+          AR=$(grep -Ev '^\s*(\*|//|/\*)' apps/portal/src/app/ar-actions.ts)
+          for FN in validateNewReceivable canTransition; do
+            echo "$AR" | grep -Eq "\b$FN\(" \
+              || { echo "::error::a ação de contas a receber deixou de chamar $FN() do pacote"; exit 1; }
+          done
+          RLISTA=$(grep -Ev '^\s*(\*|//|/\*)' apps/portal/src/components/receivable-list.tsx)
+          for FN in outstandingCents overpaidCents isOverdue; do
+            echo "$RLISTA" | grep -Eq "\b$FN\(" \
+              || { echo "::error::a lista de recebíveis deixou de usar $FN() do pacote"; exit 1; }
+          done
+          SALDO=$(grep -rIn --include='*.ts' --include='*.tsx' -E 'amountCents\s*-\s*receivedAmountCents' apps 2>/dev/null \
+                  | grep -Ev '^[^:]+:[0-9]+:\s*(\*|//|/\*)' || true)
+          if [ -n "$SALDO" ]; then
+            echo "::error::o saldo a receber foi calculado em apps/ — ele é outstandingCents(), que nunca devolve negativo"
+            echo "$SALDO"; exit 1
+          fi
+
       # ⭐⭐ A LEI DO LEGO, VERIFICADA (CLAUDE.md §5.5, regras 3 e 5).
       #
       # A Etapa 7 pôs dois módulos conversando. A tese inteira da plataforma é
@@ -646,7 +739,7 @@ jobs:
       - name: módulo não conhece módulo
         run: |
           FALHOU=0
-          MODULOS="finance-reconciliation marketing accounts-payable crm"
+          MODULOS="finance-reconciliation marketing accounts-payable crm accounts-receivable"
 
           # 1. Nenhum módulo importa outro módulo, em nenhuma forma.
           for MOD in $MODULOS; do
@@ -664,7 +757,7 @@ jobs:
           #    `devDependencies` de teste também não vale — se o teste precisa
           #    do outro módulo, o acoplamento é real.
           for MOD in $MODULOS; do
-            if grep -qE '"@alsham/(finance-reconciliation|marketing|accounts-payable|crm)"' \
+            if grep -qE '"@alsham/(finance-reconciliation|marketing|accounts-payable|crm|accounts-receivable)"' \
                  <(grep -v "\"@alsham/$MOD\"" "packages/$MOD/package.json"); then
               echo "::error::packages/$MOD declara outro módulo como dependência"
               FALHOU=1
@@ -694,6 +787,7 @@ jobs:
             [0004_marketing.sql]=marketing
             [0007_ap.sql]=ap
             [0009_crm.sql]=crm
+            [0010_ar.sql]=ar
           )
           for ARQUIVO in "${!SCHEMA_DE[@]}"; do
             DONO="${SCHEMA_DE[$ARQUIVO]}"
@@ -712,7 +806,7 @@ jobs:
           #    produz o evento. Ela recebe TUDO por argumento, do payload — que
           #    o produtor monta autossuficiente exatamente por isso.
           PROJ=$(sed 's/--.*//' supabase/migrations/0008_recon_ap_projection.sql)
-          if echo "$PROJ" | grep -qE "\b(ap|marketing|crm)\."; then
+          if echo "$PROJ" | grep -qE "\b(ap|marketing|crm|ar)\."; then
             echo "::error::a projeção lê o schema de outro módulo — ela só pode ler o payload"
             FALHOU=1
           fi
@@ -732,7 +826,7 @@ jobs:
             || { echo "::error::o consumidor deixou de ler a procedência do envelope"; FALHOU=1; }
 
           [ "$FALHOU" = "0" ] || exit 1
-          echo "Lego intacto: quatro módulos, zero dependência entre eles."
+          echo "Lego intacto: cinco módulos, zero dependência entre eles."
 
       # ⛔⛔ A FRONTEIRA DA CHAVE-MÃE (Etapa 8).
       #

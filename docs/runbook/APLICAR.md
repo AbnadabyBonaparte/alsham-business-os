@@ -17,9 +17,10 @@ O dono informou ter aplicado **`0001` a `0005` e o seed** num projeto Supabase d
 | `0001_core.sql` … `0006_install.sql` | **APLICADAS** — não editar |
 | `seed/0001_platform.sql` | **APLICADO** — idempotente, pode rodar de novo sem estragar |
 | `0007_ap.sql` · `0008_recon_ap_projection.sql` | **APLICADAS** em 28/07/2026 — não editar |
-| `0009_crm.sql` | **ARQUIVO, ainda não aplicado** — o Módulo 4 (Relacionamentos) |
+| `0009_crm.sql` | **APLICADA** em 28/07/2026 — não editar |
+| `0010_ar.sql` | **ARQUIVO, ainda não aplicado** — o Módulo 5 (Contas a Receber) |
 
-**Se o seu projeto já existe**, o passo 1 não é para você: pule para o **Passo 9**, que é o roteiro só do `0009`.
+**Se o seu projeto já existe**, o passo 1 não é para você: pule para o **Passo 10**, que é o roteiro só do `0010`.
 
 **Este documento continua valendo inteiro** para o próximo ambiente — homologação, um segundo tenant, uma restauração. É por isso que ele descreve o zero, e não o meio.
 
@@ -65,10 +66,11 @@ Painel → **SQL Editor** → **New query**. Para cada arquivo: abra o arquivo d
 | 7 | `supabase/migrations/0007_ap.sql` | o Módulo 3: schema `ap`, 1 tabela, 3 policies | `Success. No rows returned` |
 | 8 | `supabase/migrations/0008_recon_ap_projection.sql` | a porta pela qual o Módulo 1 recebe o título | `Success. No rows returned` |
 | 9 | `supabase/migrations/0009_crm.sql` | o Módulo 4: schema `crm`, 2 tabelas, 4 policies | `Success. No rows returned` |
-| 10 | `supabase/seed/0001_platform.sql` | o catálogo: papéis, módulos `recon`, `marketing`, `ap` e `crm`, planos | `Success. No rows returned` |
+| 10 | `supabase/migrations/0010_ar.sql` | o Módulo 5: schema `ar`, 1 tabela, 3 policies | `Success. No rows returned` |
+| 11 | `supabase/seed/0001_platform.sql` | o catálogo: papéis, os cinco módulos, planos | `Success. No rows returned` |
 
 ⚠️ **Num projeto NOVO, exponha os schemas na Data API antes de usar o portal:**
-Project Settings → API → *Exposed schemas* → `core`, `recon`, `marketing`, `ap`, `crm`.
+Project Settings → API → *Exposed schemas* → `core`, `recon`, `marketing`, `ap`, `crm`, `ar`.
 Sem isso as telas carregam vazias, sem erro que diga o motivo (§8.0).
 
 ### ⚠️ NÃO aplique a pasta `supabase/tests/`
@@ -583,9 +585,20 @@ instalado, ou porque já existia um título com aquela referência marcado
 
 ---
 
-## PASSO 9 — APLICAR O `0009` (o Módulo 4, Relacionamentos)
+## PASSO 9 — APLICAR O `0009` (o Módulo 4, Relacionamentos) — ✅ **FEITO em 28/07/2026**
 
-Este é o passo da **Etapa 11**, e o único que ainda falta. Uma migration só.
+> ⚠️ **Este passo já foi executado.** O dono informou ter aplicado `0009` e
+> reaplicado o seed com os quatro módulos. ⚠️ **NÃO VERIFICADO** por este
+> repositório.
+>
+> ⚠️ **Pendências de infraestrutura que continuam com o dono** (não são deste
+> repositório e nada aqui as conserta): o **redeploy do `apps/api`** no host, a
+> **exposição do schema `crm`** na Data API, e a **instalação do módulo `crm`**
+> pela Store.
+>
+> O texto abaixo continua valendo inteiro para o **próximo ambiente**.
+
+Uma migration só.
 
 ### 9.0 — ⚠️ ANTES DE TUDO: EXPOR O SCHEMA `crm` NA DATA API
 
@@ -714,6 +727,161 @@ constrói o handler primeiro (Lei 7).
 
 ---
 
+## PASSO 10 — APLICAR O `0010` (o Módulo 5, Contas a Receber)
+
+Este é o passo da **Etapa 12**, e o único que ainda falta. Uma migration só.
+
+### 10.0 — ⚠️ ANTES DE TUDO: EXPOR O SCHEMA `ar` NA DATA API
+
+**Quarta vez que este aviso aparece, e é o mesmo aviso.** Lição paga na Etapa 9
+com o `marketing`, repetida na 10 com o `ap` e na 11 com o `crm`. O sintoma é
+traiçoeiro: as telas carregam **vazias**, sem erro de permissão, sem erro de
+rede, sem nada no log que diga o motivo.
+
+> Painel do Supabase → **Project Settings → API → Exposed schemas** →
+> acrescente **`ar`** à lista (que já deve conter `core`, `recon`, `marketing`,
+> `ap`, `crm`) → **Save**.
+
+Confira depois de aplicar, com a chave publicável:
+
+```
+curl -s "https://<PROJETO>.supabase.co/rest/v1/receivables?select=id&limit=1" \
+  -H "apikey: <ANON_KEY>" -H "Accept-Profile: ar"
+```
+
+**Esperado:** `[]` (lista vazia — você não está autenticado, a RLS barra tudo).
+**Se vier** `{"message":"The schema must be one of the following: ..."}`, o
+schema não foi exposto. Volte ao painel.
+
+### 10.1 — Aplicar o `0010_ar.sql`
+
+SQL Editor → cole `supabase/migrations/0010_ar.sql` inteiro → **Run**.
+
+Cria o schema `ar`, **uma** tabela (`ar.receivables`), a porta de saída
+(`ar.emit_event`), a tabela de transições e os gatilhos que emitem os três
+eventos.
+
+⛔ Repare no que ele **não** cria: nenhuma policy de DELETE e nenhum GRANT de
+DELETE. **Cancelar é estado, nunca apagar.**
+
+⭐ **E repare no que ele deliberadamente NÃO tem:** a constraint de "não receber
+a maior". O `ap` tem `payables_no_overpay`; aqui a ausência é decisão, e está
+explicada no §2.1 do próprio arquivo. Se você comparar os dois e achar que
+faltou alguma coisa, leia aquele bloco antes de "consertar".
+
+### 10.2 — Reaplicar o seed
+
+```
+supabase/seed/0001_platform.sql
+```
+
+É ele que põe o **5º cartão** na Store. Continua idempotente e continua
+`do update` no catálogo.
+
+### 10.3 — Conferir
+
+```sql
+-- 1. A tabela subiu, com RLS ligada E forçada.
+select c.relname, c.relrowsecurity as rls, c.relforcerowsecurity as forcada
+  from pg_class c join pg_namespace n on n.oid = c.relnamespace
+ where n.nspname = 'ar' and c.relkind = 'r';
+```
+**Esperado:** `receivables | t | t`.
+
+```sql
+-- 2. ⛔ Nenhuma porta de DELETE para o CLIENTE. (O dono da tabela sempre tem,
+--    implicitamente e sem como tirar — por isso o filtro de grantee.)
+select count(*) as grants_de_delete from information_schema.role_table_grants
+ where table_schema = 'ar' and privilege_type = 'DELETE'
+   and grantee in ('anon','authenticated','PUBLIC');
+```
+**Esperado: zero.**
+
+```sql
+-- 3. ⭐ A DIVERGÊNCIA DO ESPELHO, conferida nos dois lados de uma vez.
+select
+  (select count(*) from pg_constraint c
+     join pg_class t on t.oid = c.conrelid
+     join pg_namespace n on n.oid = t.relnamespace
+    where n.nspname='ap' and c.conname='payables_no_overpay')          as ap_recusa_pagar_a_maior,
+  (select count(*) from pg_constraint c
+     join pg_class t on t.oid = c.conrelid
+     join pg_namespace n on n.oid = t.relnamespace
+    where n.nspname='ar'
+      and pg_get_constraintdef(c.oid) ilike '%received_amount_cents <= amount_cents%')
+                                                                       as ar_recusa_receber_a_maior;
+```
+**Esperado: `1` e `0`.** Se vier `1` e `1`, alguém "consertou o `ar` por
+simetria" e quebrou a decisão — ver `MODULO-AR-SPEC §3`.
+
+```sql
+-- 4. O catálogo tem CINCO cartões, e o novo consome ZERO.
+select module_id, status,
+       jsonb_array_length(events_emits)    as emite,
+       jsonb_array_length(events_consumes) as consome
+  from core.module_registry order by module_id;
+```
+**Esperado:**
+
+| module_id | status | emite | consome |
+|---|---|---|---|
+| `ap` | published | 3 | 0 |
+| `ar` | published | 3 | 0 |
+| `crm` | published | 4 | 0 |
+| `marketing` | published | 3 | 1 |
+| `recon` | published | 3 | 3 |
+
+⚠️ **`ar` com `consome = 0` é o esperado, e não é um esquecimento.** A
+conciliação de recebimentos exigiria mudar o motor do Módulo 1, que hoje recusa
+linha de crédito. Ver `MODULO-AR-SPEC §2.3`.
+
+```sql
+-- 5. E o seed continua sem conceder permissão de módulo a papel de sistema.
+select count(*) from core.role_permissions
+ where tenant_id is null and module_id <> 'core';
+```
+**Esperado: zero.**
+
+### 10.4 — Instalar o módulo no tenant
+
+**Store → Contas a Receber → Instalar**, escolhendo um papel **DO TENANT**.
+
+Depois de instalar, o item **Contas a receber** aparece no menu do portal — ele
+só existe para quem tem `ar.receivable.manage` ou `ar.receivable.cancel`.
+
+### 10.5 — A prova de que está vivo
+
+Registre um título pela tela. Depois:
+
+```sql
+select event_type, produced_by, status
+  from core.event_outbox
+ where event_type like 'ar.%'
+ order by occurred_at desc limit 5;
+```
+**Esperado:** `ar.receivable.registered | ar | delivered` depois de um minuto.
+
+⚠️ **`delivered` aqui significa "a trilha registrou".** Nenhum módulo escuta
+`ar.*` — é o esperado, e está explicado acima.
+
+### 10.6 — ⭐ Um teste de mesa que vale a pena fazer uma vez
+
+Registre um título de 250,00 e edite o recebido para 253,00 (pelo SQL Editor, já
+que o registro de recebimento **pela tela ainda não existe** — ver
+`MODULO-AR-SPEC §5`):
+
+```sql
+update ar.receivables
+   set received_amount_cents = 25300, status = 'received'
+ where external_ref = '<a sua referência>';
+```
+
+**Esperado: passa**, e a tela mostra o selo *"recebido a maior"* com a
+explicação. Se você tentar o equivalente no `ap`, o banco recusa. É a
+divergência do módulo, e vê-la funcionando uma vez vale mais do que lê-la.
+
+---
+
 ## O QUE AINDA NÃO EXISTE
 
 Honestidade de escopo, para você não procurar o que não foi construído:
@@ -726,7 +894,10 @@ Honestidade de escopo, para você não procurar o que não foi construído:
 | Consumidor de trilha (`core.audit_log`) | ✅ construído e inscrito na composição |
 | Consumidor do Módulo 2 (verba da campanha) | ✅ construído e inscrito na composição |
 | Módulo 3 — Contas a Pagar (`0007_ap.sql`) | ✅ **CONSTRUÍDO** e **APLICADO em produção** em 28/07/2026, informado pelo dono — ⚠️ **NÃO VERIFICADO** por este repositório |
-| Módulo 4 — Relacionamentos (`0009_crm.sql`) | ✅ **CONSTRUÍDO** — arquivo, ainda não aplicado (§9) |
+| Módulo 4 — Relacionamentos (`0009_crm.sql`) | ✅ **CONSTRUÍDO** e **APLICADO em produção** em 28/07/2026, informado pelo dono — ⚠️ **NÃO VERIFICADO** por este repositório |
+| Módulo 5 — Contas a Receber (`0010_ar.sql`) | ✅ **CONSTRUÍDO** — arquivo, ainda não aplicado (§10) |
+| Conciliação de RECEBIMENTOS (crédito × título a receber) | **NÃO CONSTRUÍDA** — o motor do Módulo 1 recusa linha de crédito; ver `MODULO-AR-SPEC §2.3` |
+| Baixa por perda de título a receber | **NÃO CONSTRUÍDA** — ver `MODULO-AR-SPEC §5` |
 | Consumidor do Módulo 1 (título vindo de outro módulo) | ✅ construído e inscrito na composição — fecha o triângulo |
 | Registro de liquidação e estorno **pela tela** | **NÃO CONSTRUÍDO** — o ciclo de vida aceita os dois e é provado; o botão é etapa própria |
 | Pagamento de verdade (remessa, integração bancária) | **NÃO CONSTRUÍDO**, e é Lei 3: integra-se, não se constrói |
