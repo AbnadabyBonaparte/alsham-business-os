@@ -67,7 +67,7 @@ Corolário do roadmap: *cada linha de código escrita para um cliente deve aumen
 
 ---
 
-## 5. ESTADO ATUAL — ETAPA 9 (A STORE E O INSTALADOR)
+## 5. ESTADO ATUAL — ETAPA 10 (O TRIÂNGULO DO LEGO)
 
 ### 5.1 Stack — SELADA
 
@@ -123,20 +123,26 @@ Onde vai cada coisa:
 - `packages/config` e `packages/core` são pacotes reais. **`packages/core` é contrato puro: tipos TypeScript, zero runtime.**
 - `packages/finance-reconciliation` é o **Módulo 1** — manifesto, tipos, motor de sugestão de baixa e o **parser de OFX/CSV**. Domínio puro: sem UI e sem banco.
 - `packages/marketing` é o **Módulo 2** — campanhas. ⭐ **É ele que prova o Lego com dois módulos:** consome `recon.approval.decided` **sem importar o outro módulo, sem ler o schema dele e sem conhecer o correio**. Ver `docs/canon/MODULO-MARKETING-SPEC.md`.
-- `apps/store` e `apps/admin` e os demais 14 pacotes continuam **só com `README.md`** — status NÃO INICIADO.
-- **As migrations são provadas no CI:** `0001` → `0002` → `0003` → seed aplicam de verdade num Postgres 17 limpo e passam nos testes de isolamento com usuário real (`supabase/tests/`), a cada mudança.
+- `packages/accounts-payable` é o **Módulo 3** — Contas a Pagar. ⭐ **É ele que fecha o TRIÂNGULO:** ele emite, e o **Módulo 1** — o mais antigo, o que ninguém escreveu para escutar — projeta o título em `recon.payables`. **Nenhuma linha do `0002_recon.sql` mudou para isso**: a tabela nasceu na Etapa 2 com `source='event'` e `source_module_id`, esperando um módulo que ainda não existia. Ver `docs/canon/MODULO-AP-SPEC.md`.
+  ⚠️ O `module_id` é **`ap`**, não `accounts-payable`: o CORE-SPEC define o evento como `<moduleId>.<agregado>.<fato>` e o cinto de `emit_event()` confere esse prefixo. Com eventos em `ap.*`, qualquer outro id faria o módulo recusar os próprios eventos.
+- ⭐ **A origem de um fato vem SEMPRE do envelope** (`producedBy`), nunca de constante no consumidor. Com ela chumbada, um segundo produtor do mesmo formato entraria disfarçado do primeiro e a trilha mentiria sem nunca dar erro. Há guarda no CI que reprova as três formas de chumbar.
+- `apps/store` e `apps/admin` e os demais 13 pacotes continuam **só com `README.md`** — status NÃO INICIADO.
+- ⚠️ **O seed é a FONTE do catálogo, não só a semente dele.** Desde a Etapa 10 os blocos de `core.module_registry` são `on conflict do update`, não `do nothing`: uma linha existente precisou mudar (o `recon` passou a escutar `ap.*`) e `do nothing` deixaria a Store exibindo o catálogo antigo para sempre, sem erro nenhum. Consequência: reaplicar o seed **desfaz edição feita à mão** no catálogo. Depreciar um módulo se faz mudando o arquivo.
+- ⚠️ **Schema novo precisa ser EXPOSTO na Data API do Supabase pelo dono** (Project Settings → API → Exposed schemas). Lição paga na Etapa 9: sem isso as telas carregam vazias, sem erro que diga o motivo. Está no runbook §8.0.
+- **As migrations são provadas no CI:** `0001` → … → `0008` + seed (duas vezes) aplicam de verdade num Postgres 17 limpo e passam nos testes de isolamento com usuário real (`supabase/tests/`), a cada mudança.
 
-#### ⛔ 5.4.1 O apply de produção já aconteceu — `0001` e `0002` estão CONGELADAS
+#### ⛔ 5.4.1 O apply de produção já aconteceu — `0001` a `0006` estão CONGELADAS
 
-O dono informou em 27/07/2026 que aplicou `0001_core.sql`, `0002_recon.sql` e o seed num projeto Supabase de produção, com um tenant piloto. **Este repositório NÃO VERIFICOU esse apply** — nenhum agente conecta a banco remoto com dado de cliente, e o registro fica assim, literalmente, conforme §3.
+O dono informou, em 27/07 e 28/07/2026, ter aplicado `0001_core.sql` até `0006_install.sql` e o seed num projeto Supabase de produção, com um tenant piloto. **Este repositório NÃO VERIFICOU esse apply** — nenhum agente conecta a banco remoto com dado de cliente, e o registro fica assim, literalmente, conforme §3.
 
 A consequência é operacional e não é opinião:
 
-- ❌ **Não edite `0001_core.sql` nem `0002_recon.sql`.** Arquivo aplicado é história. Se estivessem só no papel, corrigir no lugar seria certo; aplicados, editar faz o próximo ambiente nascer diferente da produção **em silêncio**. Correção vira migration nova.
-- ✅ `0003_billing.sql` **ainda é só arquivo** — criado depois do apply, e a Etapa 6 foi instruída a não aplicá-lo. Aplicá-lo é ato do dono (runbook).
-- **`0001` a `0005` e o seed estão APLICADOS** (informado pelo dono). `0006_install.sql` (Etapa 9) é o único que ainda é **só arquivo**; a próxima é **`0007_*.sql`**.
+- ❌ **Não edite nenhuma migration de `0001` a `0006`.** Arquivo aplicado é história. Se estivessem só no papel, corrigir no lugar seria certo; aplicados, editar faz o próximo ambiente nascer diferente da produção **em silêncio**. Correção vira migration nova.
+- ✅ `0007_ap.sql` e `0008_recon_ap_projection.sql` **ainda são só arquivo** — criados depois do apply, e a Etapa 10 foi instruída a não aplicá-los. Aplicá-los é ato do dono (runbook §8).
+- **`0001` a `0006` e o seed estão APLICADOS** (informado pelo dono; ⚠️ NÃO VERIFICADO aqui). `0007_ap.sql` e `0008_recon_ap_projection.sql` (Etapa 10) são os únicos que ainda são **só arquivo**; a próxima é **`0009_*.sql`**.
+- ⛔ **A limpeza do runbook §7.3 FOI EXECUTADA** em 28/07/2026: a concessão global de permissão de módulo **não existe mais em produção**. O tenant piloto tem papel próprio, com as permissões concedidas por `core.install_module()` — pela Store, com o clique do dono. Nunca volte a conceder permissão de módulo no seed.
 - `packages/workflow` é **o correio do Core** — o entregador da caixa de saída: idempotência por consumidor, backoff exponencial, `dead` sem apagar. **ENGINE, não módulo** (Taxonomia §4): não aparece na Store.
-- `apps/api` é **a COMPOSIÇÃO** — o único lugar do repositório onde os módulos se conhecem. Ele importa `workflow`, `marketing` e `billing`; **nenhum deles importa nenhum outro**. Traz a persistência real do correio (contra Postgres, com arrendamento e `skip locked`), os adaptadores dos consumidores, o endpoint protegido e a saúde da fila.
+- `apps/api` é **a COMPOSIÇÃO** — o único lugar do repositório onde os módulos se conhecem. Ele importa `workflow`, `marketing`, `finance-reconciliation` e `billing`; **nenhum deles importa nenhum outro**. ⭐ Desde a Etapa 10 o mesmo pacote (`finance-reconciliation`) é PRODUTOR numa inscrição e CONSUMIDOR em outra — e continua sem conhecer ninguém. Traz a persistência real do correio (contra Postgres, com arrendamento e `skip locked`), os adaptadores dos consumidores, o endpoint protegido e a saúde da fila.
   ⛔ **Roda com `service_role` e NÃO vai junto com `apps/portal`.** Há guarda no CI sobre essa fronteira.
   ⚡ **NO AR desde 28/07/2026** — o dono ligou: `apps/api` publicado, `pg_cron` + `pg_net`, job de 1 em 1 minuto. ⚠️ **NÃO VERIFICADO** por este repositório.
 - `packages/billing` é a **contabilidade de uso** — `usage_ledger` + leitura de limite, minerados do kraken-v2 (PROVADO). **Sem preço, e há guarda no CI para que continue assim** (Lei 7).
@@ -150,7 +156,7 @@ A consequência é operacional e não é opinião:
 
 ### 5.5 A LEI DO LEGO — para todo módulo, deste em diante
 
-O Módulo 1 é o padrão. Quem escrever o Módulo 2 obedece ao mesmo:
+O Módulo 1 é o padrão. Os Módulos 2 e 3 obedeceram ao mesmo; o próximo também:
 
 1. **Schema próprio.** Nenhum módulo cria objeto no schema `core`.
 2. **Uma porta só.** O módulo fala com o mundo por `<modulo>.emit_event()`, que escreve em `core.event_outbox`. Nada de chamada direta.
@@ -169,7 +175,7 @@ O Módulo 1 é o padrão. Quem escrever o Módulo 2 obedece ao mesmo:
 - **A Regra de Ouro (§5.3) é verificada no CI**, não só recomendada: se o motor de domínio for redeclarado em `apps/`, ou se a tela deixar de chamá-lo, o build falha.
 - **O instalador existe** (`0006_install.sql`): quem concede permissão de módulo é `core.install_module()`, num papel **DO TENANT**. Papel de sistema é recusado — ele vale em todos os tenants e faria o módulo vazar para quem não o instalou. **Nunca volte a conceder permissão de módulo no seed.**
 - **Desinstalar não apaga dado.** Corta acesso e revoga permissão; o que o módulo gravou continua no banco. Há teste no CI.
-- **Entregou peça? Atualize a linha dela** em `CORE-SPEC §5` e `MODULO-RECON-SPEC §7` — são a fonte de estado, e o CI (`pnpm verificar:docs`) falha se um documento declarar **NÃO CONSTRUÍDO** algo que já existe no disco. Negar o que existe é a Lei 7 com o sinal trocado, e é o erro mais fácil de cometer: não exige escrever nada, basta não apagar.
+- **Entregou peça? Atualize a linha dela** em `CORE-SPEC §5`, `MODULO-RECON-SPEC §7`, `MODULO-MARKETING-SPEC §6` e `MODULO-AP-SPEC §6` — são a fonte de estado, e o CI (`pnpm verificar:docs`) falha se um documento declarar **NÃO CONSTRUÍDO** algo que já existe no disco. Negar o que existe é a Lei 7 com o sinal trocado, e é o erro mais fácil de cometer: não exige escrever nada, basta não apagar.
 
 ---
 
@@ -177,17 +183,21 @@ O Módulo 1 é o padrão. Quem escrever o Módulo 2 obedece ao mesmo:
 
 ```
 docs/canon/            taxonomia · roadmap · core-spec · identidade-visual
-                       · modulo-recon-spec              — leitura obrigatória
+                       · modulo-recon-spec · modulo-marketing-spec
+                       · modulo-ap-spec                 — leitura obrigatória
 docs/balancos/         tecnologia + supabase            — de onde minerar
 docs/historico/        catálogo anterior                — memória, não canon
-supabase/migrations/   0001_core … 0005_courier_cron — APLICADAS, não editar
-                       0006_install           — arquivo; aplicar é ato do dono
+supabase/migrations/   0001_core … 0006_install       — APLICADAS, não editar
+                       0007_ap · 0008_recon_ap_projection
+                                              — arquivo; aplicar é ato do dono
 supabase/seed/         0001_platform.sql                — catálogo, idempotente; zero tenant
 supabase/tests/        shim · isolamento · uso · consumo entre módulos
+                       · instalador · triângulo
                                                         — só CI; NUNCA no Supabase real
 docs/runbook/          APLICAR.md                       — o passo a passo do dono
 .github/scripts/       guarda de defasagem de documento — encanamento de CI
-apps/                  portal (login + 4 telas do Módulo 1 + campanhas)
+apps/                  portal (login + 4 telas do Módulo 1 + campanhas
+                              + Store + contas a pagar)
                        api    — A COMPOSIÇÃO; roda com service_role
                        admin · store — só README
 packages/              core auth organizations workflow billing
@@ -196,6 +206,7 @@ packages/              core auth organizations workflow billing
                        legal hr analytics integrations ui sdk config
                        finance-reconciliation           — Módulo 1
                        marketing                        — Módulo 2 (prova o Lego)
+                       accounts-payable                 — Módulo 3 (fecha o triângulo)
                        workflow (o correio) · billing (uso) — Engines do Core
 ```
 

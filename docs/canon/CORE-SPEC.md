@@ -149,8 +149,10 @@ Honestidade de escopo (Lei 7). **Esta seção é do repositório, não da etapa 
 | Constantes canônicas (`@alsham/config`) | ✅ construído |
 | Schema do Core (`0001_core.sql`) | ✅ **APLICADO em produção** — ver aviso abaixo |
 | **O Lego com DOIS módulos** | ✅ **PROVADO na Etapa 7** — `marketing` reage a `recon.approval.decided` sem importá-lo, sem ler seu schema e sem conhecer o correio ([MODULO-MARKETING-SPEC](MODULO-MARKETING-SPEC.md)) |
+| ⭐ **O TRIÂNGULO — o Lego com TRÊS módulos** | ✅ **PROVADO na Etapa 10** — `ap` emite e `recon` projeta. O módulo mais antigo, que ninguém escreveu para escutar, virou consumidor **sem que uma linha do `0002_recon.sql` mudasse**: a tabela nasceu na Etapa 2 com `source='event'` e `source_module_id`, esperando um módulo que ainda não existia ([MODULO-AP-SPEC](MODULO-AP-SPEC.md)) |
+| **Módulo 3 — Contas a Pagar** (`@alsham/accounts-payable` + `0007_ap.sql`) | ✅ **CONSTRUÍDO na Etapa 10** — **arquivo, ainda não aplicado**. Aplicar é ato do dono (runbook §8) |
 | **A composição** (`apps/api`) | ✅ **CONSTRUÍDA na Etapa 8** — o único lugar do repositório onde os módulos se conhecem. Importa todos; nenhum importa outro |
-| Contabilidade de uso (`0003_billing.sql` + `@alsham/billing`) | ✅ construído — **arquivo, ainda não aplicado**. Sem preço (Lei 7) |
+| Contabilidade de uso (`0003_billing.sql` + `@alsham/billing`) | ✅ construído e **APLICADO em produção** (informado pelo dono, ⚠️ NÃO VERIFICADO aqui). Sem preço (Lei 7) |
 | **Despachante da caixa de saída** (`@alsham/workflow` + `apps/api`) | ✅ **NO AR desde 28/07/2026** — o dono ligou: `apps/api` publicado, `pg_cron` + `pg_net`, job de 1 em 1 minuto. ⚠️ **NÃO VERIFICADO** por este repositório |
 | Visão de saúde da fila | ✅ **CONSTRUÍDA na Etapa 8** — `core.courier_status()` responde OK · ATRASADO · PARADO · ATENCAO |
 | UI | ✅ construída — `apps/portal`: login, quatro telas do Módulo 1 e a carteira de campanhas do Módulo 2 |

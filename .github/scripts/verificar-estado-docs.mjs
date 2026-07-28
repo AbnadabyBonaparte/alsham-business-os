@@ -135,11 +135,84 @@ export const PECAS = [
     padrao: /(usage_ledger|contabilidade\s+de\s+uso|cobran[çc]a\s*\(billing\))/i,
     onde: 'packages/billing/src/usage.ts',
   },
+  {
+    nome: 'Módulo 3 — Contas a Pagar',
+    detector: [
+      'packages/accounts-payable/src/manifest.ts',
+      'packages/accounts-payable/src/payable.ts',
+      'supabase/migrations/0007_ap.sql',
+    ],
+    // A capacidade *Contas a pagar* aparecia como NÃO CONSTRUÍDA na Taxonomia,
+    // no Roadmap e no CORE-SPEC desde a Etapa 0 — e "contas a pagar" é uma
+    // expressão comum demais para virar padrão sozinha: ela aparece em linhas
+    // corretas do Domain Financeiro que falam das outras 18 capacidades.
+    //
+    // Por isso o padrão exige o NOME DA PEÇA: o módulo, o pacote ou o schema.
+    padrao: /(m[óo]dulo 3|packages\/accounts-payable|@alsham\/accounts-payable)/i,
+    onde: 'packages/accounts-payable/',
+  },
+  {
+    nome: 'O triângulo — o Módulo 1 consumindo o Módulo 3',
+    detector: [
+      'packages/finance-reconciliation/src/external-payable.ts',
+      'supabase/migrations/0008_recon_ap_projection.sql',
+    ],
+    // ⭐ A defasagem MAIS provável desta etapa, e a mais cara.
+    //
+    // De Etapa 2 a Etapa 9, três documentos disseram — corretamente — que o
+    // `recon` NÃO consumia nada, que `consumes` era vazio e que o consumidor
+    // de título externo estava NÃO CONSTRUÍDO. Todas essas frases viraram
+    // mentira na Etapa 10, e nenhuma delas dá erro ao continuar no papel:
+    // basta não apagar.
+    //
+    // O padrão exige o nome do arquivo, da função de projeção ou a expressão
+    // inteira — "consumidor" solto apareceria em linhas corretas sobre
+    // consumidores que de fato não existem.
+    padrao: /(external-payable|record_external_payable|0008_recon_ap_projection|tri[âa]ngulo\s+do\s+lego)/i,
+    onde: 'packages/finance-reconciliation/src/external-payable.ts',
+  },
+  {
+    nome: 'Instalador de módulo em runtime',
+    detector: ['supabase/migrations/0006_install.sql'],
+    // ⚠️ ESTA PEÇA ENTROU NA ETAPA 10, e a razão é uma defasagem real.
+    //
+    // O instalador foi construído na Etapa 9, e o README continuou listando
+    // "sem instalador de módulo" entre o que NÃO existe. A guarda não pegou
+    // porque ninguém a ensinou a peça — que é o limite dela, declarado no
+    // cabeçalho: ela confere o que está na lista, e a lista é curada.
+    //
+    // Curar a lista é parte de entregar a peça.
+    padrao: /(instalador\s+de\s+m[óo]dulo|install_module|0006_install)/i,
+    onde: 'supabase/migrations/0006_install.sql',
+  },
+  {
+    nome: 'A Store (vitrine de módulos)',
+    detector: [
+      'apps/portal/src/app/store/page.tsx',
+      'packages/permissions/src/catalog.ts',
+    ],
+    // "Store" sozinho é palavra comum demais (`OutboxStore`, `store-port`), e
+    // por isso o padrão exige a expressão inteira ou o caminho.
+    padrao: /(a\s+store\b|vitrine\s+de\s+m[óo]dulos|apps\/portal\/src\/app\/store)/i,
+    onde: 'apps/portal/src/app/store/',
+  },
 ];
 
-/** Migrations que o dono aplicou: declará-las pendentes convida a editá-las. */
+/**
+ * Migrations que o dono aplicou: declará-las pendentes convida a editá-las.
+ *
+ * ⚠️ A lista cresce a cada apply informado pelo dono. Na Etapa 10 ela passou de
+ * `0001`–`0002` para `0001`–`0006`: o dono informou o apply do `0006` em
+ * 28/07/2026, junto com a limpeza do §7.3 do runbook. Uma migration aplicada
+ * que o canon ainda chama de "arquivo, não aplicada" é um convite a editá-la —
+ * e arquivo aplicado editado faz o próximo ambiente nascer diferente da
+ * produção EM SILÊNCIO.
+ *
+ * `0007` e `0008` NÃO entram: elas são, de fato, só arquivo. Aplicá-las é ato
+ * do dono (runbook §8), e declará-las pendentes é a verdade.
+ */
 export const APLICADAS = {
-  padrao: /(0001_core|0002_recon)/i,
+  padrao: /(0001_core|0002_recon|0003_billing|0004_marketing|0005_courier_cron|0006_install)/i,
   marcador: /n[ãa]o\s+aplicad|arquivo,\s*n[ãa]o\s+aplicad/i,
 };
 
@@ -179,6 +252,7 @@ const SECOES = [
   { arquivo: 'docs/canon/CORE-SPEC.md', titulo: '## 5. ESTADO DA OBRA' },
   { arquivo: 'docs/canon/MODULO-RECON-SPEC.md', titulo: '## 7. ESTADO DA OBRA' },
   { arquivo: 'docs/canon/MODULO-MARKETING-SPEC.md', titulo: '## 6. ESTADO DA OBRA' },
+  { arquivo: 'docs/canon/MODULO-AP-SPEC.md', titulo: '## 6. ESTADO DA OBRA' },
 ];
 
 /**

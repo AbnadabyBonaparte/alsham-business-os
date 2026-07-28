@@ -122,15 +122,65 @@ values (
      {"type":"recon.approval.decided","version":1,"description":"Um humano visou um item da fila: aprovado ou rejeitado, com quem, quando e por quê."},
      {"type":"recon.statement.discarded","version":1,"description":"Um extrato foi descartado — a ação destrutiva deste módulo. Some da operação, nunca da trilha."}
    ]'::jsonb,
-  -- Vazio de propósito: o handler que consumiria `finance.payable.registered`
-  -- está NÃO CONSTRUÍDO. Declarar consumo sem consumidor é promessa no ar.
-  '[]'::jsonb,
+  -- ⭐ DEIXOU DE SER VAZIO NA ETAPA 10 — e a ordem importa.
+  --
+  -- Da Etapa 2 até a Etapa 9 esta linha era `'[]'` com o comentário: *"o
+  -- handler que consumiria o título de outro módulo está NÃO CONSTRUÍDO;
+  -- declarar consumo sem consumidor é promessa no ar"*. O handler foi
+  -- construído (`packages/finance-reconciliation/src/external-payable.ts`), e
+  -- só por isso a lista mudou. Primeiro o código, depois a promessa.
+  --
+  -- ⚠️ **O que a Store passa a exibir, e a segunda metade da frase honesta.**
+  -- Este campo é o que a vitrine usa para dizer *"este módulo reage ao seu
+  -- contas a pagar"*. A verdade completa é: **só reage se o módulo de Contas a
+  -- Pagar estiver instalado**. Sem ele, ninguém emite `ap.*`, o consumidor
+  -- nunca é acordado, e este módulo funciona inteiro do mesmo jeito — os
+  -- títulos entram por importação, como sempre entraram.
+  '[
+     {"type":"ap.payable.registered","version":1,"description":"Um título a pagar nasceu em outro módulo. Vira projeção local, com a origem que veio no envelope, e a mesa de conciliação passa a ter contra o que casar."},
+     {"type":"ap.payable.updated","version":1,"description":"O valor, o vencimento ou a liquidação de um título mudaram na origem. A projeção acompanha."},
+     {"type":"ap.payable.cancelled","version":1,"description":"Um título foi cancelado na origem. A projeção passa a cancelled — some da mesa, nunca do banco."}
+   ]'::jsonb,
   -- Nenhum agente embarcado ainda: o motor de IA é da Fase 8.
   '[]'::jsonb,
   '0.0.x',
   'published'
 )
-on conflict (module_id) do nothing;
+on conflict (module_id) do update set
+  -- ⚠️ `do update`, e NÃO `do nothing` — mudou na Etapa 10, por necessidade.
+  --
+  -- Até a Etapa 9 todo bloco do catálogo era `do nothing`, e estava certo
+  -- enquanto o catálogo só CRESCIA. Na Etapa 10 uma linha existente precisou
+  -- mudar: o `recon` passou a declarar que escuta `ap.*`, e o dono já tem esse
+  -- módulo registrado em produção desde a Etapa 3.
+  --
+  -- Com `do nothing`, reaplicar o seed não faria nada, a Store continuaria
+  -- exibindo o catálogo antigo **para sempre**, e ninguém veria erro nenhum.
+  -- Catálogo defasado em silêncio é a Lei 7 com o sinal trocado.
+  --
+  -- Isto continua idempotente: rodar duas vezes tem o mesmo efeito de rodar
+  -- uma. O que muda é que agora o seed é a FONTE do catálogo, não só a semente
+  -- dele — reaplicar traz a linha para a verdade do manifesto.
+  --
+  -- ⚠️ Consequência que é preciso saber: se alguém tiver editado o catálogo à
+  -- mão no banco (mudado `status` para `deprecated`, por exemplo), a
+  -- reaplicação do seed desfaz a edição. É o preço de ter uma fonte só, e é o
+  -- lado certo do trade-off: catálogo é vocabulário de plataforma, versionado
+  -- aqui. Depreciar um módulo se faz mudando este arquivo.
+  name            = excluded.name,
+  version         = excluded.version,
+  summary         = excluded.summary,
+  layer           = excluded.layer,
+  domain_key      = excluded.domain_key,
+  vertical_key    = excluded.vertical_key,
+  capabilities    = excluded.capabilities,
+  permissions     = excluded.permissions,
+  events_emits    = excluded.events_emits,
+  events_consumes = excluded.events_consumes,
+  agents          = excluded.agents,
+  requires_core   = excluded.requires_core,
+  status          = excluded.status,
+  updated_at      = now();
 
 -- =============================================================================
 -- 4. ⛔ O BLOCO QUE SAIU — as permissões de módulo no papel de sistema
@@ -208,9 +258,123 @@ values (
   '0.0.x',
   'published'
 )
-on conflict (module_id) do nothing;
+on conflict (module_id) do update set
+  -- ⚠️ `do update`, e NÃO `do nothing` — mudou na Etapa 10, por necessidade.
+  --
+  -- Até a Etapa 9 todo bloco do catálogo era `do nothing`, e estava certo
+  -- enquanto o catálogo só CRESCIA. Na Etapa 10 uma linha existente precisou
+  -- mudar: o `recon` passou a declarar que escuta `ap.*`, e o dono já tem esse
+  -- módulo registrado em produção desde a Etapa 3.
+  --
+  -- Com `do nothing`, reaplicar o seed não faria nada, a Store continuaria
+  -- exibindo o catálogo antigo **para sempre**, e ninguém veria erro nenhum.
+  -- Catálogo defasado em silêncio é a Lei 7 com o sinal trocado.
+  --
+  -- Isto continua idempotente: rodar duas vezes tem o mesmo efeito de rodar
+  -- uma. O que muda é que agora o seed é a FONTE do catálogo, não só a semente
+  -- dele — reaplicar traz a linha para a verdade do manifesto.
+  --
+  -- ⚠️ Consequência que é preciso saber: se alguém tiver editado o catálogo à
+  -- mão no banco (mudado `status` para `deprecated`, por exemplo), a
+  -- reaplicação do seed desfaz a edição. É o preço de ter uma fonte só, e é o
+  -- lado certo do trade-off: catálogo é vocabulário de plataforma, versionado
+  -- aqui. Depreciar um módulo se faz mudando este arquivo.
+  name            = excluded.name,
+  version         = excluded.version,
+  summary         = excluded.summary,
+  layer           = excluded.layer,
+  domain_key      = excluded.domain_key,
+  vertical_key    = excluded.vertical_key,
+  capabilities    = excluded.capabilities,
+  permissions     = excluded.permissions,
+  events_emits    = excluded.events_emits,
+  events_consumes = excluded.events_consumes,
+  agents          = excluded.agents,
+  requires_core   = excluded.requires_core,
+  status          = excluded.status,
+  updated_at      = now();
 
 -- (As permissões do `marketing` também saíram daqui — ver o bloco 4.)
+
+-- =============================================================================
+-- 4.2 O MÓDULO `ap` NO CATÁLOGO DA STORE
+-- Transcrito de packages/accounts-payable/src/manifest.ts.
+-- -----------------------------------------------------------------------------
+-- ⚠️ Mesma regra dos outros dois: este bloco e o `MANIFEST` do pacote andam
+-- juntos, e há teste no CI que compara os dois campo a campo.
+--
+-- ⚠️ **`module_id` é `ap`, não `accounts-payable`.** O CORE-SPEC define o tipo
+-- de evento como `<moduleId>.<agregado>.<fato>`, e o cinto de `ap.emit_event()`
+-- confere esse prefixo. Com eventos e permissões em `ap.*`, qualquer outro id
+-- faria a porta de saída do módulo recusar os próprios eventos dele. O nome
+-- legível é "Contas a Pagar"; o pacote é `@alsham/accounts-payable`. Só o
+-- identificador é curto, e é ele que o contrato exige que seja o prefixo.
+--
+-- ⭐ **A diferença que este bloco marca:** `events_emits` cheio e
+-- `events_consumes` VAZIO — o espelho exato do `marketing`. Com este módulo, o
+-- catálogo passa a mostrar o triângulo inteiro: `recon` emite e `marketing`
+-- escuta; `ap` emite e `recon` escuta. Nenhum dos três conhece nenhum outro.
+--
+-- `status = 'published'` com UMA capacidade. As outras 18 do Domain Financeiro
+-- não aparecem porque não existem.
+-- =============================================================================
+
+insert into core.module_registry (
+  module_id, name, version, summary,
+  layer, domain_key,
+  capabilities, permissions, events_emits, events_consumes, agents,
+  requires_core, status
+)
+values (
+  'ap',
+  'Contas a Pagar',
+  '0.1.0',
+  'Registra o que a empresa deve, com vencimento e valor, e conta ao resto da plataforma cada título que nasce, muda ou é cancelado.',
+  'domain', 'finance',
+  '[
+     {"key":"accounts-payable","canonicalName":"Contas a pagar"}
+   ]'::jsonb,
+  '[
+     {"key":"ap.payable.manage","moduleId":"ap","description":"Registrar e editar títulos a pagar."},
+     {"key":"ap.payable.cancel","moduleId":"ap","description":"Cancelar um título — a ação destrutiva deste módulo."}
+   ]'::jsonb,
+  '[
+     {"type":"ap.payable.registered","version":1,"description":"Um título a pagar foi registrado, com referência, vencimento, valor e moeda — tudo o que quem escuta precisa para existir sem nunca ter visto este módulo."},
+     {"type":"ap.payable.updated","version":1,"description":"Mudou algo que interessa a quem escuta: valor, vencimento, quanto já foi liquidado ou o estado."},
+     {"type":"ap.payable.cancelled","version":1,"description":"Um título foi cancelado — a ação destrutiva deste módulo. Some da operação, nunca da trilha, e nunca do banco."}
+   ]'::jsonb,
+  -- Vazio, e é Lei 7. Seria fácil declarar que este módulo escuta a baixa do
+  -- Módulo 1 e se liquida sozinho — é a integração óbvia, e a primeira que um
+  -- cliente pede. Mas o handler não existe, e consumo declarado sem consumidor
+  -- faz o Core acordar um módulo que não sabe responder.
+  '[]'::jsonb,
+  -- Nenhum agente embarcado ainda.
+  '[]'::jsonb,
+  '0.0.x',
+  'published'
+)
+on conflict (module_id) do update set
+  -- Ver o comentário longo no bloco 3: catálogo é vocabulário de plataforma, e
+  -- reaplicar o seed traz a linha para a verdade do manifesto.
+  name            = excluded.name,
+  version         = excluded.version,
+  summary         = excluded.summary,
+  layer           = excluded.layer,
+  domain_key      = excluded.domain_key,
+  vertical_key    = excluded.vertical_key,
+  capabilities    = excluded.capabilities,
+  permissions     = excluded.permissions,
+  events_emits    = excluded.events_emits,
+  events_consumes = excluded.events_consumes,
+  agents          = excluded.agents,
+  requires_core   = excluded.requires_core,
+  status          = excluded.status,
+  updated_at      = now();
+
+-- ⛔ E aqui NÃO entra nenhuma permissão de módulo, pelo mesmo motivo do bloco 4:
+-- papel de sistema vale em todo tenant, e conceder `ap.payable.*` aqui daria o
+-- módulo de graça a qualquer tenant novo. Quem concede é `core.install_module()`,
+-- num papel DO TENANT, quando alguém clica em instalar na Store.
 
 -- =============================================================================
 -- 5. PLANOS-BASE

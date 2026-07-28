@@ -98,20 +98,51 @@ export const MANIFEST = {
     ],
 
     /**
-     * **Vazio hoje, e isso é honestidade, não esquecimento (Lei 7).**
+     * ⭐ **DEIXOU DE SER VAZIO — e a data importa.**
      *
-     * O schema já prevê `recon.payables.source = 'event'`: quando existir um
-     * módulo de Contas a Pagar, este módulo passa a alimentar sua projeção
-     * local ouvindo `finance.payable.registered` em vez de importação manual.
+     * Da Etapa 2 até a Etapa 9 este campo foi `[]`, com um comentário dizendo
+     * que o schema já previa `recon.payables.source = 'event'` e que a
+     * declaração entraria *"quando o consumidor estiver construído"*. Na Etapa
+     * 10 ele foi construído (`external-payable.ts`), e só por isso a lista
+     * mudou. Lei 7 cumprida na ordem certa: primeiro o handler, depois a
+     * promessa.
      *
-     * A declaração só entra aqui quando **o consumidor estiver construído**.
-     * Declarar consumo sem handler faria o Core acordar um módulo que não
-     * sabe responder — e seria exatamente a promessa no ar que a Lei 7 proíbe.
+     * **Consumir não é depender** (§5.5.7). Três consequências conferíveis no
+     * disco:
      *
-     * Enquanto isso, os títulos entram por importação, e o módulo funciona
-     * inteiro sozinho. É o Lego: nada quebra por ninguém estar do outro lado.
+     *   1. `package.json` deste pacote **não lista** o `accounts-payable`;
+     *   2. nenhum arquivo daqui o importa;
+     *   3. `0002_recon.sql` não faz um `select` sequer em `ap.*` — e não mudou
+     *      uma linha para isto funcionar.
+     *
+     * ⚠️ **O que a Store vai exibir a partir daqui, e o que ela não pode
+     * prometer.** Este campo é o que a vitrine usa para dizer *"este módulo
+     * reage ao seu contas a pagar"*. A frase honesta tem uma segunda metade:
+     * **só reage se o módulo de Contas a Pagar estiver instalado.** Se não
+     * estiver, ninguém emite `ap.*`, este consumidor nunca é acordado, e o
+     * módulo funciona inteiro do mesmo jeito — os títulos entram por
+     * importação, como sempre entraram.
      */
-    consumes: [],
+    consumes: [
+      {
+        type: 'ap.payable.registered',
+        version: 1,
+        description:
+          'Um título a pagar nasceu em outro módulo. Vira projeção local, com a origem que veio no envelope, e a mesa de conciliação passa a ter contra o que casar.',
+      },
+      {
+        type: 'ap.payable.updated',
+        version: 1,
+        description:
+          'O valor, o vencimento ou a liquidação de um título mudaram na origem. A projeção acompanha.',
+      },
+      {
+        type: 'ap.payable.cancelled',
+        version: 1,
+        description:
+          'Um título foi cancelado na origem. A projeção passa a `cancelled` — some da mesa, nunca do banco.',
+      },
+    ],
   },
 
   /**

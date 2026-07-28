@@ -69,7 +69,38 @@ for (const linha of MIGRACOES_DEFASADAS) {
   });
 }
 
-test('0003 pode continuar sendo declarada não aplicada — porque não foi', () => {
-  const linha = '| `0003_billing.sql` | **ARQUIVO, ainda não aplicado** — é o único que falta |';
-  assert.equal(APLICADAS.padrao.test(linha), false);
-});
+/**
+ * ⚠️ **ESTE TESTE MUDOU DE ALVO NA ETAPA 10, e o motivo é a realidade.**
+ *
+ * Ele afirmava que `0003_billing.sql` podia continuar sendo declarada
+ * pendente — "porque não foi aplicada". Era verdade quando foi escrito, e
+ * deixou de ser: o dono informou o apply de `0003` a `0006` em 28/07/2026.
+ *
+ * A regra nunca foi "0003 é exceção". A regra é **"o que foi aplicado não pode
+ * ser declarado pendente, e o que não foi, pode"** — e o alvo da exceção anda
+ * junto com a fila. Hoje a exceção são `0007` e `0008`, que são, de fato, só
+ * arquivo.
+ *
+ * O teste existe para provar que a guarda **não é uma varredura cega** que
+ * proíbe a palavra "pendente" perto de qualquer número de migration. Se ele
+ * quebrar de novo, provavelmente é a lista de `APLICADAS` que envelheceu — e
+ * não este teste que está errado.
+ */
+for (const linha of [
+  '| `0007_ap.sql` | **ARQUIVO, ainda não aplicado** — o Módulo 3 |',
+  '| `0008_recon_ap_projection.sql` | **ARQUIVO, ainda não aplicado** |',
+]) {
+  test(`pode continuar sendo declarada não aplicada, porque não foi: ${linha.slice(0, 34)}…`, () => {
+    assert.equal(APLICADAS.padrao.test(linha), false);
+  });
+}
+
+/** E o inverso: as recém-aplicadas passaram a ser mordidas. */
+for (const linha of [
+  '| `0003_billing.sql` | **ARQUIVO, ainda não aplicado** |',
+  '| `0006_install.sql` | **ARQUIVO, ainda não aplicado** — o instalador |',
+]) {
+  test(`morde a recém-aplicada dita pendente: ${linha.slice(0, 34)}…`, () => {
+    assert.ok(APLICADAS.padrao.test(linha) && APLICADAS.marcador.test(linha), 'passou batido');
+  });
+}

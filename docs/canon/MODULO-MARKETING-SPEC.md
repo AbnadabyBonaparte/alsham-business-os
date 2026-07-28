@@ -7,7 +7,7 @@
 | Peça | O que é |
 |---|---|
 | `packages/marketing/` | manifesto + máquina de estados + o handler de consumo (domínio puro) |
-| `supabase/migrations/0004_marketing.sql` | schema `marketing` — **arquivo, não aplicado** |
+| `supabase/migrations/0004_marketing.sql` | schema `marketing` — **APLICADO em produção** (informado pelo dono, ⚠️ NÃO VERIFICADO aqui) |
 | `apps/portal/src/app/campanhas/` | a tela de campanhas |
 
 > **Lei 7:** o que não foi construído está marcado **NÃO CONSTRUÍDO**, e o estado corrente está em **[§6](#6-estado-da-obra--o-que-existe-e-o-que-não-existe)**.
@@ -131,7 +131,7 @@ Prova colateral que só apareceu ao escrever o teste: **nem o superusuário do b
 |---|---|
 | Manifesto, tipos, máquina de estados | ✅ construído, com testes |
 | Handler de consumo + projeção local | ✅ construído — a prova da etapa |
-| Schema `marketing` (`0004_marketing.sql`) | ✅ **ARQUIVO, não aplicado.** Aplicar é ato do dono |
+| Schema `marketing` (`0004_marketing.sql`) | ✅ **APLICADO em produção** em 28/07/2026, informado pelo dono — ⚠️ **NÃO VERIFICADO** por este repositório |
 | Tela de campanhas | ✅ construída — listar, criar rascunho, mudar estado com confirmação |
 | Peças e resultados | ⚠️ **schema existe, sem tela.** As tabelas estão prontas e provadas; a UI é etapa própria |
 | Agente de IA embarcado | **NÃO CONSTRUÍDO** — o kraken-v2 é a peça a minerar (Balanço: PROVADO), e minerar é etapa própria |

@@ -190,7 +190,7 @@ A pergunta em cada coluna: *"outra empresa do mesmo setor usaria isso exatamente
 
 **Esta seção é do módulo, não da etapa que a escreveu.** Quem entregar uma peça atualiza a linha dela aqui; há guarda no CI contra deixá-la envelhecer.
 
-*Conferido em 27/07/2026, depois da Etapa 6.*
+*Conferido em 28/07/2026, na Etapa 10.*
 
 | Peça | Estado |
 |---|---|
@@ -199,7 +199,8 @@ A pergunta em cada coluna: *"outra empresa do mesmo setor usaria isso exatamente
 | UI | ✅ construída — quatro telas em `apps/portal` |
 | Parser de OFX e CSV | ✅ construído em `packages/finance-reconciliation/src/parsing/`, com 35 testes. Ler extrato é regra de negócio, não tela |
 | Parser de CAMT.053 | **NÃO CONSTRUÍDO** — e o parser **diz isso** em vez de tentar adivinhar |
-| Handler que consome `finance.payable.registered` | **NÃO CONSTRUÍDO** — por isso `manifest.events.consumes` segue **vazio** (§5) |
+| ⭐ Handler que consome o título de outro módulo | ✅ **CONSTRUÍDO na Etapa 10** (`src/external-payable.ts`) — e é ele que fecha o triângulo. `manifest.events.consumes` **deixou de ser vazio**, na ordem certa: primeiro o handler, depois a promessa |
+| Porta de projeção (`0008_recon_ap_projection.sql`) | ✅ **CONSTRUÍDA** — **arquivo, ainda não aplicado**. Não acrescenta coluna nenhuma: `recon.payables` já tinha `source='event'` e `source_module_id` desde a Etapa 2 |
 | Rateio automático (N linhas ↔ M títulos) | **NÃO CONSTRUÍDO** — hoje a sugestão é 1:1 |
 | IA que aprende padrões e explica divergência | **NÃO CONSTRUÍDO** — Fase 8 |
 
@@ -208,6 +209,23 @@ Sobre o 1:1: a escolha é honesta, não ingênua. O schema **permite** baixa par
 ### ⛔ O apply de produção já aconteceu
 
 O dono informou em 27/07/2026 ter aplicado `0002_recon.sql` num projeto Supabase de produção, com um tenant piloto. **Este repositório NÃO VERIFICOU esse apply.** A regra que ele cria vale desde já: **`0002` não se edita mais** — correção é migration nova, a partir de `0004_*.sql`.
+
+### ⭐ O que a Etapa 10 provou sobre esta tabela
+
+`recon.payables` nasceu na Etapa 2 com `source in ('imported','event')`,
+`source_module_id` e `unique (tenant_id, external_ref)` — desenhada **esperando
+um módulo que ainda não existia**. Na Etapa 10 ele chegou, e a tabela coube:
+**nenhuma linha do `0002_recon.sql` mudou**, nenhuma constraint foi relaxada,
+nenhuma coluna foi acrescentada.
+
+Duas decisões da projeção merecem estar aqui, porque são deste módulo:
+
+- **Mão humana ganha do evento.** Se já existe um título com aquela referência
+  marcado `source = 'imported'`, a projeção **não o sobrescreve** — devolve
+  `skipped-imported` e não levanta exceção. O que uma pessoa registrou aqui é
+  verdade local, e evento não apaga trabalho de gente. Levantar exceção faria o
+  correio insistir e terminar em `dead` um evento que nunca vai melhorar.
+- **A origem vem do envelope**, nunca de constante. Ver `MODULO-AP-SPEC §3.1`.
 
 ### ⚠️ Dívida registrada: onde mora a persistência
 

@@ -358,8 +358,36 @@ describe('o manifesto obedece ao contrato do Core', () => {
     }
   });
 
+  /**
+   * ⚠️ **ESTE TESTE MUDOU DE VEREDITO NA ETAPA 10, E O MOTIVO FICA AQUI.**
+   *
+   * Da Etapa 2 até a Etapa 9 ele afirmava `consumes === []`, e estava certo:
+   * naquele momento não havia handler nenhum, e declarar consumo sem
+   * consumidor faria o Core acordar um módulo que não sabe responder.
+   *
+   * Na Etapa 10 o handler foi construído (`external-payable.ts`), e a lista
+   * deixou de ser vazia — na ordem certa, primeiro o código, depois a promessa.
+   * A Lei 7 não dizia "consumes tem de ser vazio"; dizia **"não declare o que
+   * não existe"**. O teste antigo confundia a regra com o estado do momento, e
+   * é um erro fácil: uma asserção sobre a lista vazia parece proteger a lei,
+   * mas na verdade proíbe o módulo de crescer.
+   *
+   * O veredito novo é a lei de verdade: **tudo o que está declarado tem
+   * tradutor construído.** O amarre par a par vive em `external-payable.test.ts`,
+   * que compara a lista do manifesto com `CONSUMED_EVENT_TYPES`.
+   */
   test('não declara consumo sem consumidor construído (Lei 7)', () => {
-    assert.deepEqual(MANIFEST.events.consumes, []);
+    for (const c of MANIFEST.events.consumes) {
+      assert.ok(c.type.includes('.'), 'tipo de evento consumido malformado');
+      assert.equal(c.version, 1);
+      // Consumir não é depender: o tipo consumido é de OUTRO módulo, e é
+      // exatamente por isso que ele não tem o prefixo deste.
+      assert.equal(
+        c.type.startsWith(`${MANIFEST.id}.`),
+        false,
+        'consumir o próprio evento seria o módulo conversando consigo pelo correio',
+      );
+    }
   });
 
   test('não existe dependência de outro módulo — só do Core', () => {
