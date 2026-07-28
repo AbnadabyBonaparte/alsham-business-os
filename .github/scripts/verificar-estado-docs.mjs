@@ -144,27 +144,34 @@ export const APLICADAS = {
 };
 
 /**
- * O outro lado da Lei 7, e a novidade da Etapa 8.
+ * ⭐ ESTA GUARDA MUDOU DE LADO NA ETAPA 9 — e a inversão é o registro.
  *
- * A guarda acima pega documento que NEGA o que existe. Esta pega o inverso
- * para o caso mais perigoso do repositório hoje: dizer que o correio está
- * **rodando**. Ele está construído, testado e ligável — e **não está no ar**.
- * Confundir as duas coisas faria alguém parar de conferir a fila.
+ * Na Etapa 8 ela proibia afirmar que o correio estava no ar, porque ele estava
+ * construído e **não** agendado. Em 28/07/2026 o dono ligou: `apps/api` no ar,
+ * `pg_cron` + `pg_net` habilitados, job de 1 em 1 minuto.
+ *
+ * Uma guarda que continuasse proibindo a verdade obrigaria os documentos a
+ * mentir para ficar verdes — que é o pior destino possível para uma guarda.
+ * Então ela virou o oposto: **agora é proibido dizer que o correio NÃO está no
+ * ar**, porque essa é a afirmação que hoje é falsa.
+ *
+ * ⚠️ **NÃO VERIFICADO por este repositório.** Quem conferiu foi o dono, no
+ * ambiente dele; nenhum agente daqui conecta a produção. O fato entra como ele
+ * informou, datado, e é isso que a guarda protege.
  */
-const NO_AR_PROIBIDO = {
+const NAO_LIGADO_PROIBIDO = {
   padrao: /correio/i,
   /**
-   * Exige a forma AFIRMATIVA, não a palavra solta.
-   *
-   * A primeira versão pegava `ligado` em qualquer lugar — e reprovou
-   * *"um segundo correio **ligado** por engano"*, que é uma hipótese num
-   * comentário sobre idempotência, não uma afirmação de estado. É a quarta vez
-   * neste repositório que uma guarda tropeça na documentação que ela deveria
-   * proteger: leia a afirmação, não o vocabulário.
+   * As formas de negar que ele roda. Exige a construção afirmativa, pelo mesmo
+   * motivo de sempre: a palavra solta aparece em hipótese e em história.
    */
-  marcador: /\b(est[áa]|foi|ficou|segue|passou a estar)\s+(no ar|rodando|ligado|em produ[çc][ãa]o)/i,
-  /** O que salva a frase: dizer que NÃO está. */
-  negado: /(n[ãa]o|nunca|ainda|lig[áa]vel|ato do dono|falta)/i,
+  marcador:
+    /\b(n[ãa]o\s+(est[áa]\s+)?(ligado|no ar|rodando|agendado)|ningu[ée]m\s+agendou|falta\s+ligar|lig[áa]vel,?\s+mas)/i,
+  /**
+   * O que salva a frase: estar contando a HISTÓRIA ("até a Etapa 8 não
+   * estava"), ou falar de outra coisa que de fato não está ligada.
+   */
+  negado: /(at[ée] a etapa|antes de|hist[óo]ric|era |estava |passou a|deixou de|alarme)/i,
 };
 
 /** Seções que são a fonte de estado — renomeá-las quebra os ponteiros. */
@@ -249,19 +256,19 @@ for (const arquivo of arquivos) {
   const linhas = readFileSync(arquivo, 'utf8').split('\n');
   linhas.forEach((linha, i) => {
     if (
-      NO_AR_PROIBIDO.padrao.test(linha) &&
-      NO_AR_PROIBIDO.marcador.test(linha) &&
-      !NO_AR_PROIBIDO.negado.test(linha)
+      NAO_LIGADO_PROIBIDO.padrao.test(linha) &&
+      NAO_LIGADO_PROIBIDO.marcador.test(linha) &&
+      !NAO_LIGADO_PROIBIDO.negado.test(linha)
     ) {
       falhas.push(
-        `${relative(RAIZ, arquivo)}:${i + 1} afirma que o correio está no ar — ele está CONSTRUÍDO e LIGÁVEL, ` +
-          `mas ninguém agendou nada (runbook §6)\n      → ${linha.trim()}`,
+        `${relative(RAIZ, arquivo)}:${i + 1} diz que o correio NÃO está no ar — ele foi ligado pelo dono ` +
+          `em 28/07/2026 (runbook §6)\n      → ${linha.trim()}`,
       );
       noAr++;
     }
   });
 }
-console.log(`${noAr ? '❌' : '✅'} O correio não é dado como no ar — ${noAr} afirmação(ões) indevida(s)`);
+console.log(`${noAr ? '❌' : '✅'} O correio não é dado como desligado — ${noAr} afirmação(ões) defasada(s)`);
 
 for (const secao of SECOES) {
   const caminho = join(RAIZ, secao.arquivo);

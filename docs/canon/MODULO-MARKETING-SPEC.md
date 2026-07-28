@@ -144,7 +144,7 @@ Prova colateral que só apareceu ao escrever o teste: **nem o superusuário do b
 
 ## 7. O QUE A PRÓXIMA ETAPA HERDA
 
-- **O correio continua não ligado.** Enquanto não estiver (runbook §6), o consumo provado aqui **não acontece em produção**: o evento fica em `pending`. É a peça que mais falta na plataforma inteira, e agora dois módulos dependem dela.
+- **O correio foi ligado em 28/07/2026** (informado pelo dono, **NÃO VERIFICADO** por este repositório). O consumo provado aqui passou a acontecer em produção: a campanha fica sabendo da verba sem ninguém digitar.
 - O padrão da projeção local está pronto para o Módulo 3 copiar.
 - A dívida do adaptador de banco (`MODULO-RECON-SPEC §7`) **não piorou**: o encanamento compartilhado já estava fatorado, e cada módulo ganhou porta própria.
 

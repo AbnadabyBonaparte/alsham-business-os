@@ -133,32 +133,32 @@ values (
 on conflict (module_id) do nothing;
 
 -- =============================================================================
--- 4. AS PERMISSÕES DO MÓDULO `recon` NO PAPEL `admin`
+-- 4. ⛔ O BLOCO QUE SAIU — as permissões de módulo no papel de sistema
 -- -----------------------------------------------------------------------------
--- ⚠️ Isto é o SEED, não a instalação. Na vida real, quem concede as
--- permissões de um módulo é o Core, no passo 4 do ciclo de vida
--- (CORE-SPEC §3), quando o tenant instala. Aqui elas entram no papel de
--- sistema para que exista um caminho conhecido de ponta a ponta antes de o
--- instalador em runtime existir — ele está NÃO CONSTRUÍDO.
+-- Aqui existiam dois blocos que concediam as permissões de `recon` e de
+-- `marketing` ao papel de SISTEMA `admin`, como ponte até o instalador em
+-- runtime existir. O próprio bloco dizia: *"quando o instalador nascer, este
+-- bloco sai"*.
 --
--- Quando o instalador nascer, este bloco sai.
+-- **Ele nasceu (`0006_install.sql`), e o bloco saiu.**
 --
--- Note que `owner` NÃO recebe: no schema, quem instala (`core.module.install`)
--- não é automaticamente quem opera. São coisas diferentes de propósito.
--- =============================================================================
-
-insert into core.role_permissions (role_id, role_key, permission_key, module_id)
-select r.id, r.key, p.permission_key, 'recon'
-  from core.roles r
- cross join (values
-   ('recon.statement.import'),
-   ('recon.match.manage'),
-   ('recon.approval.decide')
- ) as p(permission_key)
- where r.tenant_id is null
-   and r.key = 'admin'
-on conflict (role_id, permission_key) do nothing;
-
+-- O motivo não é simetria — é um vazamento. `core.has_permission()` casa
+-- `rp.tenant_id is null OR rp.tenant_id = m.tenant_id`, então um papel de
+-- sistema vale em **todo** tenant. Com aqueles blocos, qualquer tenant novo
+-- cujo usuário fosse `admin` já nascia com as permissões dos dois módulos —
+-- **sem instalar nada, e sem ocupar vaga no plano**. Com um tenant só,
+-- ninguém vê; com o segundo, é o módulo inteiro de graça.
+--
+-- Por isso `core.install_module()` **recusa papel de sistema**: conceder ali
+-- seria recriar o vazamento pela via oficial.
+--
+-- ⚠️ **Tirar daqui não apaga o que já existe.** Ambientes que aplicaram o seed
+-- antes desta versão continuam com aquelas linhas, e a limpeza é ato do dono —
+-- está em `docs/runbook/APLICAR.md §7.3`, com o aviso do que ela muda para
+-- quem já usa.
+--
+-- A partir de agora, quem concede permissão de módulo é o instalador, num
+-- papel DO TENANT, quando alguém clica em instalar.
 -- =============================================================================
 -- 4.1 O MÓDULO `marketing` NO CATÁLOGO DA STORE
 -- Transcrito de packages/marketing/src/manifest.ts.
@@ -210,19 +210,7 @@ values (
 )
 on conflict (module_id) do nothing;
 
--- As permissões do módulo `marketing` no papel `admin`, pelo mesmo motivo
--- provisório do bloco 4: o instalador em runtime está NÃO CONSTRUÍDO.
-insert into core.role_permissions (role_id, role_key, permission_key, module_id)
-select r.id, r.key, p.permission_key, 'marketing'
-  from core.roles r
- cross join (values
-   ('marketing.campaign.manage'),
-   ('marketing.campaign.publish'),
-   ('marketing.result.record')
- ) as p(permission_key)
- where r.tenant_id is null
-   and r.key = 'admin'
-on conflict (role_id, permission_key) do nothing;
+-- (As permissões do `marketing` também saíram daqui — ver o bloco 4.)
 
 -- =============================================================================
 -- 5. PLANOS-BASE

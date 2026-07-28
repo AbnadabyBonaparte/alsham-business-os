@@ -89,16 +89,24 @@ describe('o seed transcreve o manifesto fielmente', () => {
     }
   });
 
-  test('toda permissão que o seed concede está declarada no manifesto', () => {
-    const declaradas = new Set<string>(MANIFEST.permissions.map((p) => p.key));
-    const concedidas = [...sql.matchAll(/\('(recon\.[a-z.]+)'\)/g)].map((m) => m[1]);
-    assert.ok(concedidas.length > 0, 'o seed não concede nenhuma permissão recon');
-    for (const key of concedidas) {
-      assert.ok(
-        declaradas.has(key as string),
-        `o seed concede ${key}, que não existe no manifesto — permissão fantasma`,
-      );
-    }
+  test('⛔ o seed NÃO concede permissão de módulo — quem concede é o instalador', () => {
+    // ⚠️ ESTE TESTE MUDOU DE VEREDITO NA ETAPA 9, e a mudança é o ponto.
+    //
+    // Antes ele exigia que o seed concedesse as permissões do módulo ao papel
+    // de sistema `admin` — a ponte provisória, que o próprio seed marcava com
+    // "quando o instalador nascer, este bloco sai".
+    //
+    // O instalador nasceu (`0006_install.sql`), e a ponte tinha um vazamento:
+    // papel de sistema vale em TODO tenant, então qualquer tenant novo com um
+    // `admin` já nascia com as permissões dos módulos sem instalar nada.
+    //
+    // Agora quem concede é `core.install_module()`, num papel DO TENANT.
+    const concedidas = [...code.matchAll(/\('(recon\.[a-z.]+)'\)/g)].map((m) => m[1]);
+    assert.deepEqual(
+      concedidas,
+      [],
+      'o seed voltou a conceder permissão de módulo — isso vaza para todos os tenants',
+    );
   });
 
   test('o seed não semeia tenant, usuário nem nome de cliente', () => {

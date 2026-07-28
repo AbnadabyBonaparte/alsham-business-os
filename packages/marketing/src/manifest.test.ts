@@ -105,13 +105,13 @@ describe('o seed transcreve o manifesto do marketing fielmente', () => {
     );
   });
 
-  test('toda permissão que o seed concede está declarada no manifesto', () => {
-    const declaradas = new Set<string>(MANIFEST.permissions.map((p) => p.key));
-    const concedidas = [...sql.matchAll(/\('(marketing\.[a-z.]+)'\)/g)].map((m) => m[1]);
-    assert.ok(concedidas.length > 0, 'o seed não concede nenhuma permissão marketing');
-    for (const key of concedidas) {
-      assert.ok(declaradas.has(key as string), `${key} é permissão fantasma`);
-    }
+  test('⛔ o seed NÃO concede permissão de módulo — quem concede é o instalador', () => {
+    // Mesma inversão do Módulo 1, pelo mesmo motivo: papel de sistema vale em
+    // todo tenant, e conceder ali fazia o módulo chegar a quem não o instalou.
+    // Ver `packages/finance-reconciliation/src/manifest.test.ts`.
+    const semComentarios = sql.replace(/--[^\n]*/g, '');
+    const concedidas = [...semComentarios.matchAll(/\('(marketing\.[a-z.]+)'\)/g)].map((m) => m[1]);
+    assert.deepEqual(concedidas, [], 'o seed voltou a conceder permissão de módulo');
   });
 });
 

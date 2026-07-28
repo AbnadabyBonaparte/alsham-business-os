@@ -52,6 +52,15 @@ values
    'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', 'Campanha Beta', 'AP-2026-0001', 700000, 'BRL')
 on conflict (id) do nothing;
 
+-- As permissões do marketing, no papel DE TENANT — como o instalador faria.
+-- (Antes vinham do papel de sistema, pelo seed; ver o comentário no teste 01.)
+insert into core.role_permissions (role_id, role_key, permission_key, module_id)
+select r.id, r.key, v.k, 'marketing'
+  from core.roles r
+ cross join (values ('marketing.campaign.manage'), ('marketing.campaign.publish'), ('marketing.result.record')) v(k)
+ where r.tenant_id in ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb') and r.key = 'admin'
+on conflict (role_id, permission_key) do nothing;
+
 \echo 'montagem concluída: uma campanha por tenant, ambas com budget_ref AP-2026-0001.'
 
 -- =============================================================================

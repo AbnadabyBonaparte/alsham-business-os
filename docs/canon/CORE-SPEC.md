@@ -141,7 +141,7 @@ O ator não é sempre humano: `user`, `agent` (doutrina da Casa — agente embar
 
 Honestidade de escopo (Lei 7). **Esta seção é do repositório, não da etapa que escreveu este documento** — quem entregar uma peça atualiza a linha dela aqui, e há guarda no CI contra deixá-la envelhecer.
 
-*Conferido em 27/07/2026, depois da Etapa 8.*
+*Conferido em 28/07/2026, depois da Etapa 9.*
 
 | Peça | Estado |
 |---|---|
@@ -151,12 +151,14 @@ Honestidade de escopo (Lei 7). **Esta seção é do repositório, não da etapa 
 | **O Lego com DOIS módulos** | ✅ **PROVADO na Etapa 7** — `marketing` reage a `recon.approval.decided` sem importá-lo, sem ler seu schema e sem conhecer o correio ([MODULO-MARKETING-SPEC](MODULO-MARKETING-SPEC.md)) |
 | **A composição** (`apps/api`) | ✅ **CONSTRUÍDA na Etapa 8** — o único lugar do repositório onde os módulos se conhecem. Importa todos; nenhum importa outro |
 | Contabilidade de uso (`0003_billing.sql` + `@alsham/billing`) | ✅ construído — **arquivo, ainda não aplicado**. Sem preço (Lei 7) |
-| **Despachante da caixa de saída** (`@alsham/workflow` + `apps/api`) | ✅ **CONSTRUÍDO E LIGÁVEL** — lógica pura, persistência real contra Postgres (com arrendamento e `skip locked`), composição e endpoint protegido. 19 + 25 testes, os do store contra Postgres de verdade. ⚠️ **Construído ≠ no ar:** ninguém agendou nada; o roteiro é o [runbook §6](../runbook/APLICAR.md) e ligar é ato do dono |
+| **Despachante da caixa de saída** (`@alsham/workflow` + `apps/api`) | ✅ **NO AR desde 28/07/2026** — o dono ligou: `apps/api` publicado, `pg_cron` + `pg_net`, job de 1 em 1 minuto. ⚠️ **NÃO VERIFICADO** por este repositório |
 | Visão de saúde da fila | ✅ **CONSTRUÍDA na Etapa 8** — `core.courier_status()` responde OK · ATRASADO · PARADO · ATENCAO |
 | UI | ✅ construída — `apps/portal`: login, quatro telas do Módulo 1 e a carteira de campanhas do Módulo 2 |
+| **Instalador de módulo em runtime** | ✅ **CONSTRUÍDO na Etapa 9** (`0006_install.sql`) — `core.install_module` / `core.uninstall_module` fecham os passos 3 e 4 deste documento. Exigem `core.module.install`, só aceitam módulo publicado e papel DO TENANT, respeitam `plan_limits` e emitem `core.module.*`. **Desinstalar não apaga dado** |
+| **A Store** | ✅ **CONSTRUÍDA na Etapa 9** — `apps/portal/src/app/store/`, mostrando só o que a policy deixa ver |
 | Validador de manifesto | **NÃO CONSTRUÍDO** — hoje o manifesto é conferido por tipo em build, nunca em runtime |
-| Registro / instalador de módulo em runtime | **NÃO CONSTRUÍDO** — por isso o seed já põe as permissões do `recon` no papel `admin` |
-| Resolvedor de permissão em runtime | **NÃO CONSTRUÍDO** — quem barra hoje é a **RLS no banco**, não código de aplicação |
+| Resolvedor de permissão em runtime | **NÃO CONSTRUÍDO** como código de aplicação — quem barra é `core.has_permission()` no banco, chamado pelas policies e pelo instalador |
+| Instalação automática de CONSUMIDOR de evento | **NÃO CONSTRUÍDA** — instalar dá acesso e permissões; o handler é código, inscrito à mão na composição. Não há plugin dinâmico |
 | SDK (`@alsham/sdk`) | **NÃO INICIADO** — `apps/portal` fala com o banco pelo adaptador dele |
 | Alarme automático de fila parada | **NÃO CONSTRUÍDO** — a saúde é consulta, não notificação |
 

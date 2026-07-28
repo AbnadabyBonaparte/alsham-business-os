@@ -6,7 +6,11 @@ A empresa não compra "um sistema". Ela monta o sistema dela — Core + módulos
 
 > **Status: dois módulos, e o Lego provado.** O Módulo 2 (Campanhas) **reage ao fato do Módulo 1 sem importá-lo, sem ler o schema dele e sem conhecer o correio** — que era a única metade da tese ainda não demonstrada. Existem o contrato do Lego, o schema (provado em CI contra PostgreSQL 17), o correio de eventos, a contabilidade de uso e cinco telas.
 >
-> **O que ainda não está de pé:** o correio agora é **ligável** — persistência real contra Postgres, composição, endpoint e saúde da fila —, mas **ninguém agendou nada ainda**. Enquanto o job não rodar, todo evento fica em `pending`. O roteiro é o [runbook §6](docs/runbook/APLICAR.md) e ligar é ato do dono. Não há preço, gateway, nem deploy configurado neste repositório. O dono informou ter aplicado `0001`, `0002` e o seed num Supabase de produção em 27/07/2026; **este repositório não verificou esse apply** e o registra como tal. Nada daqui é promessa pública (Lei 7).
+> **⚡ O correio está no ar.** O dono ligou em 28/07/2026: `apps/api` publicado, `pg_cron` + `pg_net` habilitados, job de 1 em 1 minuto. Fechar um período de conciliação **realmente** faz o Marketing saber. O apply de `0001`→`0005` e do seed também está feito.
+>
+> ⚠️ **NÃO VERIFICADO por este repositório** — quem conferiu foi o dono, no ambiente dele; nenhum agente daqui conecta a produção. O fato entra datado e como ele informou (Lei 7).
+>
+> **O que ainda não está de pé:** não há preço, gateway, alarme de fila parada, nem deploy configurado neste repositório.
 
 ---
 
@@ -51,15 +55,16 @@ docs/
   historico/   catálogo anterior                — memória, não canon
 supabase/
   migrations/  0001_core · 0002_recon           — APLICADAS em produção; não editar
-               0003_billing · 0004_marketing
-               0005_courier_cron                — arquivo; aplicar é ato do dono
+               0003_billing · 0004_marketing · 0005_courier_cron
+                                                — APLICADAS em produção
+               0006_install                     — arquivo; aplicar é ato do dono
   seed/        0001_platform.sql                — catálogo, idempotente
-  tests/       shim · isolamento · uso · consumo entre módulos
+  tests/       shim · isolamento · uso · consumo · instalador
                                                 — só CI, nunca no Supabase real
 docs/runbook/  APLICAR.md                       — passo a passo para o dono aplicar
 .github/scripts/ guarda de defasagem de documento — o CI barra doc que envelheceu
 apps/
-  portal/                                       — ✅ CONSTRUÍDO (login + 5 telas)
+  portal/                                       — ✅ CONSTRUÍDO (login + 6 telas, com a Store)
   api/                                          — ✅ CONSTRUÍDO (A COMPOSIÇÃO; service_role)
   admin/  store/                                — só README, NÃO INICIADO
 packages/
@@ -69,7 +74,8 @@ packages/
   marketing/                                    — ✅ CONSTRUÍDO (Módulo 2 — prova o Lego)
   workflow/                                     — ✅ CONSTRUÍDO (o correio do Core)
   billing/                                      — ✅ CONSTRUÍDO (uso, sem preço)
-  auth/ organizations/ permissions/
+  permissions/                                  — ✅ CONSTRUÍDO (visão de catálogo da Store)
+  auth/ organizations/
   notifications/ documents/ ai/ crm/ finance/
   legal/ hr/ analytics/ integrations/ ui/ sdk/  — só README, NÃO INICIADO
 CLAUDE.md      instruções permanentes para qualquer agente neste repo
@@ -145,10 +151,17 @@ Cada `README.md` de app e de package declara: o propósito, a fase do roadmap a 
 - **25 testes contra Postgres de verdade**, incluindo o de concorrência que só o banco pode dar.
 - ⚠️ **Construído ≠ no ar.** Ninguém agendou nada — e há guarda no CI para que nenhum documento diga o contrário.
 
+**Etapa 9 — A Store e o instalador** *(esta etapa)*: o Lego vira produto visível.
+
+- **`0006_install.sql` — o instalador em runtime.** `core.install_module()` e `core.uninstall_module()` fecham os passos 3 e 4 do ciclo de vida que o CORE-SPEC descrevia desde a Etapa 1. Exigem `core.module.install`, só aceitam módulo publicado, respeitam o teto do plano — e emitem `core.module.*`, que a trilha registra sozinha.
+- ⭐ **Desinstalar corta o acesso e NÃO apaga dado.** Há teste provando: depois de desinstalar, a campanha continua no banco e some da vista do usuário. Reinstalar devolve o acesso ao mesmo dado.
+- **A Store, em `apps/portal/src/app/store/`** — vitrine dos módulos publicados, com capacidades, permissões, o que cada um emite e **de quem escuta**. Instalar e desinstalar com confirmação que diz o que acontece.
+- ⚠️ **Um vazamento fechado.** O seed concedia as permissões dos módulos ao papel de **sistema** `admin`, que vale em todo tenant: qualquer tenant novo já nascia com os dois módulos, sem instalar e sem ocupar vaga no plano. O bloco saiu, o instalador recusa papel de sistema, e há guarda no CI. A limpeza do que já existe em produção está no [runbook §7.3](docs/runbook/APLICAR.md).
+
 **O que NÃO existe** — o estado corrente vive em [CORE-SPEC §5](docs/canon/CORE-SPEC.md) e [MODULO-RECON-SPEC §7](docs/canon/MODULO-RECON-SPEC.md), e há guarda no CI contra essas duas seções envelhecerem:
 
-- **O correio não está agendado.** Tudo o que ele precisa existe e é testado contra Postgres; enquanto o job não roda ([runbook §6](docs/runbook/APLICAR.md)), todo evento fica em `pending`.
-- **Nenhum alarme.** A saúde da fila é consulta, não notificação — quem olha é o dono.
+- **Nenhum alarme.** A saúde da fila é consulta, não notificação — quem olha é o dono. Se a fila parar de madrugada, ninguém é avisado.
+- **Instalar não carrega código.** Um módulo que escuta o fato de outro só reage porque o handler existe no repositório e está inscrito à mão na composição. Instalar dá **acesso e permissões**; integração é código. Não há plugin dinâmico, e a Store diz isso na própria tela.
 - Do motor do Core, seguem **NÃO CONSTRUÍDOS** o validador de manifesto, o registro de módulo em runtime e o resolvedor de permissão — hoje quem barra acesso é a **RLS no banco**.
 - Sem **preço**, sem gateway de pagamento, sem fatura (Lei 7 — decisão do dono, com números medidos).
 - Sem leitor de **CAMT.053**, sem rateio N↔M, sem instalador de módulo.

@@ -57,6 +57,9 @@ importers:
       '@alsham/marketing':
         specifier: workspace:*
         version: link:../../packages/marketing
+      '@alsham/permissions':
+        specifier: workspace:*
+        version: link:../../packages/permissions
       '@supabase/ssr':
         specifier: ^0.12.3
         version: 0.12.3(@supabase/supabase-js@2.110.8)
@@ -142,6 +145,19 @@ importers:
       '@alsham/workflow':
         specifier: workspace:*
         version: link:../workflow
+      '@types/node':
+        specifier: ^22.10.2
+        version: 22.20.1
+      typescript:
+        specifier: ^5.7.2
+        version: 5.9.3
+
+  packages/permissions:
+    dependencies:
+      '@alsham/core':
+        specifier: workspace:*
+        version: link:../core
+    devDependencies:
       '@types/node':
         specifier: ^22.10.2
         version: 22.20.1

@@ -49,11 +49,23 @@ after(async () => {
 
 beforeEach(async () => {
   if (SEM_BANCO) return;
-  // Caixa limpa a cada teste. `delete` e não `truncate`: `core.audit_log` tem
-  // trigger que recusa TRUNCATE (lição paga da Etapa 3), e a trilha é escrita
-  // por alguns destes testes.
-  await pool.query('delete from core.processed_events where tenant_id = $1', [TENANT]);
-  await pool.query('delete from core.event_outbox where tenant_id = $1', [TENANT]);
+  // ⚠️ A caixa INTEIRA, não a do tenant do teste — e a distinção custou uma
+  // quebra intermitente.
+  //
+  // O correio é da PLATAFORMA: `deliverDue()` pega tudo que estiver vencido,
+  // de qualquer tenant, porque é isso que ele tem de fazer. Limpar só o
+  // próprio tenant fazia estes testes passarem num banco recém-criado e
+  // falharem num banco onde a suíte SQL já tinha rodado — `delivered` vinha 7
+  // em vez de 1, contando os `core.module.*` que o teste do instalador
+  // deixou.
+  //
+  // Teste que afirma "uma rodada entregou N" tem de começar com a fila vazia.
+  //
+  // `delete` e não `truncate`: `core.audit_log` tem trigger que recusa
+  // TRUNCATE (lição paga da Etapa 3), e a trilha é escrita por alguns destes
+  // testes.
+  await pool.query('delete from core.processed_events');
+  await pool.query('delete from core.event_outbox');
   await pool.query('delete from core.usage_ledger where tenant_id = $1', [TENANT]);
 });
 
@@ -171,7 +183,16 @@ describe('o OutboxStore real cumpre o mesmo contrato do mock', { skip: SEM_BANCO
 
   test('backoff: falhar reagenda no futuro, com o erro gravado', async () => {
     const id = await enfileirar();
-    const agora = new Date('2026-07-28T10:00:00.000Z');
+    // ⚠️ Relógio REAL, não data fixa — e a lição custou uma quebra.
+    //
+    // A primeira versão usava `new Date('2026-07-28T10:00:00Z')`, que estava
+    // no futuro quando o teste foi escrito. Cinco horas depois virou passado,
+    // `claimDue` deixou de enxergar o evento (que é enfileirado com `now()` do
+    // banco) e o teste quebrou sozinho, sem ninguém tocar em código.
+    //
+    // Data fixa num teste que compara com `now()` do banco é bomba-relógio:
+    // passa no dia em que foi escrita e falha num dia qualquer depois.
+    const agora = new Date();
 
     const r = await deliverDue({
       store: createPgOutboxStore(pool),
@@ -417,6 +438,8 @@ describe('a composição, contra o banco', { skip: SEM_BANCO }, () => {
 });
 
 describe('a saúde da fila', { skip: SEM_BANCO }, () => {
+  // A saúde lê a fila INTEIRA — é a visão do operador da plataforma, e está
+  // certa assim. O `beforeEach` do arquivo já a esvazia.
   test('conta pendente, entregue e morto, e acha o mais antigo', async () => {
     await enfileirar({ quando: '2026-07-01T00:00:00.000Z' });
     await enfileirar();
