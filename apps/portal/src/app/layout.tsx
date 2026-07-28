@@ -4,7 +4,10 @@ import Link from 'next/link';
 
 import { PRODUCT, COMPANY } from '@alsham/config';
 
+import { PERMISSIONS as AP_PERMISSIONS } from '@alsham/accounts-payable';
+
 import { resolveSession } from '@/lib/session';
+import { getApPort } from '@/lib/data';
 import { TenantSwitcher } from '@/components/tenant-switcher';
 
 import './globals.css';
@@ -20,6 +23,7 @@ type Rota =
   | '/importar'
   | '/fechamento'
   | '/campanhas'
+  | '/contas-a-pagar'
   | '/store';
 
 /**
@@ -37,6 +41,42 @@ type Rota =
 export default async function RootLayout({ children }: { children: ReactNode }) {
   const session = await resolveSession();
   const logado = session.mode === 'authenticated';
+
+  /**
+   * ⭐ **O item de menu só existe para quem tem acesso ao módulo.**
+   *
+   * A pergunta é feita ao banco, sob RLS: `ap.*` em `core.role_permissions` só
+   * aparece para quem instalou o módulo e recebeu a permissão pelo instalador.
+   * Módulo não instalado ⇒ conjunto vazio ⇒ nenhum item, e a tela não vira uma
+   * promessa de algo que não foi contratado.
+   *
+   * ⚠️ Esconder o item é **cortesia**, não segurança. Quem impede de verdade é
+   * a RLS: sem `ap.payable.manage` nem `ap.payable.cancel`, `ap.can_access()`
+   * devolve falso e a tela não carrega linha nenhuma, mesmo com a URL digitada
+   * à mão.
+   *
+   * ⚠️ Os outros itens ainda NÃO são filtrados assim — nasceram antes do
+   * instalador existir. Uniformizá-los é mudança própria, com uma leitura de
+   * permissões só para o menu inteiro em vez de uma por módulo; fazer isso de
+   * carona nesta etapa acrescentaria uma consulta por item sem ninguém ter
+   * pedido.
+   */
+  const temContasAPagar = logado
+    ? await (async () => {
+        try {
+          const port = await getApPort();
+          const permissoes = await port.listPermissions();
+          return (
+            permissoes.has(AP_PERMISSIONS.payableManage) ||
+            permissoes.has(AP_PERMISSIONS.payableCancel)
+          );
+        } catch {
+          // Menu não derruba página. Sem resposta, o item some — e a tela do
+          // módulo continua alcançável por URL para quem tiver acesso.
+          return false;
+        }
+      })()
+    : false;
 
   return (
     <html lang="pt-BR">
@@ -62,6 +102,9 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
                   <NavLink href="/aprovacoes">Aprovações</NavLink>
                   <NavLink href="/fechamento">Fechamento</NavLink>
                   <NavLink href="/campanhas">Campanhas</NavLink>
+                  {temContasAPagar ? (
+                    <NavLink href="/contas-a-pagar">Contas a pagar</NavLink>
+                  ) : null}
                   <NavLink href="/store">Store</NavLink>
                 </nav>
               ) : null}

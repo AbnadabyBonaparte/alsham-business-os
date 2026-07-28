@@ -3,6 +3,7 @@ import type { Pool } from 'pg';
 import type { AuditRecord } from '@alsham/workflow';
 import type { UsageRecorder } from '@alsham/billing';
 import type { SpendDecision, SpendProjectionPort } from '@alsham/marketing';
+import type { ExternalPayable, ExternalPayablePort } from '@alsham/finance-reconciliation';
 
 /**
  * Os adaptadores reais dos consumidores.
@@ -111,6 +112,59 @@ export function createSpendProjectionPort(pool: Pool): SpendProjectionPort {
         ],
       );
       return rows[0]?.afetadas ?? 0;
+    },
+  };
+}
+
+/**
+ * ⭐ A projeção de título externo — **o lado que fecha o triângulo.**
+ *
+ * Mesmo formato do adaptador acima, e de propósito: chama **uma função**
+ * (`recon.record_external_payable()`), não escreve na tabela. A porta é do
+ * módulo; a idempotência por `(tenant_id, external_ref)` é dela; o
+ * "não sobrescrevo o que uma pessoa digitou" é dela. Um `insert` próprio aqui
+ * perderia as três coisas e ainda por cima duplicaria a regra.
+ *
+ * ⚠️ **A origem vem por PARÂMETRO, e é a linha mais importante deste arquivo.**
+ * `payable.sourceModuleId` foi lido de `envelope.producedBy` lá no módulo. Não
+ * há a string `'ap'` nem `'accounts-payable'` neste adaptador, nem na função
+ * SQL que ele chama. Se um segundo produtor emitir o mesmo formato amanhã, a
+ * projeção grava a origem certa sem uma linha a mais — e com a origem chumbada
+ * ele apareceria disfarçado do primeiro, mentindo na trilha sem nunca dar erro.
+ */
+export function createExternalPayablePort(pool: Pool): ExternalPayablePort {
+  return {
+    async recordExternalPayable(payable: ExternalPayable) {
+      const { rows } = await pool.query<{
+        efeito: 'created' | 'updated' | 'unchanged' | 'skipped-imported';
+      }>(
+        `select recon.record_external_payable(
+                  $1::uuid, $2::text, $3::text, $4::date,
+                  $5::bigint, $6::char(3), $7::text, $8::bigint,
+                  $9::text, $10::text, $11::text) as efeito`,
+        [
+          payable.tenantId,
+          payable.sourceModuleId,
+          payable.externalRef,
+          payable.dueDate,
+          payable.amountCents,
+          payable.currency,
+          payable.status,
+          payable.settledAmountCents,
+          payable.supplierName,
+          payable.supplierTaxId,
+          payable.description,
+        ],
+      );
+
+      const efeito = rows[0]?.efeito;
+      if (efeito === undefined) {
+        // A função sempre devolve algo. `undefined` aqui significa que a
+        // chamada não é o que este adaptador pensa que é — e engolir isso
+        // faria a projeção "funcionar" sem gravar nada.
+        throw new Error('recon.record_external_payable não devolveu desfecho');
+      }
+      return efeito;
     },
   };
 }

@@ -14,11 +14,12 @@ O dono informou ter aplicado **`0001` a `0005` e o seed** num projeto Supabase d
 
 | Arquivo | Estado |
 |---|---|
-| `0001_core.sql` … `0005_courier_cron.sql` | **APLICADAS** — não editar |
+| `0001_core.sql` … `0006_install.sql` | **APLICADAS** — não editar |
 | `seed/0001_platform.sql` | **APLICADO** — idempotente, pode rodar de novo sem estragar |
-| `0006_install.sql` | **ARQUIVO, ainda não aplicado** — o instalador. É o único que falta |
+| `0007_ap.sql` | **ARQUIVO, ainda não aplicado** — o Módulo 3 (Contas a Pagar) |
+| `0008_recon_ap_projection.sql` | **ARQUIVO, ainda não aplicado** — a porta pela qual o Módulo 1 recebe o título |
 
-**Se o seu projeto já existe**, o passo 1 não é para você: pule para o **Passo 7**, que é o roteiro só do `0006`.
+**Se o seu projeto já existe**, o passo 1 não é para você: pule para o **Passo 8**, que é o roteiro só do `0007` + `0008`.
 
 **Este documento continua valendo inteiro** para o próximo ambiente — homologação, um segundo tenant, uma restauração. É por isso que ele descreve o zero, e não o meio.
 
@@ -61,7 +62,13 @@ Painel → **SQL Editor** → **New query**. Para cada arquivo: abra o arquivo d
 | 4 | `supabase/migrations/0004_marketing.sql` | o Módulo 2: schema `marketing`, 4 tabelas, 11 policies | `Success. No rows returned` |
 | 5 | `supabase/migrations/0005_courier_cron.sql` | a saúde da fila (o agendador vem comentado) | `Success. No rows returned` |
 | 6 | `supabase/migrations/0006_install.sql` | o instalador: `core.install_module` e `core.uninstall_module` | `Success. No rows returned` |
-| 7 | `supabase/seed/0001_platform.sql` | o catálogo: papéis, módulos `recon` e `marketing`, planos | `Success. No rows returned` |
+| 7 | `supabase/migrations/0007_ap.sql` | o Módulo 3: schema `ap`, 1 tabela, 3 policies | `Success. No rows returned` |
+| 8 | `supabase/migrations/0008_recon_ap_projection.sql` | a porta pela qual o Módulo 1 recebe o título | `Success. No rows returned` |
+| 9 | `supabase/seed/0001_platform.sql` | o catálogo: papéis, módulos `recon`, `marketing` e `ap`, planos | `Success. No rows returned` |
+
+⚠️ **Num projeto NOVO, exponha os schemas na Data API antes de usar o portal:**
+Project Settings → API → *Exposed schemas* → `core`, `recon`, `marketing`, `ap`.
+Sem isso as telas carregam vazias, sem erro que diga o motivo (§8.0).
 
 ### ⚠️ NÃO aplique a pasta `supabase/tests/`
 
@@ -306,7 +313,16 @@ select event_id, event_type, attempts, last_error
 
 ---
 
-## PASSO 7 — APLICAR O `0006` (o instalador) — o único que falta
+## PASSO 7 — APLICAR O `0006` (o instalador) — ✅ **FEITO em 28/07/2026**
+
+> ⚠️ **Este passo já foi executado.** O dono informou, em 28/07/2026, ter
+> aplicado o `0006`, instalado os módulos pela Store (com o clique dele) e
+> **executado a limpeza do §7.3** — a concessão global de permissão de módulo
+> **não existe mais em produção**. ⚠️ **NÃO VERIFICADO** por este repositório.
+>
+> O texto abaixo continua valendo inteiro para o **próximo ambiente** —
+> homologação, um segundo tenant, uma restauração. É por isso que ele descreve
+> o zero, e não o meio.
 
 Este passo é para o projeto que **já existe**. São três coisas: aplicar, conferir, e uma limpeza opcional que muda o comportamento.
 
@@ -373,6 +389,185 @@ select role_key, permission_key, module_id
 
 ---
 
+## PASSO 8 — APLICAR O `0007` + `0008` (o Módulo 3 e o triângulo)
+
+Este é o passo da **Etapa 10**, e o único que ainda falta. São **duas**
+migrations, e a ordem importa.
+
+### 8.0 — ⚠️ ANTES DE TUDO: EXPOR O SCHEMA `ap` NA DATA API
+
+**Faça isto ANTES de aplicar, ou faça logo depois — mas faça.** É a lição paga
+na Etapa 9 com o schema do `marketing`, e o sintoma é traiçoeiro: as telas
+carregam **vazias**, sem erro de permissão, sem erro de rede, sem nada no log
+que diga o motivo. O Supabase simplesmente não expõe um schema que não está na
+lista.
+
+> Painel do Supabase → **Project Settings → API → Exposed schemas** →
+> acrescente **`ap`** à lista (que já deve conter `core`, `recon`, `marketing`)
+> → **Save**.
+
+O `recon` já está exposto, então a projeção do §8.3 não pede nada novo.
+
+Confira depois de aplicar, com a chave publicável:
+
+```
+curl -s "https://<PROJETO>.supabase.co/rest/v1/payables?select=id&limit=1" \
+  -H "apikey: <ANON_KEY>" -H "Accept-Profile: ap"
+```
+
+**Esperado:** `[]` (lista vazia — você não está autenticado, a RLS barra tudo).
+**Se vier** `{"message":"The schema must be one of the following: ..."}`, o
+schema não foi exposto. Volte ao painel.
+
+### 8.1 — Aplicar o `0007_ap.sql`
+
+SQL Editor → cole `supabase/migrations/0007_ap.sql` inteiro → **Run**.
+
+Cria o schema `ap`, **uma** tabela (`ap.payables`), a porta de saída
+(`ap.emit_event`), a tabela de transições (`ap.allowed_transition`) e os
+gatilhos que emitem os três eventos.
+
+⛔ Repare no que ele **não** cria: nenhuma policy de DELETE e nenhum GRANT de
+DELETE. **Cancelar é estado, nunca apagar** — título apagado é conta paga sem
+documento.
+
+### 8.2 — Aplicar o `0008_recon_ap_projection.sql`
+
+SQL Editor → cole `supabase/migrations/0008_recon_ap_projection.sql` inteiro →
+**Run**.
+
+⚠️ **Depois do `0007`, nunca antes** — ela é a porta pela qual o Módulo 1 recebe
+o título, e faz sentido só quando existe quem emita.
+
+Ela **não cria coluna nem tabela**. `recon.payables` já nasceu na Etapa 2 com
+`source = 'event'` e `source_module_id`, esperando exatamente isto. A migration
+só abre a porta de escrita que faltava, e a concede **apenas** ao correio —
+`authenticated` não a executa.
+
+### 8.3 — Reaplicar o seed
+
+```
+supabase/seed/0001_platform.sql
+```
+
+⚠️ **Reaplicar agora NÃO é opcional**, e o motivo é novo: além de registrar o
+módulo `ap` no catálogo, o seed **atualiza a linha do `recon`**, que passou a
+declarar que escuta `ap.*`.
+
+⚠️ **E o seed mudou de comportamento nesta etapa:** os blocos do catálogo eram
+`on conflict do nothing` e agora são `do update`. Sem isso, reaplicar não faria
+nada e a Store exibiria o catálogo antigo **para sempre**, sem erro nenhum.
+
+**Consequência que você precisa saber:** se você editou o `core.module_registry`
+à mão no banco (mudou um `status` para `deprecated`, por exemplo), **a
+reaplicação desfaz a edição**. É o preço de ter uma fonte só. Depreciar um
+módulo se faz mudando o arquivo do seed.
+
+### 8.4 — Conferir
+
+```sql
+-- 1. O schema subiu, com RLS ligada E forçada.
+select c.relname, c.relrowsecurity as rls, c.relforcerowsecurity as forcada
+  from pg_class c join pg_namespace n on n.oid = c.relnamespace
+ where n.nspname = 'ap' and c.relkind = 'r';
+```
+**Esperado:** `payables | t | t`.
+
+```sql
+-- 2. ⛔ Nenhuma porta de DELETE. As duas camadas.
+-- ⚠️ Filtre o grantee: o DONO da tabela sempre tem DELETE, implicitamente e
+-- sem como tirar. A regra é que o CLIENTE não tem porta de DELETE.
+select count(*) as grants_de_delete from information_schema.role_table_grants
+ where table_schema = 'ap' and privilege_type = 'DELETE'
+   and grantee in ('anon','authenticated','PUBLIC');
+select count(*) as policies_de_delete from pg_policy p
+  join pg_class c on c.oid = p.polrelid
+  join pg_namespace n on n.oid = c.relnamespace
+ where n.nspname = 'ap' and p.polcmd = 'd';
+```
+**Esperado: zero nos dois.** Se vier qualquer coisa maior, pare.
+
+```sql
+-- 3. A porta de projeção existe e NÃO é do cliente.
+select has_function_privilege('authenticated',
+  'recon.record_external_payable(uuid,text,text,date,bigint,char,text,bigint,text,text,text)',
+  'execute') as cliente_pode_projetar;
+```
+**Esperado: `f`.** Se vier `t`, o cliente pode inventar um título "vindo de
+outro módulo", com origem forjada por dentro da RLS. Pare e revogue.
+
+```sql
+-- 4. O catálogo conta a história certa.
+select module_id, status,
+       jsonb_array_length(events_emits)    as emite,
+       jsonb_array_length(events_consumes) as consome
+  from core.module_registry order by module_id;
+```
+**Esperado:**
+
+| module_id | status | emite | consome |
+|---|---|---|---|
+| `ap` | published | 3 | 0 |
+| `marketing` | published | 3 | 1 |
+| `recon` | published | 3 | 3 |
+
+Se `recon` vier com `consome = 0`, o seed não foi reaplicado (ou foi reaplicado
+antes de a versão nova entrar).
+
+```sql
+-- 5. E o seed continua sem conceder permissão de módulo a papel de sistema.
+select count(*) from core.role_permissions
+ where tenant_id is null and module_id <> 'core';
+```
+**Esperado: zero.** É a limpeza do §7.3, que precisa continuar valendo.
+
+### 8.5 — Instalar o módulo no tenant
+
+O módulo aparece na Store assim que o seed é reaplicado, mas **ninguém o tem até
+alguém instalar**. Pelo painel: **Store → Contas a Pagar → Instalar**, escolhendo
+um papel **DO TENANT**.
+
+Papel de sistema é recusado, e é de propósito: ele vale em todos os tenants e
+faria o módulo vazar para quem não o contratou.
+
+Depois de instalar, o item **Contas a pagar** aparece no menu do portal — ele só
+existe para quem tem `ap.payable.manage` ou `ap.payable.cancel`.
+
+### 8.6 — ⭐ A prova de que o triângulo está vivo
+
+Registre um título pela tela. Um minuto depois (o correio roda de 1 em 1
+minuto):
+
+```sql
+-- O fato saiu e foi entregue?
+select event_type, produced_by, status, attempts
+  from core.event_outbox
+ where event_type like 'ap.%'
+ order by occurred_at desc limit 5;
+```
+**Esperado:** `ap.payable.registered | ap | delivered`.
+
+```sql
+-- E chegou do outro lado, com a origem do envelope?
+select external_ref, source, source_module_id, amount_cents, status
+  from recon.payables
+ where source = 'event'
+ order by created_at desc limit 5;
+```
+**Esperado:** a linha do título que você acabou de registrar, com
+`source = event` e `source_module_id = ap` — **sem ninguém ter redigitado
+nada**, e sem que nenhum dos dois módulos conheça o outro.
+
+Se o evento estiver `pending` com `attempts = 0` há mais de dois minutos, o
+correio parou: veja o §6.5.
+
+Se estiver `delivered` mas a linha não apareceu no `recon`, o consumidor rodou e
+ignorou o evento — quase sempre porque o módulo do outro lado não está
+instalado, ou porque já existia um título com aquela referência marcado
+`source = 'imported'` (a projeção **não sobrescreve** o que uma pessoa digitou).
+
+---
+
 ## O QUE AINDA NÃO EXISTE
 
 Honestidade de escopo, para você não procurar o que não foi construído:
@@ -380,10 +575,14 @@ Honestidade de escopo, para você não procurar o que não foi construído:
 | Peça | Estado |
 |---|---|
 | Correio (`@alsham/workflow` + `apps/api`) | ✅ **NO AR desde 28/07/2026** — job de 1 em 1 minuto (informado pelo dono; **NÃO VERIFICADO** aqui) |
-| Instalador de módulo em runtime | ✅ **CONSTRUÍDO** (`0006_install.sql`) — arquivo, ainda não aplicado |
+| Instalador de módulo em runtime | ✅ **CONSTRUÍDO e APLICADO** (`0006_install.sql`) — em 28/07/2026, informado pelo dono (⚠️ NÃO VERIFICADO aqui) |
 | Store (vitrine + instalar/desinstalar) | ✅ construída em `apps/portal/src/app/store/` |
 | Consumidor de trilha (`core.audit_log`) | ✅ construído e inscrito na composição |
 | Consumidor do Módulo 2 (verba da campanha) | ✅ construído e inscrito na composição |
+| Módulo 3 — Contas a Pagar (`0007_ap.sql`) | ✅ **CONSTRUÍDO** — arquivo, ainda não aplicado (§8) |
+| Consumidor do Módulo 1 (título vindo de outro módulo) | ✅ construído e inscrito na composição — fecha o triângulo |
+| Registro de liquidação e estorno **pela tela** | **NÃO CONSTRUÍDO** — o ciclo de vida aceita os dois e é provado; o botão é etapa própria |
+| Pagamento de verdade (remessa, integração bancária) | **NÃO CONSTRUÍDO**, e é Lei 3: integra-se, não se constrói |
 | Telas (`apps/portal`) | ✅ construídas — login, quatro telas do Módulo 1 e a carteira de campanhas |
 | Parser de OFX/CSV | ✅ construído em `@alsham/finance-reconciliation` |
 | Visão de saúde da fila | ✅ construída — `core.courier_status()` e `core.courier_health` (§6.5) |

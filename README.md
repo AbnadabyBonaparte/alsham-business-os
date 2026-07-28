@@ -4,7 +4,7 @@
 
 A empresa não compra "um sistema". Ela monta o sistema dela — Core + módulos, como Lego. Cada cliente novo financia um módulo que vira patrimônio da plataforma para todos os próximos.
 
-> **Status: dois módulos, e o Lego provado.** O Módulo 2 (Campanhas) **reage ao fato do Módulo 1 sem importá-lo, sem ler o schema dele e sem conhecer o correio** — que era a única metade da tese ainda não demonstrada. Existem o contrato do Lego, o schema (provado em CI contra PostgreSQL 17), o correio de eventos, a contabilidade de uso e cinco telas.
+> **Status: três módulos, e o triângulo fechado.** O Módulo 3 (Contas a Pagar) emite, e o **Módulo 1 — o mais antigo, o que ninguém escreveu para escutar — projeta o título** sem que uma linha do schema dele mudasse. Era a última ponta do Lego que faltava demonstrar: a direção não estava escondida no desenho. Existem o contrato do Lego, o schema (provado em CI contra PostgreSQL 17), o correio de eventos no ar, o instalador em runtime, a Store, a contabilidade de uso e sete telas.
 >
 > **⚡ O correio está no ar.** O dono ligou em 28/07/2026: `apps/api` publicado, `pg_cron` + `pg_net` habilitados, job de 1 em 1 minuto. Fechar um período de conciliação **realmente** faz o Marketing saber. O apply de `0001`→`0005` e do seed também está feito.
 >
@@ -49,13 +49,14 @@ Todo módulo: independente, instalável/removível sem recompilar, comunicação
 ```
 docs/
   canon/       taxonomia · roadmap · core-spec · identidade-visual
-               · modulo-recon-spec · modulo-marketing-spec
+               · modulo-recon-spec · modulo-marketing-spec · modulo-ap-spec
                                                 — leitura obrigatória (VERTEX)
   balancos/    tecnologia + supabase            — de onde minerar cada peça
   historico/   catálogo anterior                — memória, não canon
 supabase/
   migrations/  0001_core · 0002_recon           — APLICADAS em produção; não editar
                0003_billing · 0004_marketing · 0005_courier_cron
+               0006_install · 0007_ap · 0008_recon_ap_projection
                                                 — APLICADAS em produção
                0006_install                     — arquivo; aplicar é ato do dono
   seed/        0001_platform.sql                — catálogo, idempotente
@@ -72,6 +73,7 @@ packages/
   core/                                         — ✅ CONSTRUÍDO (contrato, zero runtime)
   finance-reconciliation/                       — ✅ CONSTRUÍDO (Módulo 1)
   marketing/                                    — ✅ CONSTRUÍDO (Módulo 2 — prova o Lego)
+  accounts-payable/                             — ✅ CONSTRUÍDO (Módulo 3 — fecha o triângulo)
   workflow/                                     — ✅ CONSTRUÍDO (o correio do Core)
   billing/                                      — ✅ CONSTRUÍDO (uso, sem preço)
   permissions/                                  — ✅ CONSTRUÍDO (visão de catálogo da Store)
@@ -146,25 +148,36 @@ Cada `README.md` de app e de package declara: o propósito, a fase do roadmap a 
 **Etapa 8 — O correio ligável** *(esta etapa)*: o Lego ganha o que faltava para conversar de verdade.
 
 - **A persistência real do correio**, contra `core.event_outbox`. Duas falhas que memória nenhuma revelaria apareceram no primeiro contato com Postgres: a tomada **não reivindicava** nada (dois entregadores pegavam os mesmos 20 eventos), e um handler que falhava **nunca era reexecutado** — o evento acabava gravado como `delivered` sem nunca ter sido entregue. As duas corrigidas, com teste.
-- **`apps/api` — A COMPOSIÇÃO**: o único lugar do repositório onde os módulos se conhecem. Importa `workflow`, `marketing` e `billing`; nenhum deles importa nenhum outro.
+- **`apps/api` — A COMPOSIÇÃO**: o único lugar do repositório onde os módulos se conhecem. Importa `workflow`, `marketing`, `finance-reconciliation` e `billing`; nenhum deles importa nenhum outro.
 - **`0005_courier_cron.sql`** — a saúde da fila (`core.courier_status()`) e o agendamento `pg_cron`, **comentado de propósito**: agendar exige extensões e segredos que só o dono tem.
 - **25 testes contra Postgres de verdade**, incluindo o de concorrência que só o banco pode dar.
 - ⚠️ **Construído ≠ no ar.** Ninguém agendou nada — e há guarda no CI para que nenhum documento diga o contrário.
 
-**Etapa 9 — A Store e o instalador** *(esta etapa)*: o Lego vira produto visível.
+**Etapa 9 — A Store e o instalador**: o Lego vira produto visível.
 
 - **`0006_install.sql` — o instalador em runtime.** `core.install_module()` e `core.uninstall_module()` fecham os passos 3 e 4 do ciclo de vida que o CORE-SPEC descrevia desde a Etapa 1. Exigem `core.module.install`, só aceitam módulo publicado, respeitam o teto do plano — e emitem `core.module.*`, que a trilha registra sozinha.
 - ⭐ **Desinstalar corta o acesso e NÃO apaga dado.** Há teste provando: depois de desinstalar, a campanha continua no banco e some da vista do usuário. Reinstalar devolve o acesso ao mesmo dado.
 - **A Store, em `apps/portal/src/app/store/`** — vitrine dos módulos publicados, com capacidades, permissões, o que cada um emite e **de quem escuta**. Instalar e desinstalar com confirmação que diz o que acontece.
 - ⚠️ **Um vazamento fechado.** O seed concedia as permissões dos módulos ao papel de **sistema** `admin`, que vale em todo tenant: qualquer tenant novo já nascia com os dois módulos, sem instalar e sem ocupar vaga no plano. O bloco saiu, o instalador recusa papel de sistema, e há guarda no CI. A limpeza do que já existe em produção está no [runbook §7.3](docs/runbook/APLICAR.md).
 
-**O que NÃO existe** — o estado corrente vive em [CORE-SPEC §5](docs/canon/CORE-SPEC.md) e [MODULO-RECON-SPEC §7](docs/canon/MODULO-RECON-SPEC.md), e há guarda no CI contra essas duas seções envelhecerem:
+**Etapa 10 — O triângulo do Lego** *(esta etapa)*: o Módulo 3, e a última ponta que faltava.
+
+- **`@alsham/accounts-payable` + `0007_ap.sql` — o Módulo 3, Contas a Pagar.** Registra o que a empresa deve e conta cada título que nasce, muda ou é cancelado. Schema próprio, RLS forçada, porta única de saída.
+- ⭐ **O TRIÂNGULO.** O Módulo 1 — o mais antigo, o que ninguém escreveu para escutar — **virou consumidor**. `recon.payables` nasceu na Etapa 2 com `source='event'` e `source_module_id`, esperando um módulo que ainda não existia; quando ele chegou, **nenhuma linha do `0002_recon.sql` mudou**. Nenhuma coluna nova, nenhuma constraint relaxada. É essa a prova, e ela não se fabrica depois.
+- ⛔ **A origem de um fato vem do ENVELOPE, nunca de constante.** Um teste projeta com um produtor fictício (`erp-bridge`) e confere que a origem gravada é a dele. Com a procedência chumbada, um segundo produtor entraria disfarçado do primeiro e a trilha mentiria sem nunca dar erro — há guarda no CI que reprova as três formas de chumbar.
+- ⛔ **Cancelar é ESTADO, nunca `delete`.** Sem GRANT e sem policy de DELETE, conferidos **no banco aplicado**. E **título liquidado não se cancela**: estorna-se primeiro, cancela-se depois — dois atos, dois registros.
+- ⚠️ **Mão humana ganha do evento.** Se já existe um título com aquela referência digitado por uma pessoa, a projeção **não o sobrescreve**.
+- **Telas de contas a pagar** com porta de dados própria, e o item de menu só para quem tem acesso ao módulo.
+- ⚠️ **O ciclo de vida vive em dois lugares** — no SQL e no TypeScript — e um teste **lê o arquivo da migration** e compara par a par. É o que torna a duplicação arquitetura em vez de descuido.
+
+**O que NÃO existe** — o estado corrente vive em [CORE-SPEC §5](docs/canon/CORE-SPEC.md), [MODULO-RECON-SPEC §7](docs/canon/MODULO-RECON-SPEC.md), [MODULO-MARKETING-SPEC §6](docs/canon/MODULO-MARKETING-SPEC.md) e [MODULO-AP-SPEC §6](docs/canon/MODULO-AP-SPEC.md), e há guarda no CI contra essas seções envelhecerem:
 
 - **Nenhum alarme.** A saúde da fila é consulta, não notificação — quem olha é o dono. Se a fila parar de madrugada, ninguém é avisado.
 - **Instalar não carrega código.** Um módulo que escuta o fato de outro só reage porque o handler existe no repositório e está inscrito à mão na composição. Instalar dá **acesso e permissões**; integração é código. Não há plugin dinâmico, e a Store diz isso na própria tela.
 - Do motor do Core, seguem **NÃO CONSTRUÍDOS** o validador de manifesto, o registro de módulo em runtime e o resolvedor de permissão — hoje quem barra acesso é a **RLS no banco**.
 - Sem **preço**, sem gateway de pagamento, sem fatura (Lei 7 — decisão do dono, com números medidos).
-- Sem leitor de **CAMT.053**, sem rateio N↔M, sem instalador de módulo.
+- Sem leitor de **CAMT.053** e sem rateio N↔M.
+- **O Módulo 3 não paga nada.** Registra o que se deve e conta o fato; remessa bancária e integração de pagamento são Lei 3 (INTEGRAR, não construir). Registrar liquidação e estorno **pela tela** também não existe — o ciclo de vida aceita os dois e é provado, mas o botão é etapa própria.
 - **Nenhum segredo existe aqui**, e não há deploy configurado neste repositório.
 
 ---

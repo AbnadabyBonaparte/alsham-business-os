@@ -437,6 +437,214 @@ describe('a composição, contra o banco', { skip: SEM_BANCO }, () => {
   });
 });
 
+/**
+ * # ⭐ O TRIÂNGULO, CONTRA O BANCO
+ *
+ * O Módulo 3 emite; o Módulo 1 — o mais antigo, o que ninguém escreveu para
+ * escutar — projeta. Aqui não há mock nenhum: o correio de verdade puxa o
+ * evento de `core.event_outbox`, o handler de verdade traduz e
+ * `recon.record_external_payable()` de verdade grava.
+ *
+ * O que este bloco prova, e nenhum teste de pacote consegue:
+ *
+ *   1. a projeção aparece no tenant CERTO e não vaza para o outro;
+ *   2. a reentrega não duplica — a idempotência é do banco, não da promessa;
+ *   3. a origem gravada é a que veio no envelope, e não uma constante;
+ *   4. o cancelamento projeta ESTADO, e o título continua na tabela.
+ */
+describe('⭐ o triângulo: o Módulo 1 escutando o Módulo 3', { skip: SEM_BANCO }, () => {
+  const OUTRO_TENANT = '00000000-0000-4000-8000-00000000beef';
+
+  before(async () => {
+    if (SEM_BANCO) return;
+    await pool.query(
+      `insert into core.tenants (id, slug, name, plan_code)
+            values ($1, 'tenant-vizinho', 'Tenant vizinho do triângulo', 'starter')
+       on conflict (id) do nothing`,
+      [OUTRO_TENANT],
+    );
+  });
+
+  beforeEach(async () => {
+    if (SEM_BANCO) return;
+    await pool.query('delete from recon.payables where tenant_id = any($1::uuid[])', [
+      [TENANT, OUTRO_TENANT],
+    ]);
+  });
+
+  /** O payload que `ap.payable_payload()` monta — autossuficiente, por contrato. */
+  function payload(over: Record<string, unknown> = {}) {
+    return {
+      externalRef: 'DOC-TRIANGULO-1',
+      dueDate: '2026-09-10',
+      amountCents: 150_000,
+      settledAmountCents: 0,
+      currency: 'BRL',
+      supplierName: 'Fornecedor Alfa',
+      counterpartyTaxId: null,
+      description: 'serviço prestado',
+      status: 'open',
+      ...over,
+    };
+  }
+
+  async function projetado(tenant: string, ref = 'DOC-TRIANGULO-1') {
+    const { rows } = await pool.query<{
+      source: string;
+      source_module_id: string | null;
+      amount_cents: string;
+      status: string;
+      supplier_name: string | null;
+    }>(
+      `select source, source_module_id, amount_cents::text, status, supplier_name
+         from recon.payables where tenant_id = $1 and external_ref = $2`,
+      [tenant, ref],
+    );
+    return rows[0];
+  }
+
+  test('o título nasce no Módulo 3 e aparece no Módulo 1, sem ninguém redigitar', async () => {
+    await enfileirar({ tipo: 'ap.payable.registered', payload: payload() });
+
+    const r = await runCourierOnce(pool);
+    assert.equal(r.delivered, 1);
+
+    const linha = await projetado(TENANT);
+    assert.ok(linha, 'a projeção não apareceu — o Módulo 1 não foi acordado');
+    assert.equal(linha.source, 'event');
+    assert.equal(linha.amount_cents, '150000');
+    assert.equal(linha.status, 'open');
+    assert.equal(linha.supplier_name, 'Fornecedor Alfa');
+  });
+
+  test('⭐ a origem gravada é a do ENVELOPE, não uma constante do consumidor', async () => {
+    // `enfileirar` deriva `produced_by` do prefixo do tipo — como o
+    // `emit_event` do módulo faz. Aqui é `ap`.
+    await enfileirar({ tipo: 'ap.payable.registered', payload: payload() });
+    await runCourierOnce(pool);
+    assert.equal((await projetado(TENANT))?.source_module_id, 'ap');
+  });
+
+  test('⭐ um segundo produtor do MESMO formato é atendido, e grava a origem dele', async () => {
+    // Nenhum módulo chamado `erp-bridge` existe neste repositório. É o ponto:
+    // se a procedência estivesse chumbada no consumidor ou na função SQL, esta
+    // linha entraria disfarçada de `ap` e a trilha mentiria sem dar erro.
+    await pool.query(
+      `insert into core.event_outbox
+         (tenant_id, event_type, produced_by, payload, status, next_attempt_at)
+       values ($1, 'ap.payable.registered', 'erp-bridge', $2::jsonb, 'pending', now() - interval '1 second')`,
+      [TENANT, JSON.stringify(payload({ externalRef: 'DOC-ERP-1' }))],
+    );
+
+    await runCourierOnce(pool);
+
+    const linha = await projetado(TENANT, 'DOC-ERP-1');
+    assert.equal(linha?.source_module_id, 'erp-bridge');
+  });
+
+  test('a reentrega não duplica: a idempotência é do banco', async () => {
+    const ev = await enfileirar({ tipo: 'ap.payable.registered', payload: payload() });
+    await runCourierOnce(pool);
+
+    // Reabre o evento como se o correio nunca o tivesse entregado — é o pior
+    // caso real: reprocessamento manual, restauração de backup, `dead`
+    // ressuscitado à mão.
+    await pool.query('delete from core.processed_events where event_id = $1', [ev]);
+    await pool.query(
+      `update core.event_outbox set status = 'pending', next_attempt_at = now() - interval '1 second'
+        where event_id = $1`,
+      [ev],
+    );
+    await runCourierOnce(pool);
+
+    const { rows } = await pool.query<{ n: string }>(
+      `select count(*)::text as n from recon.payables
+        where tenant_id = $1 and external_ref = 'DOC-TRIANGULO-1'`,
+      [TENANT],
+    );
+    assert.equal(rows[0]?.n, '1', 'a reentrega duplicou o título');
+  });
+
+  test('⛔ a projeção de um tenant não vaza para o outro', async () => {
+    // Os DOIS tenants usam a MESMA referência, de propósito. Referência é
+    // string escolhida pelo tenant: dois clientes podem ter um "DOC-1" cada um.
+    // Se o isolamento dependesse de a string ser única no mundo, ele não seria
+    // isolamento.
+    await enfileirar({ tipo: 'ap.payable.registered', payload: payload({ amountCents: 111_000 }) });
+    await pool.query(
+      `insert into core.event_outbox
+         (tenant_id, event_type, produced_by, payload, status, next_attempt_at)
+       values ($1, 'ap.payable.registered', 'ap', $2::jsonb, 'pending', now() - interval '1 second')`,
+      [OUTRO_TENANT, JSON.stringify(payload({ amountCents: 222_000 }))],
+    );
+
+    await runCourierOnce(pool);
+
+    assert.equal((await projetado(TENANT))?.amount_cents, '111000');
+    assert.equal((await projetado(OUTRO_TENANT))?.amount_cents, '222000');
+  });
+
+  test('o cancelamento projeta ESTADO — o título continua no banco', async () => {
+    await enfileirar({ tipo: 'ap.payable.registered', payload: payload() });
+    await runCourierOnce(pool);
+    await enfileirar({
+      tipo: 'ap.payable.cancelled',
+      payload: payload({ status: 'cancelled' }),
+    });
+    await runCourierOnce(pool);
+
+    const linha = await projetado(TENANT);
+    assert.ok(linha, 'o cancelamento APAGOU o título — cancelar é status, nunca delete');
+    assert.equal(linha.status, 'cancelled');
+    assert.equal(linha.amount_cents, '150000', 'o valor sumiu junto com o cancelamento');
+  });
+
+  test('a alteração de valor acompanha', async () => {
+    await enfileirar({ tipo: 'ap.payable.registered', payload: payload() });
+    await runCourierOnce(pool);
+    await enfileirar({
+      tipo: 'ap.payable.updated',
+      payload: payload({ settledAmountCents: 50_000, status: 'partially_settled' }),
+    });
+    await runCourierOnce(pool);
+
+    const linha = await projetado(TENANT);
+    assert.equal(linha?.status, 'partially_settled');
+  });
+
+  test('⚠️ o que uma pessoa digitou não é sobrescrito por evento', async () => {
+    await pool.query(
+      `insert into recon.payables
+         (tenant_id, source, external_ref, due_date, amount_cents, currency, supplier_name)
+       values ($1, 'imported', 'DOC-TRIANGULO-1', '2026-01-01', 999, 'BRL', 'digitado à mão')`,
+      [TENANT],
+    );
+
+    await enfileirar({ tipo: 'ap.payable.registered', payload: payload() });
+    const r = await runCourierOnce(pool);
+    // O evento foi ENTREGUE — não é falha, e não pode virar `dead`.
+    assert.equal(r.delivered, 1);
+    assert.equal(r.retried, 0, 'o evento foi reagendado — ignorar não pode virar insistência');
+    assert.equal(r.dead, 0);
+
+    const linha = await projetado(TENANT);
+    assert.equal(linha?.source, 'imported');
+    assert.equal(linha.amount_cents, '999', 'o evento sobrescreveu trabalho de gente');
+  });
+
+  test('payload que não dá para projetar é entregue e ignorado, nunca vira `dead`', async () => {
+    await enfileirar({
+      tipo: 'ap.payable.registered',
+      payload: payload({ amountCents: -1, externalRef: 'DOC-RUIM' }),
+    });
+    const r = await runCourierOnce(pool);
+    assert.equal(r.delivered, 1);
+    assert.equal(r.retried, 0, 'o evento foi reagendado — ignorar não pode virar insistência');
+    assert.equal(r.dead, 0);
+    assert.equal(await projetado(TENANT, 'DOC-RUIM'), undefined);
+  });
+});
+
 describe('a saúde da fila', { skip: SEM_BANCO }, () => {
   // A saúde lê a fila INTEIRA — é a visão do operador da plataforma, e está
   // certa assim. O `beforeEach` do arquivo já a esvazia.

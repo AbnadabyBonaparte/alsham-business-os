@@ -23,6 +23,9 @@ importers:
       '@alsham/core':
         specifier: workspace:*
         version: link:../../packages/core
+      '@alsham/finance-reconciliation':
+        specifier: workspace:*
+        version: link:../../packages/finance-reconciliation
       '@alsham/marketing':
         specifier: workspace:*
         version: link:../../packages/marketing
@@ -45,6 +48,9 @@ importers:
 
   apps/portal:
     dependencies:
+      '@alsham/accounts-payable':
+        specifier: workspace:*
+        version: link:../../packages/accounts-payable
       '@alsham/config':
         specifier: workspace:*
         version: link:../../packages/config
@@ -91,6 +97,19 @@ importers:
       tailwindcss:
         specifier: ^4.3.3
         version: 4.3.3
+      typescript:
+        specifier: ^5.7.2
+        version: 5.9.3
+
+  packages/accounts-payable:
+    dependencies:
+      '@alsham/core':
+        specifier: workspace:*
+        version: link:../core
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.2
+        version: 22.20.1
       typescript:
         specifier: ^5.7.2
         version: 5.9.3

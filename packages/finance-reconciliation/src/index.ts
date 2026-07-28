@@ -71,3 +71,22 @@ export type {
   ParsedLine,
   ParsedStatement,
 } from './parsing/index.ts';
+
+/**
+ * ⭐ O lado que fecha o triângulo: este módulo CONSUMINDO o fato de outro.
+ * Ver `external-payable.ts` — e repare que nada aqui importa o produtor.
+ */
+export {
+  CONSUMED_EVENT_TYPES,
+  CONSUMED_EVENT_PATTERN,
+  CONSUMER_ID,
+  toExternalPayable,
+  handleExternalPayable,
+} from './external-payable.ts';
+
+export type {
+  ExternalPayable,
+  ExternalPayablePort,
+  HandledOutcome,
+  Translation,
+} from './external-payable.ts';

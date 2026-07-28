@@ -10,16 +10,17 @@
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "dependencies": {
+    "@alsham/accounts-payable": "workspace:*",
     "@alsham/config": "workspace:*",
     "@alsham/core": "workspace:*",
     "@alsham/finance-reconciliation": "workspace:*",
+    "@alsham/marketing": "workspace:*",
+    "@alsham/permissions": "workspace:*",
+    "@supabase/ssr": "^0.12.3",
     "@supabase/supabase-js": "^2.110.8",
     "next": "16.2.12",
     "react": "^19.2.0",
-    "react-dom": "^19.2.0",
-    "@supabase/ssr": "^0.12.3",
-    "@alsham/marketing": "workspace:*",
-    "@alsham/permissions": "workspace:*"
+    "react-dom": "^19.2.0"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.3.3",

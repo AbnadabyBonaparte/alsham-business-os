@@ -99,6 +99,19 @@ jobs:
       - name: aplicar 0006_install.sql
         run: $PSQL -f supabase/migrations/0006_install.sql
 
+      # ⭐ ETAPA 10 — e as duas são SEPARADAS de propósito.
+      #
+      # `0007` só cria objeto em `ap`; `0008` só cria objeto em `recon`. Cada
+      # migration tem um schema dono. Escrever a função `recon.*` dentro do
+      # arquivo do módulo de Contas a Pagar obrigaria a guarda "módulo não
+      # conhece módulo" a aprender uma exceção — e guarda com exceção é guarda
+      # que um dia aceita tudo.
+      - name: aplicar 0007_ap.sql
+        run: $PSQL -f supabase/migrations/0007_ap.sql
+
+      - name: aplicar 0008_recon_ap_projection.sql
+        run: $PSQL -f supabase/migrations/0008_recon_ap_projection.sql
+
       # ---------------------------------------------------------------------
       # 2. SEED — e a prova de que reaplicar não muda nada
       # ---------------------------------------------------------------------
@@ -126,12 +139,12 @@ jobs:
           FALTA=$($PSQL -tAc "
             select coalesce(string_agg(n.nspname||'.'||c.relname, ', '), '')
               from pg_class c join pg_namespace n on n.oid = c.relnamespace
-             where n.nspname in ('core','recon','marketing') and c.relkind = 'r'
+             where n.nspname in ('core','recon','marketing','ap') and c.relkind = 'r'
                and (not c.relrowsecurity or not c.relforcerowsecurity);")
           [ -z "$FALTA" ] || { echo "::error::sem RLS enable+force: $FALTA"; exit 1; }
           $PSQL -c "select n.nspname as schema, count(*) as tabelas
                       from pg_class c join pg_namespace n on n.oid=c.relnamespace
-                     where n.nspname in ('core','recon','marketing') and c.relkind='r'
+                     where n.nspname in ('core','recon','marketing','ap') and c.relkind='r'
                      group by 1 order by 1;"
 
       - name: nenhuma policy USING (true)
@@ -141,7 +154,7 @@ jobs:
               from pg_policy p
               join pg_class c on c.oid = p.polrelid
               join pg_namespace n on n.oid = c.relnamespace
-             where n.nspname in ('core','recon','marketing')
+             where n.nspname in ('core','recon','marketing','ap')
                and pg_get_expr(p.polqual, p.polrelid) = 'true';")
           [ -z "$ABERTAS" ] || { echo "::error::policy aberta (lição paga do suna-core): $ABERTAS"; exit 1; }
 
@@ -152,7 +165,7 @@ jobs:
                              where n.nspname='public' and c.relkind='r';")
           [ "$PUB" = "0" ] || { echo "::error::$PUB tabela(s) em public — expostas via API"; exit 1; }
           ANON=$($PSQL -tAc "select count(*) from information_schema.role_table_grants
-                              where grantee='anon' and table_schema in ('core','recon','marketing');")
+                              where grantee='anon' and table_schema in ('core','recon','marketing','ap');")
           [ "$ANON" = "0" ] || { echo "::error::anon tem $ANON grant(s) no Business OS"; exit 1; }
 
       - name: o seed não semeou tenant nem usuário
@@ -191,6 +204,50 @@ jobs:
       # ⭐ A PROVA DA ETAPA 9: instalar dá acesso, desinstalar NÃO apaga dado.
       - name: teste do instalador em runtime
         run: $PSQL -f supabase/tests/04_install_module.sql
+
+      # ⭐⭐ A PROVA DA ETAPA 10: O TRIÂNGULO.
+      #
+      # O Módulo 3 emite; o Módulo 1 — o mais antigo, o que ninguém escreveu
+      # para escutar — projeta. Onze cenários, e três deles são o que nenhum
+      # teste de pacote alcança:
+      #
+      #   · a origem gravada vem do ENVELOPE, não de constante — um produtor
+      #     fictício (`erp-bridge`) grava a origem DELE;
+      #   · o mesmo `DOC-TRI-0001` nos dois tenants não se mistura;
+      #   · um usuário real NÃO executa `recon.record_external_payable`, que é
+      #     SECURITY DEFINER — dar essa caneta à tela deixaria o cliente forjar
+      #     um título "vindo de outro módulo" por dentro da RLS.
+      - name: teste do triângulo (Módulo 3 → Módulo 1)
+        run: $PSQL -f supabase/tests/05_ap_triangle.sql
+
+      # ⛔ CANCELAR É ESTADO, NUNCA DELETE.
+      #
+      # Um título apagado é conta paga sem documento. A decisão está em duas
+      # camadas — sem GRANT e sem policy — e esta guarda confere as duas no
+      # BANCO APLICADO, não no arquivo: é a diferença entre a regra escrita e a
+      # regra em vigor.
+      - name: nenhuma porta de DELETE em ap.payables
+        run: |
+          # ⚠️ FILTRA O GRANTEE, e a primeira versão desta guarda não filtrava —
+          # teria reprovado o repositório inteiro no primeiro run.
+          #
+          # `information_schema.role_table_grants` inclui os privilégios
+          # IMPLÍCITOS do dono da tabela, e o dono sempre tem todos, inclusive
+          # DELETE. Não há como tirar, e não faz sentido tentar: a regra é que o
+          # CLIENTE não tem porta de DELETE, não que ninguém no banco tenha.
+          #
+          # Foi o único defeito que a contagem contra o banco revelou — e é
+          # exatamente por isso que os números vêm do banco, nunca de cabeça.
+          G=$($PSQL -tAc "select count(*) from information_schema.role_table_grants
+                            where table_schema='ap' and privilege_type='DELETE'
+                              and grantee in ('anon','authenticated','PUBLIC');")
+          [ "$G" = "0" ] || { echo "::error::alguém concedeu DELETE em ap ao cliente — cancelar é status"; exit 1; }
+          P=$($PSQL -tAc "select count(*) from pg_policy p
+                             join pg_class c on c.oid=p.polrelid
+                             join pg_namespace n on n.oid=c.relnamespace
+                            where n.nspname='ap' and p.polcmd='d';")
+          [ "$P" = "0" ] || { echo "::error::apareceu policy de DELETE em ap"; exit 1; }
+          echo "ap.payables continua sem porta de DELETE."
 
       # ⛔ O SEED NÃO CONCEDE PERMISSÃO DE MÓDULO.
       #
@@ -291,6 +348,8 @@ jobs:
           $PSQL -q -f supabase/migrations/0004_marketing.sql
           $PSQL -q -f supabase/migrations/0005_courier_cron.sql
           $PSQL -q -f supabase/migrations/0006_install.sql
+          $PSQL -q -f supabase/migrations/0007_ap.sql
+          $PSQL -q -f supabase/migrations/0008_recon_ap_projection.sql
           $PSQL -q -f supabase/seed/0001_platform.sql
 
       # ⚠️ Sem `DATABASE_URL` os testes do store se PULAM — de propósito, para
@@ -305,7 +364,10 @@ jobs:
           PASSOU=$(grep -oP '^# pass \K\d+' /tmp/api.log | head -1)
           echo "passaram=$PASSOU pulados=$PULADOS"
           [ "${PULADOS:-0}" = "0" ] || { echo "::error::$PULADOS teste(s) pulados — o job ficaria verde sem provar nada"; exit 1; }
-          [ "${PASSOU:-0}" -gt 15 ] || { echo "::error::só $PASSOU teste(s) rodaram; o arquivo não foi coletado"; exit 1; }
+          # O piso sobe quando a suíte cresce. Na Etapa 10 o bloco do triângulo
+          # acrescentou 9 testes; deixar o piso em 15 faria o job ficar verde
+          # com o arquivo do triângulo inteiro fora da coleta.
+          [ "${PASSOU:-0}" -gt 30 ] || { echo "::error::só $PASSOU teste(s) rodaram; o arquivo não foi coletado"; exit 1; }
 
   contract:
     name: manifesto, tipos e domínio
@@ -411,6 +473,39 @@ jobs:
             echo "::error::a regra de liberação de verba apareceu em apps/ — ela é settings do tenant, decidida no pacote"; exit 1
           fi
 
+          # Módulo 3: validação do título, ciclo de vida e a conta do saldo são
+          # DECISÃO. A forma mais provável de migrarem para a pele é alguém
+          # escrever `if (amountCents <= 0)` no Server Action "porque era mais
+          # rápido", ou `t.dueDate < hoje` no componente da lista.
+          if grep -rInE 'function (validateNewPayable|statusForSettlement|nextStatuses|outstandingCents|isOverdue|canCancel)' \
+               apps --include='*.ts' --include='*.tsx'; then
+            echo "::error::o domínio de contas a pagar foi redeclarado em apps/"; exit 1
+          fi
+          AP=$(grep -Ev '^\s*(\*|//|/\*)' apps/portal/src/app/ap-actions.ts)
+          echo "$AP" | grep -Eq 'validateNewPayable\(' \
+            || { echo "::error::a ação de contas a pagar deixou de validar pelo pacote"; exit 1; }
+          echo "$AP" | grep -Eq 'canTransition\(' \
+            || { echo "::error::a ação deixou de consultar o ciclo de vida do pacote"; exit 1; }
+          LISTA=$(grep -Ev '^\s*(\*|//|/\*)' apps/portal/src/components/payable-list.tsx)
+          echo "$LISTA" | grep -Eq 'isOverdue\(' \
+            || { echo "::error::a lista deixou de perguntar ao pacote o que está vencido"; exit 1; }
+          # O jeito mais provável de a conta de atraso migrar para a tela.
+          # ⚠️ Lê CÓDIGO, não prosa — pela QUARTA vez neste repositório.
+          #
+          # A primeira versão desta guarda reprovou o comentário do próprio
+          # componente, que diz "se alguém escrever `t.dueDate < hoje` aqui, a
+          # regra passa a existir em dois lugares". A guarda mordeu a
+          # documentação que ela existe para proteger.
+          #
+          # O padrão já é conhecido (§ máquina de estados, § tenant, § Store), e
+          # a correção é sempre a mesma: descartar as linhas de comentário.
+          ATRASO=$(grep -rIn --include='*.ts' --include='*.tsx' -E 'dueDate\s*<\s*(hoje|today|now)' apps 2>/dev/null \
+                   | grep -Ev '^[^:]+:[0-9]+:\s*(\*|//|/\*)' || true)
+          if [ -n "$ATRASO" ]; then
+            echo "::error::a regra de vencimento apareceu em apps/ — ela é isOverdue(), no pacote"
+            echo "$ATRASO"; exit 1
+          fi
+
       # ⭐⭐ A LEI DO LEGO, VERIFICADA (CLAUDE.md §5.5, regras 3 e 5).
       #
       # A Etapa 7 pôs dois módulos conversando. A tese inteira da plataforma é
@@ -423,10 +518,11 @@ jobs:
       - name: módulo não conhece módulo
         run: |
           FALHOU=0
+          MODULOS="finance-reconciliation marketing accounts-payable"
 
           # 1. Nenhum módulo importa outro módulo, em nenhuma forma.
-          for MOD in finance-reconciliation marketing; do
-            for OUTRO in finance-reconciliation marketing; do
+          for MOD in $MODULOS; do
+            for OUTRO in $MODULOS; do
               [ "$MOD" = "$OUTRO" ] && continue
               if grep -rInE "from '@alsham/$OUTRO'|require\('@alsham/$OUTRO'\)" \
                    "packages/$MOD/src" 2>/dev/null; then
@@ -439,8 +535,8 @@ jobs:
           # 2. E nem pelo package.json: dependência declarada é dependência.
           #    `devDependencies` de teste também não vale — se o teste precisa
           #    do outro módulo, o acoplamento é real.
-          for MOD in finance-reconciliation marketing; do
-            if grep -qE '"@alsham/(finance-reconciliation|marketing)"' \
+          for MOD in $MODULOS; do
+            if grep -qE '"@alsham/(finance-reconciliation|marketing|accounts-payable)"' \
                  <(grep -v "\"@alsham/$MOD\"" "packages/$MOD/package.json"); then
               echo "::error::packages/$MOD declara outro módulo como dependência"
               FALHOU=1
@@ -448,9 +544,18 @@ jobs:
           done
 
           # 3. Nenhum schema de módulo toca o schema de outro no SQL.
-          #    Lê CÓDIGO, não prosa: os comentários dos dois arquivos explicam
+          #    Lê CÓDIGO, não prosa: os comentários dos arquivos explicam
           #    justamente esta regra, e citam o nome do outro schema ao fazê-lo.
-          for PAR in "0002_recon.sql:marketing" "0004_marketing.sql:recon"; do
+          #
+          #    ⚠️ `0008_recon_ap_projection.sql` NÃO entra nesta lista, e não é
+          #    exceção: ela é uma migration do `recon`, e o que ela cria é
+          #    objeto `recon.*`. Por isso ela existe separada da `0007` — se a
+          #    porta de projeção morasse dentro do arquivo do módulo de Contas
+          #    a Pagar, esta guarda precisaria aprender a ignorar um caso. É
+          #    justamente o que se evitou. Ela é conferida abaixo, no item 4.
+          for PAR in "0002_recon.sql:marketing" "0002_recon.sql:ap" \
+                     "0004_marketing.sql:recon" "0004_marketing.sql:ap" \
+                     "0007_ap.sql:recon" "0007_ap.sql:marketing"; do
             ARQ="supabase/migrations/${PAR%%:*}"; ALHEIO="${PAR##*:}"
             CODIGO=$(sed 's/--.*//' "$ARQ")
             if echo "$CODIGO" | grep -qE "\b$ALHEIO\."; then
@@ -460,8 +565,31 @@ jobs:
             fi
           done
 
+          # 4. E a porta de projeção do `recon` não pode ler o schema de quem
+          #    produz o evento. Ela recebe TUDO por argumento, do payload — que
+          #    o produtor monta autossuficiente exatamente por isso.
+          PROJ=$(sed 's/--.*//' supabase/migrations/0008_recon_ap_projection.sql)
+          if echo "$PROJ" | grep -qE "\b(ap|marketing)\."; then
+            echo "::error::a projeção lê o schema de outro módulo — ela só pode ler o payload"
+            FALHOU=1
+          fi
+          # ⭐ E não pode CHUMBAR a origem: a procedência vem do envelope. Com
+          #    ela fixa, um segundo produtor entraria disfarçado do primeiro e a
+          #    trilha mentiria sem nunca dar erro.
+          if echo "$PROJ" | grep -qE "'(ap|accounts-payable)'"; then
+            echo "::error::a projeção cita o nome do módulo produtor — a origem vem de producedBy"
+            FALHOU=1
+          fi
+          CONS=$(grep -Ev '^\s*(\*|//|/\*)' packages/finance-reconciliation/src/external-payable.ts)
+          if echo "$CONS" | grep -qE "sourceModuleId:\s*'"; then
+            echo "::error::o consumidor chumbou a origem — ela tem de vir de envelope.producedBy"
+            FALHOU=1
+          fi
+          echo "$CONS" | grep -qE 'envelope\.producedBy' \
+            || { echo "::error::o consumidor deixou de ler a procedência do envelope"; FALHOU=1; }
+
           [ "$FALHOU" = "0" ] || exit 1
-          echo "Lego intacto: dois módulos, zero dependência entre eles."
+          echo "Lego intacto: três módulos, zero dependência entre eles."
 
       # ⛔⛔ A FRONTEIRA DA CHAVE-MÃE (Etapa 8).
       #
@@ -513,14 +641,22 @@ jobs:
             echo "::error::a lógica de entrega foi redeclarada em apps/ — ela vive em packages/workflow"; exit 1
           fi
           COMP=$(grep -Ev '^\s*(\*|//|/\*)' apps/api/src/composition.ts)
-          echo "$COMP" | grep -Eq 'deliverDue\(' \
-            || { echo "::error::a composição deixou de chamar deliverDue do pacote"; exit 1; }
-          echo "$COMP" | grep -Eq 'eventUsageHook\(' \
-            || { echo "::error::a composição deixou de ligar a cobrança"; exit 1; }
-          echo "$COMP" | grep -Eq 'handleSpendDecision\(' \
-            || { echo "::error::a composição deixou de inscrever o consumidor do Módulo 2"; exit 1; }
-          echo "$COMP" | grep -Eq 'auditSubscription\(' \
-            || { echo "::error::a composição deixou de inscrever a trilha"; exit 1; }
+
+          # ⚠️ `\b` NA FRENTE DE CADA NOME, e não é detalhe de regex.
+          #
+          # Sem a fronteira de palavra, a busca casa por SUBSTRING: trocar a
+          # chamada por `noop_handleExternalPayable(` deixava a guarda verde,
+          # porque o nome original continuava contido no novo. A sabotagem da
+          # Etapa 10 pegou exatamente isso, e a fraqueza valia para as quatro
+          # verificações antigas também — foram corrigidas junto.
+          for FN in deliverDue eventUsageHook handleSpendDecision auditSubscription handleExternalPayable; do
+            echo "$COMP" | grep -Eq "\b$FN\(" \
+              || { echo "::error::a composição deixou de chamar $FN() do pacote"; exit 1; }
+          done
+          # A quinta da lista é a terceira ponta do triângulo (Etapa 10). Sem
+          # ela, o título registrado no Módulo 3 nunca chega ao Módulo 1 — e
+          # ninguém veria erro nenhum, porque o evento seria entregue e
+          # ignorado.
 
       # ⭐ A STORE NÃO DECIDE — nem o que mostra, nem quem instala.
       #

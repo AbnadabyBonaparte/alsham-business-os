@@ -12,6 +12,7 @@
   "dependencies": {
     "@alsham/billing": "workspace:*",
     "@alsham/core": "workspace:*",
+    "@alsham/finance-reconciliation": "workspace:*",
     "@alsham/marketing": "workspace:*",
     "@alsham/workflow": "workspace:*",
     "pg": "^8.22.0"

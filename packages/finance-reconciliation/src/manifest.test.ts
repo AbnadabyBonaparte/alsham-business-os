@@ -32,11 +32,41 @@ const sql = readFileSync(SEED, 'utf8');
  */
 const code = sql.replace(/--[^\n]*/g, '');
 
-/** Extrai um bloco `'[...]'::jsonb` do seed pelo conteúdo que ele contém. */
+/**
+ * O trecho do seed que registra ESTE módulo — e só ele.
+ *
+ * ⚠️ **Escopo obrigatório, e virou obrigatório na Etapa 10.** Enquanto o
+ * catálogo tinha um módulo só, ler o seed inteiro dava certo por sorte de
+ * ordenação. Com três módulos, a mesma string aparece nas duas pontas de cada
+ * contrato — `recon.approval.decided` está nos EMITE do `recon` e nos CONSOME
+ * do `marketing`; `ap.payable.registered` está nos EMITE do `ap` e nos CONSOME
+ * deste módulo. Quem lê o arquivo inteiro não sabe de que lado está, e
+ * compararia o consumo de um com a emissão do outro sem acusar nada.
+ *
+ * É o próprio acoplamento por contrato que cria a armadilha, e ela já mordeu
+ * uma vez, no teste equivalente do Módulo 2.
+ */
+const blocoDoModulo = (() => {
+  const inserts = sql.split(/insert into core\.module_registry/);
+  const meu = inserts.find((b) => b.includes("'recon',"));
+  assert.ok(meu, 'o seed não registra o módulo recon');
+  return meu.slice(0, meu.indexOf('on conflict'));
+})();
+
+/**
+ * Extrai um bloco `'[...]'::jsonb` do bloco DESTE módulo pelo conteúdo.
+ *
+ * ⚠️ Lê o CÓDIGO, com os comentários removidos — e a distinção não é
+ * cosmética. O comentário que explica a mudança da Etapa 10 cita `'[]'` como
+ * exemplo do que a linha *era*, e a busca não-gulosa engatava naquele `'[`
+ * para fechar no `]'::jsonb` do array de verdade, capturando prosa no meio.
+ * O sintoma foi um erro de JSON, que é a sorte: se a prosa fosse sintaticamente
+ * válida, o teste compararia com o texto errado e passaria.
+ */
 function jsonBlockContaining(needle: string): unknown[] {
-  const blocks = sql.match(/'\[[\s\S]*?\]'::jsonb/g) ?? [];
+  const blocks = blocoDoModulo.replace(/--[^\n]*/g, '').match(/'\[[\s\S]*?\]'::jsonb/g) ?? [];
   const hit = blocks.find((b) => b.includes(needle));
-  assert.ok(hit, `nenhum bloco jsonb do seed contém ${needle}`);
+  assert.ok(hit, `nenhum bloco jsonb do módulo recon contém ${needle}`);
   return JSON.parse(hit.slice(1, hit.lastIndexOf("'")));
 }
 
@@ -89,6 +119,28 @@ describe('o seed transcreve o manifesto fielmente', () => {
     }
   });
 
+  /**
+   * ⭐ **A COMPARAÇÃO QUE FALTAVA — e que só passou a importar na Etapa 10.**
+   *
+   * Enquanto `consumes` era `[]` dos dois lados, não havia o que divergir e o
+   * teste não existia. Agora este campo é o que a Store usa para dizer ao
+   * cliente *"este módulo reage ao seu contas a pagar"*: se ele divergir do
+   * código, a vitrine promete uma integração que não acontece.
+   */
+  test('os eventos consumidos do seed são exatamente os do manifesto', () => {
+    const seeded = jsonBlockContaining('ap.payable.registered') as {
+      type: string;
+      version: number;
+    }[];
+    assert.deepEqual(
+      seeded.map((e) => e.type).sort(),
+      MANIFEST.events.consumes.map((e) => e.type).sort(),
+    );
+    for (const ev of MANIFEST.events.consumes) {
+      assert.equal(seeded.find((e) => e.type === ev.type)?.version, ev.version);
+    }
+  });
+
   test('⛔ o seed NÃO concede permissão de módulo — quem concede é o instalador', () => {
     // ⚠️ ESTE TESTE MUDOU DE VEREDITO NA ETAPA 9, e a mudança é o ponto.
     //
@@ -115,9 +167,26 @@ describe('o seed transcreve o manifesto fielmente', () => {
     assert.doesNotMatch(code, /insert\s+into\s+auth\.users/i, 'seed de catálogo não cria usuário');
   });
 
+  /**
+   * ⚠️ **ESTE TESTE MUDOU NA ETAPA 10, e a mudança é uma correção do teste,
+   * não um afrouxamento da regra.**
+   *
+   * Ele exigia `do nothing` em todo INSERT. A regra de verdade nunca foi
+   * "`do nothing`" — é **"reaplicar o seed não quebra e não deixa nada
+   * defasado"**, e `do nothing` era só a forma que bastava enquanto o catálogo
+   * apenas CRESCIA.
+   *
+   * Na Etapa 10 uma linha existente precisou mudar (o `recon` passou a declarar
+   * que escuta `ap.*`), e o módulo já está registrado em produção. Com
+   * `do nothing`, reaplicar o seed não faria nada e a Store exibiria o catálogo
+   * antigo para sempre — sem erro nenhum, que é o pior jeito de errar.
+   *
+   * O veredito novo cobre as duas formas de ser idempotente. O que continua
+   * proibido é o que sempre foi: **INSERT sem cláusula de conflito.**
+   */
   test('todo INSERT do seed é idempotente', () => {
     const inserts = (code.match(/insert\s+into/gi) ?? []).length;
-    const guards = (code.match(/on\s+conflict[\s\S]{0,60}?do\s+nothing/gi) ?? []).length;
+    const guards = (code.match(/on\s+conflict[\s\S]{0,60}?do\s+(nothing|update)/gi) ?? []).length;
     assert.ok(inserts > 0, 'o seed não tem INSERT nenhum');
     assert.equal(
       guards,
