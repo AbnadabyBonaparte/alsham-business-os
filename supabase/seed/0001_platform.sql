@@ -457,6 +457,82 @@ on conflict (module_id) do update set
 -- zero permissão concedida pelo seed. Quem concede é o instalador.
 
 -- =============================================================================
+-- 4.4 O MÓDULO `ar` NO CATÁLOGO DA STORE — o 5º cartão
+-- Transcrito de packages/accounts-receivable/src/manifest.ts.
+-- -----------------------------------------------------------------------------
+-- ⚠️ Mesma regra dos outros quatro: este bloco e o `MANIFEST` do pacote andam
+-- juntos, e há teste no CI que compara os dois campo a campo.
+--
+-- ⚠️ **`module_id` é `ar`, não `accounts-receivable`** — o cinto de
+-- `ar.emit_event()` confere o prefixo do evento. O pacote é
+-- `@alsham/accounts-receivable`; só o identificador é curto.
+--
+-- ⭐ **O que este cartão marca:** o Domain `finance` passa a ter DOIS módulos no
+-- catálogo (`ap` e `ar`), além do `recon`. Isso é o desenho funcionando —
+-- Domain é classificação da Taxonomia, não fronteira de módulo. A Store mostra
+-- três cartões do mesmo Domain, cada um instalável sozinho.
+--
+-- ⭐ **E `events_consumes` é VAZIO**, apesar de a integração óbvia existir: o
+-- Módulo 1 deveria casar os créditos do extrato contra o que há a receber, como
+-- já casa os débitos contra o que há a pagar. Não entra porque o motor de
+-- casamento recusa linha de crédito na primeira linha
+-- (`matching.ts`: `if (line.amountCents >= 0) return null;`) e porque
+-- `recon.reconciliation_matches` tem `payable_id NOT NULL`, sem polimorfismo.
+-- Declarar aqui faria a Store anunciar uma conciliação de recebimentos que não
+-- acontece. Ver `docs/canon/MODULO-AR-SPEC.md` §2.3.
+-- =============================================================================
+
+insert into core.module_registry (
+  module_id, name, version, summary,
+  layer, domain_key,
+  capabilities, permissions, events_emits, events_consumes, agents,
+  requires_core, status
+)
+values (
+  'ar',
+  'Contas a Receber',
+  '0.1.0',
+  'Registra o que a empresa tem a receber, com vencimento e valor, e conta ao resto da plataforma cada título que nasce, muda ou é cancelado.',
+  'domain', 'finance',
+  '[
+     {"key":"accounts-receivable","canonicalName":"Contas a receber"}
+   ]'::jsonb,
+  '[
+     {"key":"ar.receivable.manage","moduleId":"ar","description":"Registrar e editar títulos a receber."},
+     {"key":"ar.receivable.cancel","moduleId":"ar","description":"Cancelar um título a receber — a ação destrutiva deste módulo."}
+   ]'::jsonb,
+  '[
+     {"type":"ar.receivable.registered","version":1,"description":"Um título a receber foi registrado, com referência, vencimento, valor e moeda — tudo o que quem escuta precisa para existir sem nunca ter visto este módulo."},
+     {"type":"ar.receivable.updated","version":1,"description":"Mudou algo que interessa a quem escuta: valor, vencimento, quanto já entrou ou o estado."},
+     {"type":"ar.receivable.cancelled","version":1,"description":"Um título a receber foi cancelado — a ação destrutiva deste módulo. Some da operação, nunca da trilha, e nunca do banco."}
+   ]'::jsonb,
+  -- Vazio, e é Lei 7. Ver o comentário acima e a spec do módulo.
+  '[]'::jsonb,
+  '[]'::jsonb,
+  '0.0.x',
+  'published'
+)
+on conflict (module_id) do update set
+  -- Ver o comentário longo no bloco 3: catálogo é vocabulário de plataforma, e
+  -- reaplicar o seed traz a linha para a verdade do manifesto.
+  name            = excluded.name,
+  version         = excluded.version,
+  summary         = excluded.summary,
+  layer           = excluded.layer,
+  domain_key      = excluded.domain_key,
+  vertical_key    = excluded.vertical_key,
+  capabilities    = excluded.capabilities,
+  permissions     = excluded.permissions,
+  events_emits    = excluded.events_emits,
+  events_consumes = excluded.events_consumes,
+  agents          = excluded.agents,
+  requires_core   = excluded.requires_core,
+  status          = excluded.status,
+  updated_at      = now();
+
+-- ⛔ Cinco módulos no catálogo, zero permissão concedida pelo seed.
+
+-- =============================================================================
 -- 5. PLANOS-BASE
 -- Minerado de: `plan_limits` (5 planos) do kraken-v2 (PROVADO em produção).
 -- -----------------------------------------------------------------------------

@@ -208,7 +208,7 @@ botão ali só produziria uma mensagem de erro bonita.
 | Peça | Estado |
 |---|---|
 | Manifesto, tipos, validação, ciclo de vida, busca | ✅ construído, com testes |
-| Schema `crm` (`0009_crm.sql`) | ✅ **ARQUIVO, não aplicado.** Aplicar é ato do dono (runbook §9) |
+| Schema `crm` (`0009_crm.sql`) | ✅ **APLICADO em produção** em 28/07/2026, informado pelo dono — ⚠️ **NÃO VERIFICADO** por este repositório |
 | Telas: lista com busca e filtro, cadastrar, editar, arquivar | ✅ construídas |
 | Linha do tempo de interações, com registrar | ✅ construída |
 | Consumo de eventos de outros módulos | **NÃO CONSTRUÍDO**, e é Lei 7 — ver §2.2 |

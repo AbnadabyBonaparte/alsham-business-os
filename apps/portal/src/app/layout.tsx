@@ -6,9 +6,10 @@ import { PRODUCT, COMPANY } from '@alsham/config';
 
 import { PERMISSIONS as AP_PERMISSIONS } from '@alsham/accounts-payable';
 import { PERMISSIONS as CRM_PERMISSIONS } from '@alsham/crm';
+import { PERMISSIONS as AR_PERMISSIONS } from '@alsham/accounts-receivable';
 
 import { resolveSession } from '@/lib/session';
-import { getApPort, getCrmPort } from '@/lib/data';
+import { getApPort, getCrmPort, getArPort } from '@/lib/data';
 import { TenantSwitcher } from '@/components/tenant-switcher';
 
 import './globals.css';
@@ -26,6 +27,7 @@ type Rota =
   | '/campanhas'
   | '/contas-a-pagar'
   | '/relacionamentos'
+  | '/contas-a-receber'
   | '/store';
 
 /**
@@ -63,6 +65,18 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
    * carona nesta etapa acrescentaria uma consulta por item sem ninguém ter
    * pedido.
    */
+  const temContasAReceber = logado
+    ? await (async () => {
+        try {
+          const port = await getArPort();
+          const permissoes = await port.listPermissions();
+          return Object.values(AR_PERMISSIONS).some((p) => permissoes.has(p));
+        } catch {
+          return false;
+        }
+      })()
+    : false;
+
   const temRelacionamentos = logado
     ? await (async () => {
         try {
@@ -120,6 +134,9 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
                   <NavLink href="/campanhas">Campanhas</NavLink>
                   {temContasAPagar ? (
                     <NavLink href="/contas-a-pagar">Contas a pagar</NavLink>
+                  ) : null}
+                  {temContasAReceber ? (
+                    <NavLink href="/contas-a-receber">Contas a receber</NavLink>
                   ) : null}
                   {temRelacionamentos ? (
                     <NavLink href="/relacionamentos">Relacionamentos</NavLink>

@@ -8,6 +8,8 @@ import { createApMockPort } from './ap-mock';
 import { createApSupabasePort } from './ap-supabase';
 import { createCrmMockPort } from './crm-mock';
 import { createCrmSupabasePort } from './crm-supabase';
+import { createArMockPort } from './ar-mock';
+import { createArSupabasePort } from './ar-supabase';
 import { createSupabaseServerClient } from '../supabase/server';
 import { resolveSession } from '../session';
 import type { DataPort } from './port';
@@ -15,6 +17,7 @@ import type { MarketingPort } from './marketing-port';
 import type { StorePort } from './store-port';
 import type { ApPort } from './ap-port';
 import type { CrmPort } from './crm-port';
+import type { ArPort } from './ar-port';
 
 export { DataPortError } from './port';
 export type { DataPort } from './port';
@@ -22,6 +25,7 @@ export type { MarketingPort } from './marketing-port';
 export type { StorePort } from './store-port';
 export type { ApPort, PayableRow } from './ap-port';
 export type { CrmPort, PartyRow, InteractionRow } from './crm-port';
+export type { ArPort, ReceivableRow } from './ar-port';
 
 /**
  * Escolhe o adapter — e é só isto que muda entre demonstração e produção.
@@ -128,4 +132,24 @@ export async function getCrmPort(): Promise<CrmPort> {
   if (!db) return createCrmMockPort();
 
   return createCrmSupabasePort(db, session.activeTenant.id);
+}
+
+/**
+ * A porta do Módulo 5 — **quinta porta, mesmo encanamento**.
+ *
+ * ⚠️ E aqui a repetição incomoda mais do que nunca, porque esta porta é quase
+ * idêntica à do Módulo 3. Continua deliberada: uma `TitulosPort` genérica que
+ * servisse `ap` e `ar` acabaria com a fronteira — desinstalar um deixaria o
+ * outro com métodos que não respondem, e a divergência de regra entre os dois
+ * (receber a maior é permitido, pagar a maior não) não caberia numa assinatura
+ * só. Ver a nota em `getMarketingPort()` sobre a dívida do `@alsham/sdk`.
+ */
+export async function getArPort(): Promise<ArPort> {
+  const session = await resolveSession();
+  if (session.mode !== 'authenticated') return createArMockPort();
+
+  const db = await createSupabaseServerClient();
+  if (!db) return createArMockPort();
+
+  return createArSupabasePort(db, session.activeTenant.id);
 }

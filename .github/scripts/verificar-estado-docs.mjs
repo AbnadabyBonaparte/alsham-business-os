@@ -210,6 +210,19 @@ export const PECAS = [
     padrao: /(m[óo]dulo 4|packages\/crm|@alsham\/crm|relacionamentos \(crm)/i,
     onde: 'packages/crm/',
   },
+  {
+    nome: 'Módulo 5 — Contas a Receber',
+    detector: [
+      'packages/accounts-receivable/src/manifest.ts',
+      'packages/accounts-receivable/src/receivable.ts',
+      'supabase/migrations/0010_ar.sql',
+    ],
+    // "Contas a receber" aparece em linhas corretas do Domain financeiro que
+    // falam das outras 18 capacidades, e `ar` é curto demais para ser padrão.
+    // Por isso o padrão exige o NOME DA PEÇA.
+    padrao: /(m[óo]dulo 5|packages\/accounts-receivable|@alsham\/accounts-receivable|0010_ar)/i,
+    onde: 'packages/accounts-receivable/',
+  },
 ];
 
 /**
@@ -222,11 +235,11 @@ export const PECAS = [
  * convite a editá-la — e arquivo aplicado editado faz o próximo ambiente nascer
  * diferente da produção EM SILÊNCIO.
  *
- * `0009` NÃO entra: ela é, de fato, só arquivo. Aplicá-la é ato do dono
- * (runbook §9), e declará-la pendente é a verdade.
+ * `0010` NÃO entra: ela é, de fato, só arquivo. Aplicá-la é ato do dono
+ * (runbook §10), e declará-la pendente é a verdade.
  */
 export const APLICADAS = {
-  padrao: /(0001_core|0002_recon|0003_billing|0004_marketing|0005_courier_cron|0006_install|0007_ap|0008_recon_ap_projection)/i,
+  padrao: /(0001_core|0002_recon|0003_billing|0004_marketing|0005_courier_cron|0006_install|0007_ap|0008_recon_ap_projection|0009_crm)/i,
   marcador: /n[ãa]o\s+aplicad|arquivo,\s*n[ãa]o\s+aplicad/i,
 };
 
@@ -268,6 +281,7 @@ const SECOES = [
   { arquivo: 'docs/canon/MODULO-MARKETING-SPEC.md', titulo: '## 6. ESTADO DA OBRA' },
   { arquivo: 'docs/canon/MODULO-AP-SPEC.md', titulo: '## 6. ESTADO DA OBRA' },
   { arquivo: 'docs/canon/MODULO-CRM-SPEC.md', titulo: '## 6. ESTADO DA OBRA' },
+  { arquivo: 'docs/canon/MODULO-AR-SPEC.md', titulo: '## 5. ESTADO DA OBRA' },
 ];
 
 /**

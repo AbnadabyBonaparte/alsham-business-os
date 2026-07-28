@@ -67,7 +67,7 @@ Corolário do roadmap: *cada linha de código escrita para um cliente deve aumen
 
 ---
 
-## 5. ESTADO ATUAL — ETAPA 11 (O 4º CARTÃO DA STORE)
+## 5. ESTADO ATUAL — ETAPA 12 (O ESPELHO CONSCIENTE)
 
 ### 5.1 Stack — SELADA
 
@@ -128,22 +128,26 @@ Onde vai cada coisa:
 - `packages/crm` é o **Módulo 4** — Relacionamentos (CRM base): contrapartes e o histórico de contato. ⭐ **É ele que mostra o anti-viés onde ele é mais difícil:** a Taxonomia lista *WhatsApp* como capacidade do Domain, e o canal da interação é **texto livre** — congelar o instrumento de um país e de uma década numa coluna faria o produto envelhecer junto com ele. Ver `docs/canon/MODULO-CRM-SPEC.md`.
   ⚠️ **A interação é IMUTÁVEL em três camadas** (sem policy de UPDATE, sem GRANT, e um trigger que recusa até para o dono do banco). Fato consumado não se edita: corrigir é registrar outra.
   ⚠️ **O ciclo de vida dele DIFERE do `ap` de propósito:** `archived → active` existe, porque uma contraparte que volta é a MESMA pessoa e obrigá-la a nascer de novo partiria o histórico em dois. Copiar a regra do módulo anterior por consistência teria sido o erro.
+- `packages/accounts-receivable` é o **Módulo 5** — Contas a Receber. ⭐ **É o ESPELHO CONSCIENTE do Módulo 3:** cada decisão do `ap` foi re-perguntada, e a resposta está escrita no cabeçalho do `0010_ar.sql` (quadro MANTIDO × DIVERGE). Ver `docs/canon/MODULO-AR-SPEC.md`.
+  ⭐ **A divergência:** **receber a maior é PERMITIDO**, e o `ap` recusa pagar a maior. Pagar a mais é erro de quem paga, e o sistema que paga pode recusar; receber a mais é o que o pagador fez, e o dinheiro já está na conta — recusar obrigaria o operador a **mentir sobre o que entrou**. Há três guardas: teste de pacote que lê as duas migrations, teste SQL com os dois lados no mesmo banco, e guarda de CI contra as constraints aplicadas.
+  ⚠️ **`consumes` é vazio, e é decisão de canon:** a conciliação de RECEBIMENTOS exigiria mudar o motor do Módulo 1, que recusa linha de crédito (`matching.ts`: `if (line.amountCents >= 0) return null;`) e cuja tabela de casamento tem `payable_id NOT NULL`. Está declarado NÃO CONSTRUÍDO com o que falta.
+- ⭐ **Copiar sem pensar e divergir sem escrever são o mesmo erro.** Módulo novo que espelha um existente: re-pergunte cada decisão e escreva a resposta — inclusive as que se mantêm.
 - ⭐ **A origem de um fato vem SEMPRE do envelope** (`producedBy`), nunca de constante no consumidor. Com ela chumbada, um segundo produtor do mesmo formato entraria disfarçado do primeiro e a trilha mentiria sem nunca dar erro. Há guarda no CI que reprova as três formas de chumbar.
-- `apps/store` e `apps/admin` e os demais 12 pacotes continuam **só com `README.md`** — status NÃO INICIADO.
+- `apps/store` e `apps/admin` e os demais 12 pacotes continuam **só com `README.md`** — status NÃO INICIADO. (`packages/finance` segue NÃO INICIADO: os módulos financeiros nascem em pastas próprias, como manda §6.)
 - ⚠️ **O seed é a FONTE do catálogo, não só a semente dele.** Desde a Etapa 10 os blocos de `core.module_registry` são `on conflict do update`, não `do nothing`: uma linha existente precisou mudar (o `recon` passou a escutar `ap.*`) e `do nothing` deixaria a Store exibindo o catálogo antigo para sempre, sem erro nenhum. Consequência: reaplicar o seed **desfaz edição feita à mão** no catálogo. Depreciar um módulo se faz mudando o arquivo.
-- ⚠️ **Schema novo precisa ser EXPOSTO na Data API do Supabase pelo dono** (Project Settings → API → Exposed schemas). Lição paga na Etapa 9, repetida na 10 e na 11: sem isso as telas carregam vazias, sem erro que diga o motivo. Está no runbook §9.0.
-- **As migrations são provadas no CI:** `0001` → … → `0009` + seed (duas vezes) aplicam de verdade num Postgres 17 limpo e passam nos testes de isolamento com usuário real (`supabase/tests/`), a cada mudança.
+- ⚠️ **Schema novo precisa ser EXPOSTO na Data API do Supabase pelo dono** (Project Settings → API → Exposed schemas). Lição paga na Etapa 9 e repetida nas 10, 11 e 12: sem isso as telas carregam vazias, sem erro que diga o motivo. Está no runbook §10.0.
+- **As migrations são provadas no CI:** `0001` → … → `0010` + seed (duas vezes) aplicam de verdade num Postgres 17 limpo e passam nos testes de isolamento com usuário real (`supabase/tests/`), a cada mudança.
 
-#### ⛔ 5.4.1 O apply de produção já aconteceu — `0001` a `0008` estão CONGELADAS
+#### ⛔ 5.4.1 O apply de produção já aconteceu — `0001` a `0009` estão CONGELADAS
 
-O dono informou, em 27/07 e 28/07/2026, ter aplicado `0001_core.sql` até `0008_recon_ap_projection.sql` e o seed num projeto Supabase de produção, com um tenant piloto — e instalado o módulo `ap` **pela Store**, com o primeiro título real registrado e o `ap.payable.registered` emitido e entregue pelo correio. **Este repositório NÃO VERIFICOU esse apply** — nenhum agente conecta a banco remoto com dado de cliente, e o registro fica assim, literalmente, conforme §3.
+O dono informou, em 27/07 e 28/07/2026, ter aplicado `0001_core.sql` até `0009_crm.sql` e o seed num projeto Supabase de produção, com um tenant piloto — e instalado o módulo `ap` **pela Store**, com o primeiro título real registrado e o `ap.payable.registered` emitido e entregue pelo correio. **Este repositório NÃO VERIFICOU esse apply** — nenhum agente conecta a banco remoto com dado de cliente, e o registro fica assim, literalmente, conforme §3.
 
 A consequência é operacional e não é opinião:
 
-- ❌ **Não edite nenhuma migration de `0001` a `0008`.** Arquivo aplicado é história. Se estivessem só no papel, corrigir no lugar seria certo; aplicados, editar faz o próximo ambiente nascer diferente da produção **em silêncio**. Correção vira migration nova.
-- ✅ `0009_crm.sql` **ainda é só arquivo** — criado depois do apply, e a Etapa 11 foi instruída a não aplicá-lo. Aplicá-lo é ato do dono (runbook §9).
-- **`0001` a `0008` e o seed estão APLICADOS** (informado pelo dono; ⚠️ NÃO VERIFICADO aqui). `0009_crm.sql` (Etapa 11) é o único que ainda é **só arquivo**; a próxima é **`0010_*.sql`**.
-- ⚠️ **A projeção do título no `recon` ainda NÃO aconteceu em produção**, e o motivo é de **INFRAESTRUTURA, não de código**: o host do `apps/api` roda o build anterior ao consumidor novo. **Falta o redeploy, que é ato do dono** — assim que ele subir, o correio reentrega, porque a caixa de saída guardou o evento. Não é defeito deste repositório, e o teste do triângulo no CI é a prova que vale.
+- ❌ **Não edite nenhuma migration de `0001` a `0009`.** Arquivo aplicado é história. Se estivessem só no papel, corrigir no lugar seria certo; aplicados, editar faz o próximo ambiente nascer diferente da produção **em silêncio**. Correção vira migration nova.
+- ✅ `0010_ar.sql` **ainda é só arquivo** — criado depois do apply, e a Etapa 12 foi instruída a não aplicá-lo. Aplicá-lo é ato do dono (runbook §10).
+- **`0001` a `0009` e o seed estão APLICADOS** (informado pelo dono; ⚠️ NÃO VERIFICADO aqui). `0010_ar.sql` (Etapa 12) é o único que ainda é **só arquivo**; a próxima é **`0011_*.sql`**.
+- ⚠️ **PENDÊNCIAS DE INFRAESTRUTURA DO DONO — não são deste repositório, e nada aqui as conserta:** o **redeploy do `apps/api`** (sem ele a projeção do título no `recon` não acontece em produção, porque o host roda o build anterior ao consumidor; a caixa de saída guardou o evento e o correio reentrega quando subir), a **exposição do schema `crm`** na Data API, e a **instalação do `crm`** pela Store. Os testes no CI são a prova que vale.
 - ⛔ **A limpeza do runbook §7.3 FOI EXECUTADA** em 28/07/2026: a concessão global de permissão de módulo **não existe mais em produção**. O tenant piloto tem papel próprio, com as permissões concedidas por `core.install_module()` — pela Store, com o clique do dono. Nunca volte a conceder permissão de módulo no seed.
 - `packages/workflow` é **o correio do Core** — o entregador da caixa de saída: idempotência por consumidor, backoff exponencial, `dead` sem apagar. **ENGINE, não módulo** (Taxonomia §4): não aparece na Store.
 - `apps/api` é **a COMPOSIÇÃO** — o único lugar do repositório onde os módulos se conhecem. Ele importa `workflow`, `marketing`, `finance-reconciliation` e `billing`; **nenhum deles importa nenhum outro**. ⭐ Desde a Etapa 10 o mesmo pacote (`finance-reconciliation`) é PRODUTOR numa inscrição e CONSUMIDOR em outra — e continua sem conhecer ninguém. Traz a persistência real do correio (contra Postgres, com arrendamento e `skip locked`), os adaptadores dos consumidores, o endpoint protegido e a saúde da fila.
@@ -160,7 +164,7 @@ A consequência é operacional e não é opinião:
 
 ### 5.5 A LEI DO LEGO — para todo módulo, deste em diante
 
-O Módulo 1 é o padrão. Os Módulos 2, 3 e 4 obedeceram ao mesmo; o próximo também:
+O Módulo 1 é o padrão. Os Módulos 2 a 5 obedeceram ao mesmo; o próximo também:
 
 1. **Schema próprio.** Nenhum módulo cria objeto no schema `core`.
 2. **Uma porta só.** O módulo fala com o mundo por `<modulo>.emit_event()`, que escreve em `core.event_outbox`. Nada de chamada direta.
@@ -179,7 +183,7 @@ O Módulo 1 é o padrão. Os Módulos 2, 3 e 4 obedeceram ao mesmo; o próximo t
 - **A Regra de Ouro (§5.3) é verificada no CI**, não só recomendada: se o motor de domínio for redeclarado em `apps/`, ou se a tela deixar de chamá-lo, o build falha.
 - **O instalador existe** (`0006_install.sql`): quem concede permissão de módulo é `core.install_module()`, num papel **DO TENANT**. Papel de sistema é recusado — ele vale em todos os tenants e faria o módulo vazar para quem não o instalou. **Nunca volte a conceder permissão de módulo no seed.**
 - **Desinstalar não apaga dado.** Corta acesso e revoga permissão; o que o módulo gravou continua no banco. Há teste no CI.
-- **Entregou peça? Atualize a linha dela** em `CORE-SPEC §5`, `MODULO-RECON-SPEC §7`, `MODULO-MARKETING-SPEC §6`, `MODULO-AP-SPEC §6` e `MODULO-CRM-SPEC §6` — são a fonte de estado, e o CI (`pnpm verificar:docs`) falha se um documento declarar **NÃO CONSTRUÍDO** algo que já existe no disco. Negar o que existe é a Lei 7 com o sinal trocado, e é o erro mais fácil de cometer: não exige escrever nada, basta não apagar.
+- **Entregou peça? Atualize a linha dela** em `CORE-SPEC §5`, `MODULO-RECON-SPEC §7`, `MODULO-MARKETING-SPEC §6`, `MODULO-AP-SPEC §6`, `MODULO-CRM-SPEC §6` e `MODULO-AR-SPEC §5` — são a fonte de estado, e o CI (`pnpm verificar:docs`) falha se um documento declarar **NÃO CONSTRUÍDO** algo que já existe no disco. Negar o que existe é a Lei 7 com o sinal trocado, e é o erro mais fácil de cometer: não exige escrever nada, basta não apagar.
 
 ---
 
@@ -188,21 +192,21 @@ O Módulo 1 é o padrão. Os Módulos 2, 3 e 4 obedeceram ao mesmo; o próximo t
 ```
 docs/canon/            taxonomia · roadmap · core-spec · identidade-visual
                        · modulo-recon-spec · modulo-marketing-spec
-                       · modulo-ap-spec · modulo-crm-spec
+                       · modulo-ap-spec · modulo-crm-spec · modulo-ar-spec
                                                         — leitura obrigatória
 docs/balancos/         tecnologia + supabase            — de onde minerar
 docs/historico/        catálogo anterior                — memória, não canon
-supabase/migrations/   0001_core … 0008_recon_ap_projection
-                                                        — APLICADAS, não editar
-                       0009_crm               — arquivo; aplicar é ato do dono
+supabase/migrations/   0001_core … 0009_crm            — APLICADAS, não editar
+                       0010_ar                — arquivo; aplicar é ato do dono
 supabase/seed/         0001_platform.sql                — catálogo, idempotente; zero tenant
 supabase/tests/        shim · isolamento · uso · consumo entre módulos
-                       · instalador · triângulo · relacionamentos
+                       · instalador · triângulo · relacionamentos · a receber
                                                         — só CI; NUNCA no Supabase real
 docs/runbook/          APLICAR.md                       — o passo a passo do dono
 .github/scripts/       guarda de defasagem de documento — encanamento de CI
 apps/                  portal (login + 4 telas do Módulo 1 + campanhas
-                              + Store + contas a pagar + relacionamentos)
+                              + Store + contas a pagar + relacionamentos
+                              + contas a receber)
                        api    — A COMPOSIÇÃO; roda com service_role
                        admin · store — só README
 packages/              core auth organizations workflow billing
@@ -213,6 +217,7 @@ packages/              core auth organizations workflow billing
                        marketing                        — Módulo 2 (prova o Lego)
                        accounts-payable                 — Módulo 3 (fecha o triângulo)
                        crm                              — Módulo 4 (anti-viés difícil)
+                       accounts-receivable              — Módulo 5 (espelho consciente)
                        workflow (o correio) · billing (uso) — Engines do Core
 ```
 
