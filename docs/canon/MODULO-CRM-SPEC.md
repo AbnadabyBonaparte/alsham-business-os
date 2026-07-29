@@ -236,11 +236,12 @@ envia mensagem nenhuma**. Ele registra que o contato aconteceu. Integrar canal �
   serão 20. Uma lista escrita à mão é uma lista que um dia esquece um par — e
   justamente o par novo. Acrescentar um módulo agora é acrescentar **uma linha**
   ao mapa de schemas.
-- **A dívida do N+1 na tela** está registrada no código: a página carrega o
-  histórico de cada contraparte numa consulta por contraparte. Vale enquanto a
-  carteira é pequena, e o teto de 500 da porta é o que a mantém pequena. Quando
-  doer, o conserto é uma consulta agrupada **na porta** — não um `fetch` no
-  cliente, que exigiria expor outra rota e outra checagem de permissão.
+- ✅ **A dívida do N+1 na tela FOI PAGA** (Etapa 15), e do jeito que esta seção
+  previa: uma consulta agrupada **na porta** — `loadInteractionsFor()` traz o
+  histórico de todas as contrapartes de uma vez —, nunca um `fetch` no cliente,
+  que exigiria expor outra rota e outra checagem de permissão.
+  ⚠️ O teto de 2000 é **do conjunto, não por contraparte**: com 500
+  contrapartes na porta, um teto por contraparte seria um teto que não existe.
 - A integração `ap → crm` é a primeira candidata natural a consumo, e está
   descrita em §2.2 com o que falta decidir antes.
 

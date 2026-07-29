@@ -1129,7 +1129,13 @@ jobs:
             || { echo "::error::o consumidor deixou de ler a procedência do envelope"; FALHOU=1; }
 
           [ "$FALHOU" = "0" ] || exit 1
-          echo "Lego intacto: cinco módulos, zero dependência entre eles."
+          # ⚠️ O número sai da própria lista, não de uma constante escrita à
+          # mão. A frase dizia "cinco módulos" desde a Etapa 12 e continuou
+          # dizendo depois que a matriz aprendeu o `po` e o `ops` — uma guarda
+          # correta relatando um número errado, que é o jeito mais fácil de
+          # alguém acreditar que a cobertura parou de crescer.
+          N=$(echo $MODULOS | wc -w)
+          echo "Lego intacto: $N módulos, $(( N * (N - 1) )) pares conferidos nos dois sentidos, zero dependência entre eles."
 
       # ⛔⛔ A FRONTEIRA DA CHAVE-MÃE (Etapa 8).
       #
