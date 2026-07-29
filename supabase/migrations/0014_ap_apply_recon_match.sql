@@ -100,11 +100,9 @@ begin
     return 'ignored-missing';
   end if;
 
-  -- ⭐ DIVERGÊNCIA DO AR: pagar a maior é recusado (payables_no_overpay).
-  if v_pay.settled_amount_cents + p_matched_amount_cents > v_pay.amount_cents then
-    return 'ignored-overpay';
-  end if;
-
+  -- Idempotência ANTES do overpay: reentrega do mesmo match_id não é
+  -- "pagar a maior" — o título já reflete esta baixa. Conferir overpay
+  -- primeiro devolvia ignored-overpay e mentia sobre a reentrega.
   insert into ap.recon_settlements (
     tenant_id, match_id, external_ref, matched_amount_cents,
     currency, decision, source_module_id
@@ -126,6 +124,12 @@ begin
 
   if v_pay.currency is distinct from p_currency then
     return 'ignored-currency';
+  end if;
+
+  -- ⭐ DIVERGÊNCIA DO AR: pagar a maior é recusado (payables_no_overpay).
+  -- Só para match NOVO — depois da carimba de idempotência.
+  if v_pay.settled_amount_cents + p_matched_amount_cents > v_pay.amount_cents then
+    return 'ignored-overpay';
   end if;
 
   v_new_set := v_pay.settled_amount_cents + p_matched_amount_cents;
