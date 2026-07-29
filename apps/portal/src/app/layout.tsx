@@ -7,9 +7,10 @@ import { PRODUCT, COMPANY } from '@alsham/config';
 import { PERMISSIONS as AP_PERMISSIONS } from '@alsham/accounts-payable';
 import { PERMISSIONS as CRM_PERMISSIONS } from '@alsham/crm';
 import { PERMISSIONS as AR_PERMISSIONS } from '@alsham/accounts-receivable';
+import { PERMISSIONS as PO_PERMISSIONS } from '@alsham/purchase-orders';
 
 import { resolveSession } from '@/lib/session';
-import { getApPort, getCrmPort, getArPort } from '@/lib/data';
+import { getApPort, getCrmPort, getArPort, getPoPort } from '@/lib/data';
 import { TenantSwitcher } from '@/components/tenant-switcher';
 
 import './globals.css';
@@ -28,6 +29,7 @@ type Rota =
   | '/contas-a-pagar'
   | '/relacionamentos'
   | '/contas-a-receber'
+  | '/compras'
   | '/store';
 
 /**
@@ -108,6 +110,18 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
       })()
     : false;
 
+  const temCompras = logado
+    ? await (async () => {
+        try {
+          const port = await getPoPort();
+          const permissoes = await port.listPermissions();
+          return Object.values(PO_PERMISSIONS).some((p) => permissoes.has(p));
+        } catch {
+          return false;
+        }
+      })()
+    : false;
+
   return (
     <html lang="pt-BR">
       <body className="min-h-screen bg-bos-bg text-bos-text">
@@ -138,6 +152,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
                   {temContasAReceber ? (
                     <NavLink href="/contas-a-receber">Contas a receber</NavLink>
                   ) : null}
+                  {temCompras ? <NavLink href="/compras">Compras</NavLink> : null}
                   {temRelacionamentos ? (
                     <NavLink href="/relacionamentos">Relacionamentos</NavLink>
                   ) : null}

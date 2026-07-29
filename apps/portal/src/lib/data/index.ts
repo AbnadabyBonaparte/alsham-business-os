@@ -10,6 +10,8 @@ import { createCrmMockPort } from './crm-mock';
 import { createCrmSupabasePort } from './crm-supabase';
 import { createArMockPort } from './ar-mock';
 import { createArSupabasePort } from './ar-supabase';
+import { createPoMockPort } from './po-mock';
+import { createPoSupabasePort } from './po-supabase';
 import { createSupabaseServerClient } from '../supabase/server';
 import { resolveSession } from '../session';
 import type { DataPort } from './port';
@@ -18,6 +20,7 @@ import type { StorePort } from './store-port';
 import type { ApPort } from './ap-port';
 import type { CrmPort } from './crm-port';
 import type { ArPort } from './ar-port';
+import type { PoPort } from './po-port';
 
 export { DataPortError } from './port';
 export type { DataPort } from './port';
@@ -26,6 +29,7 @@ export type { StorePort } from './store-port';
 export type { ApPort, PayableRow } from './ap-port';
 export type { CrmPort, PartyRow, InteractionRow } from './crm-port';
 export type { ArPort, ReceivableRow } from './ar-port';
+export type { PoPort, OrderRow } from './po-port';
 
 /**
  * Escolhe o adapter — e é só isto que muda entre demonstração e produção.
@@ -152,4 +156,19 @@ export async function getArPort(): Promise<ArPort> {
   if (!db) return createArMockPort();
 
   return createArSupabasePort(db, session.activeTenant.id);
+}
+
+/**
+ * A porta do Módulo 6 — **sexta porta, mesmo encanamento**.
+ *
+ * Porta própria: desinstalar Compras não pode deixar método órfão em outra porta.
+ */
+export async function getPoPort(): Promise<PoPort> {
+  const session = await resolveSession();
+  if (session.mode !== 'authenticated') return createPoMockPort();
+
+  const db = await createSupabaseServerClient();
+  if (!db) return createPoMockPort();
+
+  return createPoSupabasePort(db, session.activeTenant.id);
 }

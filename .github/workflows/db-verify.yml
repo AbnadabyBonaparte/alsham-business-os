@@ -132,6 +132,9 @@ jobs:
       - name: aplicar 0014_ap_apply_recon_match.sql
         run: $PSQL -f supabase/migrations/0014_ap_apply_recon_match.sql
 
+      - name: aplicar 0017_po.sql
+        run: $PSQL -f supabase/migrations/0017_po.sql
+
       # ---------------------------------------------------------------------
       # 2. SEED — e a prova de que reaplicar não muda nada
       # ---------------------------------------------------------------------
@@ -159,12 +162,12 @@ jobs:
           FALTA=$($PSQL -tAc "
             select coalesce(string_agg(n.nspname||'.'||c.relname, ', '), '')
               from pg_class c join pg_namespace n on n.oid = c.relnamespace
-             where n.nspname in ('core','recon','marketing','ap','crm','ar') and c.relkind = 'r'
+             where n.nspname in ('core','recon','marketing','ap','crm','ar','po') and c.relkind = 'r'
                and (not c.relrowsecurity or not c.relforcerowsecurity);")
           [ -z "$FALTA" ] || { echo "::error::sem RLS enable+force: $FALTA"; exit 1; }
           $PSQL -c "select n.nspname as schema, count(*) as tabelas
                       from pg_class c join pg_namespace n on n.oid=c.relnamespace
-                     where n.nspname in ('core','recon','marketing','ap','crm','ar') and c.relkind='r'
+                     where n.nspname in ('core','recon','marketing','ap','crm','ar','po') and c.relkind='r'
                      group by 1 order by 1;"
 
       - name: nenhuma policy USING (true)
@@ -174,7 +177,7 @@ jobs:
               from pg_policy p
               join pg_class c on c.oid = p.polrelid
               join pg_namespace n on n.oid = c.relnamespace
-             where n.nspname in ('core','recon','marketing','ap','crm','ar')
+             where n.nspname in ('core','recon','marketing','ap','crm','ar','po')
                and pg_get_expr(p.polqual, p.polrelid) = 'true';")
           [ -z "$ABERTAS" ] || { echo "::error::policy aberta (lição paga do suna-core): $ABERTAS"; exit 1; }
 
@@ -185,7 +188,7 @@ jobs:
                              where n.nspname='public' and c.relkind='r';")
           [ "$PUB" = "0" ] || { echo "::error::$PUB tabela(s) em public — expostas via API"; exit 1; }
           ANON=$($PSQL -tAc "select count(*) from information_schema.role_table_grants
-                              where grantee='anon' and table_schema in ('core','recon','marketing','ap','crm','ar');")
+                              where grantee='anon' and table_schema in ('core','recon','marketing','ap','crm','ar','po');")
           [ "$ANON" = "0" ] || { echo "::error::anon tem $ANON grant(s) no Business OS"; exit 1; }
 
       - name: o seed não semeou tenant nem usuário
@@ -271,6 +274,9 @@ jobs:
       - name: teste ciclo fechado (recon confirma → ap liquida)
         run: $PSQL -f supabase/tests/10_ap_recon_settlement.sql
 
+      - name: teste do Módulo 6 (pedidos — isolamento, itens, permissões)
+        run: $PSQL -f supabase/tests/11_po_isolation.sql
+
       # ⛔ CANCELAR É ESTADO, NUNCA DELETE — conferido no banco aplicado.
       - name: nenhuma porta de DELETE em ar.receivables
         run: |
@@ -311,7 +317,8 @@ jobs:
             echo "::error::o ar ganhou uma constraint de não receber a maior — ver 0010_ar.sql §2.1"; exit 1; }
           echo "espelho intacto: o ap recusa pagar a maior, o ar aceita receber a maior."
 
-      # ⭐ O CATÁLOGO TEM CINCO CARTÕES — e o quinto AGORA consome a baixa.
+      # ⭐ O CATÁLOGO TEM SEIS CARTÕES — o quinto consome a baixa; o sexto (po)
+      # nasce com consumes vazio (protocolo paralelo / Lei 7).
       #
       # Lei 7: só declara consumo com handler. O ciclo fechou (`0012`/`0013` +
       # recon-settlement.ts): AR escuta `recon.match.decided`. Esta guarda
@@ -329,6 +336,15 @@ jobs:
             echo "::error::consumo do ar é '$T' — esperado recon.match.decided"
             exit 1; }
           echo "ciclo fechado no catálogo: ar consome recon.match.decided."
+
+      - name: o sexto cartão (po) tem consumes vazio
+        run: |
+          C=$($PSQL -tAc "select jsonb_array_length(events_consumes)
+                            from core.module_registry where module_id='po';")
+          [ "$C" = "0" ] || {
+            echo "::error::o módulo po declara $C consumo(s) — esperado 0 (protocolo paralelo)"
+            exit 1; }
+          echo "po no catálogo com consumes vazio."
 
       # ⛔ A INTERAÇÃO É IMUTÁVEL, CONFERIDA NO BANCO APLICADO.
       #
@@ -396,8 +412,8 @@ jobs:
           # Só apareceu porque os números foram conferidos contra o banco.
           N=$($PSQL -tAc "select count(*) from core.module_registry
                            where status='published'
-                             and module_id in ('recon','marketing','ap','crm','ar');")
-          [ "$N" = "5" ] || { echo "::error::o catálogo tem $N dos 5 módulos reais publicados"; exit 1; }
+                             and module_id in ('recon','marketing','ap','crm','ar','po');")
+          [ "$N" = "6" ] || { echo "::error::o catálogo tem $N dos 6 módulos reais publicados"; exit 1; }
           C=$($PSQL -tAc "select jsonb_array_length(events_consumes)
                             from core.module_registry where module_id='crm';")
           [ "$C" = "0" ] || {
@@ -432,6 +448,20 @@ jobs:
                             where n.nspname='ap' and p.polcmd='d';")
           [ "$P" = "0" ] || { echo "::error::apareceu policy de DELETE em ap"; exit 1; }
           echo "ap.payables continua sem porta de DELETE."
+
+      - name: nenhuma porta de DELETE em po.orders
+        run: |
+          G=$($PSQL -tAc "select count(*) from information_schema.role_table_grants
+                            where table_schema='po' and table_name='orders'
+                              and privilege_type='DELETE'
+                              and grantee in ('anon','authenticated','PUBLIC');")
+          [ "$G" = "0" ] || { echo "::error::alguém concedeu DELETE em po.orders — cancelar é status"; exit 1; }
+          P=$($PSQL -tAc "select count(*) from pg_policy p
+                             join pg_class c on c.oid=p.polrelid
+                             join pg_namespace n on n.oid=c.relnamespace
+                            where n.nspname='po' and c.relname='orders' and p.polcmd='d';")
+          [ "$P" = "0" ] || { echo "::error::apareceu policy de DELETE em po.orders"; exit 1; }
+          echo "po.orders continua sem porta de DELETE."
 
       # ⛔ O SEED NÃO CONCEDE PERMISSÃO DE MÓDULO.
       #
@@ -540,6 +570,7 @@ jobs:
           $PSQL -q -f supabase/migrations/0012_recon_match_decided.sql
           $PSQL -q -f supabase/migrations/0013_ar_apply_recon_match.sql
           $PSQL -q -f supabase/migrations/0014_ap_apply_recon_match.sql
+          $PSQL -q -f supabase/migrations/0017_po.sql
           $PSQL -q -f supabase/seed/0001_platform.sql
 
       # ⚠️ Sem `DATABASE_URL` os testes do store se PULAM — de propósito, para
@@ -758,6 +789,23 @@ jobs:
             echo "$SALDO"; exit 1
           fi
 
+          # Módulo 6: ciclo de vida, soma de itens e validação são DECISÃO.
+          # Formulário com linhas dinâmicas não autoriza recalcular total na pele.
+          if grep -rInE 'function (validateNewOrder|statusForReceipt|sumItems|lineTotalCents|canSubmit|canReceive|nextStatuses)' \
+               apps --include='*.ts' --include='*.tsx'; then
+            echo "::error::o domínio de compras/pedidos foi redeclarado em apps/"; exit 1
+          fi
+          PO=$(grep -Ev '^\s*(\*|//|/\*)' apps/portal/src/app/po-actions.ts)
+          for FN in validateNewOrder canTransition canCancel canSubmit canReceive; do
+            echo "$PO" | grep -Eq "\b$FN\(" \
+              || { echo "::error::a ação de compras deixou de chamar $FN() do pacote"; exit 1; }
+          done
+          OLISTA=$(grep -Ev '^\s*(\*|//|/\*)' apps/portal/src/components/order-list.tsx)
+          for FN in canCancel canSubmit canReceive; do
+            echo "$OLISTA" | grep -Eq "\b$FN\(" \
+              || { echo "::error::a lista de pedidos deixou de usar $FN() do pacote"; exit 1; }
+          done
+
       # ⭐⭐ A LEI DO LEGO, VERIFICADA (CLAUDE.md §5.5, regras 3 e 5).
       #
       # A Etapa 7 pôs dois módulos conversando. A tese inteira da plataforma é
@@ -770,7 +818,7 @@ jobs:
       - name: módulo não conhece módulo
         run: |
           FALHOU=0
-          MODULOS="finance-reconciliation marketing accounts-payable crm accounts-receivable"
+          MODULOS="finance-reconciliation marketing accounts-payable crm accounts-receivable purchase-orders"
 
           # 1. Nenhum módulo importa outro módulo, em nenhuma forma.
           for MOD in $MODULOS; do
@@ -788,7 +836,7 @@ jobs:
           #    `devDependencies` de teste também não vale — se o teste precisa
           #    do outro módulo, o acoplamento é real.
           for MOD in $MODULOS; do
-            if grep -qE '"@alsham/(finance-reconciliation|marketing|accounts-payable|crm|accounts-receivable)"' \
+            if grep -qE '"@alsham/(finance-reconciliation|marketing|accounts-payable|crm|accounts-receivable|purchase-orders)"' \
                  <(grep -v "\"@alsham/$MOD\"" "packages/$MOD/package.json"); then
               echo "::error::packages/$MOD declara outro módulo como dependência"
               FALHOU=1
@@ -819,6 +867,7 @@ jobs:
             [0007_ap.sql]=ap
             [0009_crm.sql]=crm
             [0010_ar.sql]=ar
+            [0017_po.sql]=po
           )
           for ARQUIVO in "${!SCHEMA_DE[@]}"; do
             DONO="${SCHEMA_DE[$ARQUIVO]}"
