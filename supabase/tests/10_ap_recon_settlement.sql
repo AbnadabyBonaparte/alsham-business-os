@@ -1,7 +1,8 @@
 -- =============================================================================
 -- CICLO FECHADO (DÉBITO) — recon confirma match → AP liquida o título
 -- =============================================================================
--- Roda depois de 05_ap_triangle.sql (DOC-TRI-0001 no ap e em recon.payables).
+-- Autossuficiente: NÃO reusa DOC-TRI-0001 do 05 (esse título é cancelado no
+-- cenário 6). Cria título, projeção, extrato, match e liquida.
 -- =============================================================================
 
 \set ON_ERROR_STOP on
@@ -16,7 +17,7 @@ end;
 $$;
 
 \echo ''
-\echo '=== CENÁRIO 1: confirmar match de débito emite e AP liquida ==='
+\echo '=== MONTAGEM: título AP fresco + projeção + extrato ==='
 
 do $$
 declare
@@ -30,33 +31,48 @@ declare
   v_status   text;
   v_settled  bigint;
 begin
+  set local role authenticated;
+  set local request.jwt.claim.sub = '11111111-1111-4111-8111-111111111111';
+
+  insert into ap.payables
+    (tenant_id, external_ref, due_date, amount_cents, currency, supplier_name, description)
+  values
+    ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', 'DOC-AP-SETTLE-0001', '2026-10-15',
+     88000, 'BRL', 'Fornecedor Settle', 'ciclo débito');
+
+  reset role;
+
+  select recon.record_external_payable(
+    'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', 'ap', 'DOC-AP-SETTLE-0001',
+    '2026-10-15', 88000, 'BRL', 'open', 0, 'Fornecedor Settle', null, 'ciclo débito'
+  ) into v_efeito;
+  perform pg_temp.assert10(v_efeito = 'created', 'projeção criada');
+
   select id into v_pay_id from recon.payables
    where tenant_id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
-     and external_ref = 'DOC-TRI-0001';
-
-  perform pg_temp.assert10(v_pay_id is not null, 'projeção DOC-TRI-0001 existe');
+     and external_ref = 'DOC-AP-SETTLE-0001';
 
   insert into recon.bank_statements (
     id, tenant_id, account_ref, source_format, content_hash,
     period_start, period_end, currency, status
   ) values (
     gen_random_uuid(), 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
-    'conta-ap', 'manual', 'hash-ap-settlement-001',
-    '2026-09-01', '2026-09-30', 'BRL', 'imported'
+    'conta-ap-settle', 'manual', 'hash-ap-settlement-001',
+    '2026-10-01', '2026-10-31', 'BRL', 'imported'
   ) returning id into v_stmt_id;
 
   insert into recon.statement_lines (
     id, tenant_id, statement_id, line_no, posted_at, amount_cents, currency, description, status
   ) values (
     gen_random_uuid(), 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', v_stmt_id,
-    1, '2026-09-10', -150000, 'BRL', 'PAG DOC-TRI-0001', 'unmatched'
+    1, '2026-10-15', -88000, 'BRL', 'PAG DOC-AP-SETTLE-0001', 'unmatched'
   ) returning id into v_line_id;
 
   insert into recon.reconciliation_matches (
     tenant_id, statement_line_id, payable_id, matched_amount_cents,
     score, origin, strategy, status, decided_at
   ) values (
-    'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', v_line_id, v_pay_id, 150000,
+    'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', v_line_id, v_pay_id, 88000,
     0.9500, 'auto', 'amount+date+reference', 'confirmed', now()
   ) returning id into v_match_id;
 
@@ -64,7 +80,7 @@ begin
     from core.event_outbox
    where tenant_id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
      and event_type = 'recon.match.decided'
-     and payload->>'externalRef' = 'DOC-TRI-0001'
+     and payload->>'externalRef' = 'DOC-AP-SETTLE-0001'
    order by created_at desc
    limit 1;
 
@@ -88,10 +104,10 @@ begin
   select status, settled_amount_cents into v_status, v_settled
     from ap.payables
    where tenant_id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
-     and external_ref = 'DOC-TRI-0001';
+     and external_ref = 'DOC-AP-SETTLE-0001';
 
   perform pg_temp.assert10(v_status = 'settled', 'título AP ficou settled');
-  perform pg_temp.assert10(v_settled = 150000, 'settled_amount = 150000');
+  perform pg_temp.assert10(v_settled = 88000, 'settled_amount = 88000');
 end;
 $$;
 
@@ -105,23 +121,23 @@ begin
     'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', 'recon',
     (select (payload->>'matchId')::uuid from core.event_outbox
       where event_type = 'recon.match.decided'
-        and payload->>'externalRef' = 'DOC-TRI-0001'
+        and payload->>'externalRef' = 'DOC-AP-SETTLE-0001'
       order by created_at desc limit 1),
-    'DOC-TRI-0001', 150000, 'BRL', 'confirmed', 'payable'
+    'DOC-AP-SETTLE-0001', 88000, 'BRL', 'confirmed', 'payable'
   ) into v_efeito;
   perform pg_temp.assert10(v_efeito = 'unchanged', 'reentrega = unchanged');
 
   select ap.apply_recon_match(
     'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', 'recon',
     '77777777-7777-4777-8777-777777777777',
-    'DOC-TRI-0001', 1, 'BRL', 'confirmed', 'payable'
+    'DOC-AP-SETTLE-0001', 1, 'BRL', 'confirmed', 'payable'
   ) into v_efeito;
   perform pg_temp.assert10(v_efeito = 'ignored-overpay', 'overpay recusado');
 
   select settled_amount_cents into v_settled from ap.payables
    where tenant_id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
-     and external_ref = 'DOC-TRI-0001';
-  perform pg_temp.assert10(v_settled = 150000, 'overpay não alterou settled');
+     and external_ref = 'DOC-AP-SETTLE-0001';
+  perform pg_temp.assert10(v_settled = 88000, 'overpay não alterou settled');
 end;
 $$;
 
