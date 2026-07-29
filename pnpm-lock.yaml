@@ -81,6 +81,9 @@ importers:
       '@alsham/deals':
         specifier: workspace:*
         version: link:../../packages/deals
+      '@alsham/event-management':
+        specifier: workspace:*
+        version: link:../../packages/event-management
       '@alsham/finance-reconciliation':
         specifier: workspace:*
         version: link:../../packages/finance-reconciliation
@@ -218,6 +221,19 @@ importers:
         version: 5.9.3
 
   packages/deals:
+    dependencies:
+      '@alsham/core':
+        specifier: workspace:*
+        version: link:../core
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.2
+        version: 22.20.1
+      typescript:
+        specifier: ^5.7.2
+        version: 5.9.3
+
+  packages/event-management:
     dependencies:
       '@alsham/core':
         specifier: workspace:*

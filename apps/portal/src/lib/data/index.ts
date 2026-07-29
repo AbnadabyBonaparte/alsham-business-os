@@ -26,6 +26,8 @@ import { createQuoteMockPort } from './quote-mock';
 import { createQuoteSupabasePort } from './quote-supabase';
 import { createDealMockPort } from './deal-mock';
 import { createDealSupabasePort } from './deal-supabase';
+import { createEvtMockPort } from './evt-mock';
+import { createEvtSupabasePort } from './evt-supabase';
 import { createSupabaseServerClient } from '../supabase/server';
 import { resolveSession } from '../session';
 import type { DataPort } from './port';
@@ -38,6 +40,7 @@ import type { PoPort } from './po-port';
 import type { InvPort } from './inv-port';
 import type { QuotePort } from './quote-port';
 import type { DealPort } from './deal-port';
+import type { EvtPort } from './evt-port';
 import type { OpsPort } from './ops-port';
 import type { ForgePort } from './forge-port';
 import type { BrandPort } from './brand-port';
@@ -55,6 +58,7 @@ export type { PoPort, OrderRow } from './po-port';
 export type { InvPort, ItemRow, MovementRow } from './inv-port';
 export type { QuotePort, ProposalRow } from './quote-port';
 export type { DealPort, FunnelWithStages, OpportunityRow } from './deal-port';
+export type { EvtPort, EventRow, RegistrationRow } from './evt-port';
 export type { OpsPort, PipelineWithStages } from './ops-port';
 export type { ForgePort, GenerationResponse } from './forge-port';
 export type { BrandPort } from './brand-port';
@@ -260,6 +264,19 @@ export async function getDealPort(): Promise<DealPort> {
   if (!db) return createDealMockPort();
 
   return createDealSupabasePort(db, session.activeTenant.id);
+}
+
+/**
+ * A porta do Módulo 11 — **décima primeira porta, mesmo encanamento**.
+ */
+export async function getEvtPort(): Promise<EvtPort> {
+  const session = await resolveSession();
+  if (session.mode !== 'authenticated') return createEvtMockPort();
+
+  const db = await createSupabaseServerClient();
+  if (!db) return createEvtMockPort();
+
+  return createEvtSupabasePort(db, session.activeTenant.id);
 }
 
 /**

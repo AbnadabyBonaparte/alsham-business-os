@@ -183,6 +183,12 @@ jobs:
       - name: aplicar 0025_deal.sql
         run: $PSQL -f supabase/migrations/0025_deal.sql
 
+      # ⭐ O Módulo 11: o evento UNIVERSAL (Domain marketing) — a lista abre
+      # ao publicar, a lotação recusa claro, a presença carimba quem/quando.
+      # Nada do ofício do vertical (ingresso, QR, line-up) — há guarda.
+      - name: aplicar 0026_evt.sql
+        run: $PSQL -f supabase/migrations/0026_evt.sql
+
       # ---------------------------------------------------------------------
       # 2. SEED — e a prova de que reaplicar não muda nada
       # ---------------------------------------------------------------------
@@ -210,12 +216,12 @@ jobs:
           FALTA=$($PSQL -tAc "
             select coalesce(string_agg(n.nspname||'.'||c.relname, ', '), '')
               from pg_class c join pg_namespace n on n.oid = c.relnamespace
-             where n.nspname in ('core','recon','marketing','ap','crm','ar','po','ops','inv','quote','deal') and c.relkind = 'r'
+             where n.nspname in ('core','recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt') and c.relkind = 'r'
                and (not c.relrowsecurity or not c.relforcerowsecurity);")
           [ -z "$FALTA" ] || { echo "::error::sem RLS enable+force: $FALTA"; exit 1; }
           $PSQL -c "select n.nspname as schema, count(*) as tabelas
                       from pg_class c join pg_namespace n on n.oid=c.relnamespace
-                     where n.nspname in ('core','recon','marketing','ap','crm','ar','po','ops','inv','quote','deal') and c.relkind='r'
+                     where n.nspname in ('core','recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt') and c.relkind='r'
                      group by 1 order by 1;"
 
       - name: nenhuma policy USING (true)
@@ -225,7 +231,7 @@ jobs:
               from pg_policy p
               join pg_class c on c.oid = p.polrelid
               join pg_namespace n on n.oid = c.relnamespace
-             where n.nspname in ('core','recon','marketing','ap','crm','ar','po','ops','inv','quote','deal')
+             where n.nspname in ('core','recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt')
                and pg_get_expr(p.polqual, p.polrelid) = 'true';")
           [ -z "$ABERTAS" ] || { echo "::error::policy aberta (lição paga do suna-core): $ABERTAS"; exit 1; }
 
@@ -236,7 +242,7 @@ jobs:
                              where n.nspname='public' and c.relkind='r';")
           [ "$PUB" = "0" ] || { echo "::error::$PUB tabela(s) em public — expostas via API"; exit 1; }
           ANON=$($PSQL -tAc "select count(*) from information_schema.role_table_grants
-                              where grantee='anon' and table_schema in ('core','recon','marketing','ap','crm','ar','po','ops','inv','quote','deal');")
+                              where grantee='anon' and table_schema in ('core','recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt');")
           [ "$ANON" = "0" ] || { echo "::error::anon tem $ANON grant(s) no Business OS"; exit 1; }
 
       - name: o seed não semeou tenant nem usuário
@@ -504,6 +510,46 @@ jobs:
             exit 1; }
           echo "deal no catálogo com consumes vazio."
 
+      # ⭐⭐ A PROVA DO MÓDULO 11: a lista honesta e a presença carimbada.
+      - name: teste do Módulo 11 (lista publicada, lotação clara, presença)
+        run: $PSQL -f supabase/tests/16_evt_isolation.sql
+
+      # ⛔ O OFÍCIO DO VERTICAL NÃO ENTROU — conferido no banco aplicado.
+      # O perigo da pedreira events-os é importar promessa: cada engine de lá
+      # é tentação de virar coluna aqui.
+      - name: o evento universal não virou o vertical
+        run: |
+          C=$($PSQL -tAc "select count(*) from information_schema.columns
+                           where table_schema='evt'
+                             and (column_name ~* 'ticket|price|qr|sponsor|lineup|badge'
+                                  or column_name in ('email','phone'));")
+          [ "$C" = "0" ] || { echo "::error::o schema evt ganhou coluna do ofício do vertical (ou canal congelado)"; exit 1; }
+          T=$($PSQL -tAc "select coalesce(string_agg(t.typname, ','), '')
+                            from pg_type t join pg_namespace n on n.oid=t.typnamespace
+                           where n.nspname='evt' and t.typtype='e';")
+          [ -z "$T" ] || { echo "::error::nasceram tipos enumerados em evt: $T"; exit 1; }
+
+      - name: nenhuma porta de DELETE em evt
+        run: |
+          G=$($PSQL -tAc "select count(*) from information_schema.role_table_grants
+                            where table_schema='evt' and privilege_type='DELETE'
+                              and grantee in ('anon','authenticated','PUBLIC');")
+          [ "$G" = "0" ] || { echo "::error::alguém concedeu DELETE em evt ao cliente — cancelar é status"; exit 1; }
+          P=$($PSQL -tAc "select count(*) from pg_policy p
+                            join pg_class c on c.oid=p.polrelid
+                            join pg_namespace n on n.oid=c.relnamespace
+                           where n.nspname='evt' and p.polcmd='d';")
+          [ "$P" = "0" ] || { echo "::error::apareceu policy de DELETE em evt"; exit 1; }
+
+      - name: o décimo primeiro cartão (evt) tem consumes vazio
+        run: |
+          C=$($PSQL -tAc "select jsonb_array_length(events_consumes)
+                            from core.module_registry where module_id='evt';")
+          [ "$C" = "0" ] || {
+            echo "::error::o módulo evt declara $C consumo(s) — sem handler, sem promessa (Lei 7)"
+            exit 1; }
+          echo "evt no catálogo com consumes vazio."
+
       - name: nenhuma porta de DELETE em quote.proposals
         run: |
           G=$($PSQL -tAc "select count(*) from information_schema.role_table_grants
@@ -692,8 +738,8 @@ jobs:
           # Só apareceu porque os números foram conferidos contra o banco.
           N=$($PSQL -tAc "select count(*) from core.module_registry
                            where status='published'
-                             and module_id in ('recon','marketing','ap','crm','ar','po','ops','inv','quote','deal');")
-          [ "$N" = "10" ] || { echo "::error::o catálogo tem $N dos 10 módulos reais publicados"; exit 1; }
+                             and module_id in ('recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt');")
+          [ "$N" = "11" ] || { echo "::error::o catálogo tem $N dos 11 módulos reais publicados"; exit 1; }
           C=$($PSQL -tAc "select jsonb_array_length(events_consumes)
                             from core.module_registry where module_id='crm';")
           [ "$C" = "0" ] || {
@@ -832,7 +878,7 @@ jobs:
           ABERTAS=$($PSQL -tAc "
             select coalesce(string_agg(n.nspname||'.'||p.proname, ', ' order by p.proname), '')
               from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-             where n.nspname in ('core','recon','marketing','ap','crm','ar','po','ops','inv','quote','deal')
+             where n.nspname in ('core','recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt')
                and has_function_privilege('anon', p.oid, 'execute');")
           [ -z "$ABERTAS" ] || { echo "::error::função executável por anon: $ABERTAS"; exit 1; }
 
@@ -843,7 +889,7 @@ jobs:
             OK=$($PSQL -tAc "
               select count(*) from pg_proc p join pg_namespace n on n.oid = p.pronamespace
                where p.proname = '$FN'
-                 and n.nspname in ('core','recon','marketing','ap','crm','ar','po','ops','inv','quote','deal')
+                 and n.nspname in ('core','recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt')
                  and has_function_privilege('authenticated', p.oid, 'execute');")
             [ "$OK" -ge 1 ] || { echo "::error::$FN() deixou de ser chamável pelo portal"; exit 1; }
           done
@@ -940,6 +986,7 @@ jobs:
           $PSQL -q -f supabase/migrations/0023_inv.sql
           $PSQL -q -f supabase/migrations/0024_quote.sql
           $PSQL -q -f supabase/migrations/0025_deal.sql
+          $PSQL -q -f supabase/migrations/0026_evt.sql
           $PSQL -q -f supabase/seed/0001_platform.sql
 
       # ⚠️ Sem `DATABASE_URL` os testes do store se PULAM — de propósito, para
@@ -1284,6 +1331,30 @@ jobs:
             echo "$PONDERA"; exit 1
           fi
 
+          # Módulo 11: a lotação e o calendário são DECISÃO. A armadilha: uma
+          # conta de vagas escrita na tela (capacity - inscritos) esquece que
+          # cancelada não ocupa vaga — e que sem teto NÃO HÁ conta.
+          if grep -rInE 'function (remainingCapacity|isFull|canHold|canRegister|canAttend|validateNewEvent|validateNewRegistration|summarizeEvents|activeRegistrations)' \
+               apps --include='*.ts' --include='*.tsx'; then
+            echo "::error::o domínio de eventos foi redeclarado em apps/"; exit 1
+          fi
+          EV=$(grep -Ev '^\s*(\*|//|/\*)' apps/portal/src/app/evt-actions.ts)
+          for FN in validateNewEvent validateNewRegistration canTransitionEvent canHold canRegister isFull; do
+            echo "$EV" | grep -Eq "\b$FN\(" \
+              || { echo "::error::a ação de eventos deixou de chamar $FN() do pacote"; exit 1; }
+          done
+          ELISTA=$(grep -Ev '^\s*(\*|//|/\*)' apps/portal/src/components/event-list.tsx)
+          for FN in remainingCapacity isFull canHold canPublish canAttend; do
+            echo "$ELISTA" | grep -Eq "\b$FN\(" \
+              || { echo "::error::a lista de eventos deixou de usar $FN() do pacote"; exit 1; }
+          done
+          VAGAS=$(grep -rIn --include='*.ts' --include='*.tsx' -E 'capacity\s*-\s*[a-zA-Z_.]*(regist|inscri)' apps 2>/dev/null \
+                  | grep -Ev '^[^:]+:[0-9]+:\s*(\*|//|/\*)' || true)
+          if [ -n "$VAGAS" ]; then
+            echo "::error::as vagas foram contadas em apps/ — é remainingCapacity(), no pacote"
+            echo "$VAGAS"; exit 1
+          fi
+
           # ⭐ E a Lei das Etapas na PELE: nenhum nome de etapa escrito em apps/.
           # A tela desenha o que o tenant desenhou; ela não conhece "briefing".
           #
@@ -1312,7 +1383,7 @@ jobs:
       - name: módulo não conhece módulo
         run: |
           FALHOU=0
-          MODULOS="finance-reconciliation marketing accounts-payable crm accounts-receivable purchase-orders ops inventory quotes deals"
+          MODULOS="finance-reconciliation marketing accounts-payable crm accounts-receivable purchase-orders ops inventory quotes deals event-management"
 
           # 1. Nenhum módulo importa outro módulo, em nenhuma forma.
           for MOD in $MODULOS; do
@@ -1330,7 +1401,7 @@ jobs:
           #    `devDependencies` de teste também não vale — se o teste precisa
           #    do outro módulo, o acoplamento é real.
           for MOD in $MODULOS; do
-            if grep -qE '"@alsham/(finance-reconciliation|marketing|accounts-payable|crm|accounts-receivable|purchase-orders|ops|inventory|quotes|deals)"' \
+            if grep -qE '"@alsham/(finance-reconciliation|marketing|accounts-payable|crm|accounts-receivable|purchase-orders|ops|inventory|quotes|deals|event-management)"' \
                  <(grep -v "\"@alsham/$MOD\"" "packages/$MOD/package.json"); then
               echo "::error::packages/$MOD declara outro módulo como dependência"
               FALHOU=1
@@ -1367,6 +1438,7 @@ jobs:
             [0023_inv.sql]=inv
             [0024_quote.sql]=quote
             [0025_deal.sql]=deal
+            [0026_evt.sql]=evt
           )
           for ARQUIVO in "${!SCHEMA_DE[@]}"; do
             DONO="${SCHEMA_DE[$ARQUIVO]}"
@@ -1385,7 +1457,7 @@ jobs:
           #    produz o evento. Ela recebe TUDO por argumento, do payload — que
           #    o produtor monta autossuficiente exatamente por isso.
           PROJ=$(sed 's/--.*//' supabase/migrations/0008_recon_ap_projection.sql)
-          if echo "$PROJ" | grep -qE "\b(ap|marketing|crm|ar|ops|inv|quote|deal)\."; then
+          if echo "$PROJ" | grep -qE "\b(ap|marketing|crm|ar|ops|inv|quote|deal|evt)\."; then
             echo "::error::a projeção lê o schema de outro módulo — ela só pode ler o payload"
             FALHOU=1
           fi

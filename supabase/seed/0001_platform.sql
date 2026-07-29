@@ -860,6 +860,76 @@ on conflict (module_id) do update set
 -- ⛔ Dez módulos no catálogo, zero permissão concedida pelo seed.
 
 -- =============================================================================
+-- 4.9 O MÓDULO `evt` NO CATÁLOGO DA STORE — o 11º cartão
+-- Transcrito de packages/event-management/src/manifest.ts.
+-- -----------------------------------------------------------------------------
+-- ⭐ **`module_id` é `evt`, e NÃO `event`/`events`**: "evento" já é o
+-- vocabulário do coração da plataforma (core.event_outbox, emit_event,
+-- EventEnvelope). Sol Único — o argumento que derrubou `os` no Módulo 7.
+--
+-- ⭐ **Domain `marketing`, capacidade *Eventos*** — o evento UNIVERSAL. O
+-- vertical 🎪 Eventos (Events OS™) é o OFÍCIO (ingresso, credenciamento,
+-- line-up) e NÃO entrou: o perigo da pedreira events-os é importar promessa.
+--
+-- ⭐ **`events_consumes` é VAZIO** (Lei 7).
+-- =============================================================================
+
+insert into core.module_registry (
+  module_id, name, version, summary,
+  layer, domain_key,
+  capabilities, permissions, events_emits, events_consumes, agents,
+  requires_core, status
+)
+values (
+  'evt',
+  'Eventos',
+  '0.1.0',
+  'O evento universal do tenant: nome, quando, onde em texto livre, inscrições com contato neutro, presença como ato registrado e lotação honesta.',
+  'domain', 'marketing',
+  '[
+     {"key":"events","canonicalName":"Eventos"}
+   ]'::jsonb,
+  '[
+     {"key":"evt.event.manage","moduleId":"evt","description":"Criar e editar eventos — nome, quando, onde, capacidade."},
+     {"key":"evt.event.decide","moduleId":"evt","description":"Decidir sobre o evento: publicar (abrir a lista), registrar como realizado e cancelar."},
+     {"key":"evt.registration.manage","moduleId":"evt","description":"Inscrever, confirmar, cancelar inscrições e registrar presença — a presença carimba quem e quando."}
+   ]'::jsonb,
+  '[
+     {"type":"evt.event.registered","version":1,"description":"Um evento nasceu (rascunho), com nome, quando e onde em texto livre."},
+     {"type":"evt.event.updated","version":1,"description":"Mudou fato do evento: nome, datas, local ou capacidade."},
+     {"type":"evt.event.published","version":1,"description":"O evento foi publicado — a lista de inscrições abriu. Não volta a rascunho."},
+     {"type":"evt.event.held","version":1,"description":"O evento foi registrado como REALIZADO — só depois de ter começado."},
+     {"type":"evt.event.cancelled","version":1,"description":"O evento foi cancelado — o fato que todo inscrito pode escutar. Nunca DELETE."},
+     {"type":"evt.registration.registered","version":1,"description":"Alguém se inscreveu — só em evento publicado, e a lotação recusa além do teto."},
+     {"type":"evt.registration.confirmed","version":1,"description":"A inscrição foi confirmada."},
+     {"type":"evt.registration.cancelled","version":1,"description":"A inscrição foi cancelada — a linha fica: a desistência é história do evento."},
+     {"type":"evt.registration.attended","version":1,"description":"A presença foi registrada — ATO carimbado com quem e quando, pelo servidor."}
+   ]'::jsonb,
+  -- Vazio, e é Lei 7. Ver o comentário acima e a spec do módulo.
+  '[]'::jsonb,
+  '[]'::jsonb,
+  '0.0.x',
+  'published'
+)
+on conflict (module_id) do update set
+  name            = excluded.name,
+  version         = excluded.version,
+  summary         = excluded.summary,
+  layer           = excluded.layer,
+  domain_key      = excluded.domain_key,
+  vertical_key    = excluded.vertical_key,
+  capabilities    = excluded.capabilities,
+  permissions     = excluded.permissions,
+  events_emits    = excluded.events_emits,
+  events_consumes = excluded.events_consumes,
+  agents          = excluded.agents,
+  requires_core   = excluded.requires_core,
+  status          = excluded.status,
+  updated_at      = now();
+
+-- ⛔ Onze módulos no catálogo, zero permissão concedida pelo seed.
+
+-- =============================================================================
 -- 5. PLANOS-BASE
 -- Minerado de: `plan_limits` (5 planos) do kraken-v2 (PROVADO em produção).
 -- -----------------------------------------------------------------------------

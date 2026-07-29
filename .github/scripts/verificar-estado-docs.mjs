@@ -295,6 +295,18 @@ export const PECAS = [
     onde: 'packages/deals/',
   },
   {
+    nome: 'Módulo 11 — Eventos',
+    detector: [
+      'packages/event-management/src/manifest.ts',
+      'packages/event-management/src/event.ts',
+      'supabase/migrations/0026_evt.sql',
+    ],
+    // "evento" é a palavra mais sobrecarregada do repositório (EventEnvelope,
+    // event_outbox, o vertical). O padrão exige o NOME DA PEÇA.
+    padrao: /(m[óo]dulo 11|packages\/event-management|@alsham\/event-management|0026_evt)/i,
+    onde: 'packages/event-management/',
+  },
+  {
     nome: 'Menu filtrado por permissão',
     detector: ['packages/permissions/src/menu.ts'],
     // A dívida da Etapa 10 foi paga: os itens de menu não são mais escritos à
@@ -402,6 +414,7 @@ const SECOES = [
   { arquivo: 'docs/canon/MODULO-INV-SPEC.md', titulo: '## 7. ESTADO DA OBRA' },
   { arquivo: 'docs/canon/MODULO-QUOTE-SPEC.md', titulo: '## 6. ESTADO DA OBRA' },
   { arquivo: 'docs/canon/MODULO-DEAL-SPEC.md', titulo: '## 6. ESTADO DA OBRA' },
+  { arquivo: 'docs/canon/MODULO-EVT-SPEC.md', titulo: '## 6. ESTADO DA OBRA' },
 ];
 
 /**
