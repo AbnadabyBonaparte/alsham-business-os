@@ -146,7 +146,8 @@ A consequência é operacional e não é opinião:
 
 - ❌ **Não edite nenhuma migration de `0001` a `0009`.** Arquivo aplicado é história. Se estivessem só no papel, corrigir no lugar seria certo; aplicados, editar faz o próximo ambiente nascer diferente da produção **em silêncio**. Correção vira migration nova.
 - ✅ `0010_ar.sql` **ainda é só arquivo** — criado depois do apply, e a Etapa 12 foi instruída a não aplicá-lo. Aplicá-lo é ato do dono (runbook §10).
-- **`0001` a `0009` e o seed estão APLICADOS** (informado pelo dono; ⚠️ NÃO VERIFICADO aqui). `0010_ar.sql` (Etapa 12) é o único que ainda é **só arquivo**; a próxima é **`0011_*.sql`**.
+- ✅ `0011_recon_receivables.sql` — **arquivo** (conciliação de recebimentos: `recon.receivables` + matches polimórficos). Aplicar **depois** do `0010`. A próxima é **`0012_*.sql`**.
+- **`0001` a `0009` e o seed estão APLICADOS** (informado pelo dono; ⚠️ NÃO VERIFICADO aqui). `0010` e `0011` são arquivo.
 - ⚠️ **PENDÊNCIAS DE INFRAESTRUTURA DO DONO — não são deste repositório, e nada aqui as conserta:** o **redeploy do `apps/api`** (sem ele a projeção do título no `recon` não acontece em produção, porque o host roda o build anterior ao consumidor; a caixa de saída guardou o evento e o correio reentrega quando subir), a **exposição do schema `crm`** na Data API, e a **instalação do `crm`** pela Store. Os testes no CI são a prova que vale.
 - ⛔ **A limpeza do runbook §7.3 FOI EXECUTADA** em 28/07/2026: a concessão global de permissão de módulo **não existe mais em produção**. O tenant piloto tem papel próprio, com as permissões concedidas por `core.install_module()` — pela Store, com o clique do dono. Nunca volte a conceder permissão de módulo no seed.
 - `packages/workflow` é **o correio do Core** — o entregador da caixa de saída: idempotência por consumidor, backoff exponencial, `dead` sem apagar. **ENGINE, não módulo** (Taxonomia §4): não aparece na Store.
@@ -197,10 +198,11 @@ docs/canon/            taxonomia · roadmap · core-spec · identidade-visual
 docs/balancos/         tecnologia + supabase            — de onde minerar
 docs/historico/        catálogo anterior                — memória, não canon
 supabase/migrations/   0001_core … 0009_crm            — APLICADAS, não editar
-                       0010_ar                — arquivo; aplicar é ato do dono
+                       0010_ar · 0011_recon_receivables — arquivo; apply do dono
 supabase/seed/         0001_platform.sql                — catálogo, idempotente; zero tenant
 supabase/tests/        shim · isolamento · uso · consumo entre módulos
                        · instalador · triângulo · relacionamentos · a receber
+                       · triângulo crédito ar→recon
                                                         — só CI; NUNCA no Supabase real
 docs/runbook/          APLICAR.md                       — o passo a passo do dono
 .github/scripts/       guarda de defasagem de documento — encanamento de CI

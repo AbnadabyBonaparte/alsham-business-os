@@ -79,51 +79,27 @@ escuta não pode fazer join.
 
 ### 2.2 O módulo CONSOME: **nada**
 
-### 2.3 ⭐⭐ POR QUE `consumes` É VAZIO — e o que falta para deixar de ser
+### 2.3 ⭐⭐ POR QUE `consumes` É VAZIO — e o que o Módulo 1 já fechou
 
 A integração óbvia é o espelho do triângulo da Etapa 10: assim como o Módulo 1
-projeta o título a **pagar** e casa contra os **débitos** do extrato, ele deveria
-projetar o título a **receber** e casar contra os **créditos**. Simétrico,
-desejável, e é o que qualquer um esperaria aqui.
+projeta o título a **pagar** e casa contra os **débitos** do extrato, ele
+projeta o título a **receber** e casa contra os **créditos**.
 
-**Não entra, porque o Módulo 1 não sustenta casamento de crédito hoje.** A prova
-não é opinião — está no código:
+**Isso passou a existir no Módulo 1** (`0011_recon_receivables.sql`,
+`external-receivable.ts`, `scoreReceivablePair`). O `recon` declara
+`ar.receivable.*` em `consumes`.
 
-1. `packages/finance-reconciliation/src/matching.ts`, em `scorePair()`:
-   ```ts
-   // Título a pagar quita-se com SAÍDA de dinheiro. Entrada não é candidata.
-   if (line.amountCents >= 0) return null;
-   ```
-   **O motor recusa a linha de crédito na primeira linha.**
-2. `recon.reconciliation_matches` tem `payable_id uuid NOT NULL`, com chave
-   estrangeira para `recon.payables`. Não há campo polimórfico nem
-   `subject_type`.
-3. `recon.approval_queue.subject_type` aceita `'reconciliation-match'` e
-   `'statement-closure'`, e nada mais.
-4. O próprio tipo `MatchSuggestion` tem `payableId`, não um alvo genérico.
+**Este módulo (`ar`) continua com `consumes` vazio** porque a outra metade —
+escutar a confirmação da baixa no recon e liquidar o título aqui — **ainda não
+tem handler**. Declarar consumo sem consumidor seria Lei 7 quebrada. Quando o
+handler existir, a lista muda.
 
-**O que falta, e é obra de uma etapa própria do Módulo 1:**
+O que o §2.3 pedia ao Módulo 1 (e já está em arquivo):
 
-- criar `recon.receivables` (migration nova — tudo bem);
-- tornar `reconciliation_matches` polimórfica, o que significa **derrubar um
-  `NOT NULL` de tabela já aplicada em produção**;
-- reescrever `scorePair()` para ser direcional, e `MatchSuggestion` para ser
-  união discriminada;
-- e o teste triangular completo, no padrão da Etapa 10.
-
-Isso é **redesenhar o motor do Módulo 1 como efeito colateral de construir o
-Módulo 5** — dois módulos mudando na mesma etapa, um deles com alteração
-estrutural em tabela de produção.
-
-⛔ **O caminho barato existia e foi recusado:** projetar o título a receber
-dentro de `recon.payables` com sinal invertido. Isso é gambiarra — um título a
-receber **não é** um título a pagar negativo, e a primeira consulta de "quanto
-devo" passaria a mentir.
-
-**Declarar `consumes` sem nada disso faria a Store anunciar uma conciliação de
-recebimentos que não acontece.** Há teste no pacote que confere as duas
-pré-condições no código real e reprova a declaração enquanto elas valerem — e
-que **exige o contrário** no dia em que caírem.
+1. `recon.receivables` — criado;
+2. matches polimórficos (`payable_id` XOR `receivable_id`) — migration `0011`;
+3. motor direcional — `scoreReceivablePair` + `MatchSuggestion` união;
+4. teste triangular — `08_ar_recon_triangle.sql`.
 
 ---
 
@@ -216,8 +192,8 @@ reembolso).
 | Manifesto, tipos, validação, ciclo de vida, saldo e excedente | ✅ construído, com testes |
 | Schema `ar` (`0010_ar.sql`) | ✅ **ARQUIVO, não aplicado.** Aplicar é ato do dono (runbook §10) |
 | Telas: listar, registrar, cancelar | ✅ construídas, com os selos por moeda |
-| Consumo de eventos de outros módulos | **NÃO CONSTRUÍDO** — ver §2.3, com o que falta |
-| Conciliação de recebimentos (crédito × título) | **NÃO CONSTRUÍDA** — é obra do Módulo 1, e §2.3 diz exatamente qual |
+| Consumo de eventos de outros módulos | **NÃO CONSTRUÍDO** — AR ainda não escuta a baixa do recon (fechamento do ciclo); ver §2.3 |
+| Conciliação de recebimentos (crédito × título) | ✅ **obra do Módulo 1 CONSTRUÍDA** — `0011_recon_receivables.sql` + consumidor `ar.receivable.*` no recon. Este módulo **emite**; o recon projeta e casa |
 | Registro de recebimento **pela tela** | ⚠️ **schema e domínio prontos, sem tela.** O ciclo aceita recebimento parcial e total, e é provado; o botão é etapa própria |
 | Estorno pela tela | ⚠️ mesma coisa — a transição existe e é provada; o botão não |
 | Baixa por perda (`written_off`) | **NÃO CONSTRUÍDA**, e foi considerada. Distinguir *"cancelei porque o documento estava errado"* de *"era devido e não vamos receber"* é um controle real em financeiro. Ficou de fora porque o estado não existe no schema, e uma permissão a mais guardaria uma porta que não existe. Quando entrar, entra como estado + permissão + evento, numa etapa própria |
@@ -237,10 +213,11 @@ buraco conhecido, não como esquecimento.
 - **O módulo está pronto e provado, mas em ARQUIVO:** `0010` não foi aplicado.
 - ⚠️ **O schema `ar` precisará ser EXPOSTO na Data API do Supabase pelo dono** —
   quarta vez que este aviso aparece. Runbook §10.0.
-- **A conciliação de recebimentos é a próxima obra natural**, e ela é do
-  **Módulo 1**, não deste. §2.3 lista as quatro coisas que faltam, com
-  arquivo e linha.
-- **A baixa por perda** é a segunda candidata, e §5 diz por que ela não entrou.
+- **A conciliação de recebimentos do Módulo 1 está CONSTRUÍDA em arquivo**
+  (`0011_recon_receivables.sql`). Apply: `0010` depois `0011`, redeploy do
+  `apps/api`.
+- **Ainda NÃO CONSTRUÍDO neste módulo:** botões de recebimento/estorno na tela;
+  baixa por perda; AR escutar confirmação do recon (`consumes` continua `[]`).
 - **O par `ap`/`ar` agora tem três guardas de espelho** (teste de pacote, teste
   SQL com os dois lados no mesmo banco, guarda de CI contra as constraints
   aplicadas). Quem mexer num dos dois ciclos de vida sem mexer no outro descobre

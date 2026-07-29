@@ -142,6 +142,24 @@ export const MANIFEST = {
         description:
           'Um título foi cancelado na origem. A projeção passa a `cancelled` — some da mesa, nunca do banco.',
       },
+      {
+        type: 'ar.receivable.registered',
+        version: 1,
+        description:
+          'Um título a receber nasceu em outro módulo. Vira projeção local em recon.receivables; a mesa passa a ter contra o que casar o crédito do extrato.',
+      },
+      {
+        type: 'ar.receivable.updated',
+        version: 1,
+        description:
+          'O valor, o vencimento ou o recebimento de um título mudaram na origem. A projeção acompanha — inclusive receber a maior.',
+      },
+      {
+        type: 'ar.receivable.cancelled',
+        version: 1,
+        description:
+          'Um título a receber foi cancelado na origem. A projeção passa a cancelled — some da mesa, nunca do banco.',
+      },
     ],
   },
 

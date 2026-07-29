@@ -6,6 +6,7 @@ import type {
   CsvMapping,
   MatchingSettings,
   Payable,
+  Receivable,
   StatementLine,
 } from '@alsham/finance-reconciliation';
 
@@ -153,6 +154,34 @@ export function createSupabasePort(db: SupabaseClient, tenantId: string): DataPo
         supplierTaxId: r.supplier_tax_id as string | null,
         description: (r.description ?? '') as string,
         status: r.status as Payable['status'],
+      }));
+    },
+
+    async loadReceivables(): Promise<Receivable[]> {
+      const { data, error } = await db
+        .schema(RECON)
+        .from('receivables')
+        .select(
+          'id, tenant_id, source, source_module_id, external_ref, due_date, amount_cents, received_amount_cents, currency, counterparty_name, counterparty_tax_id, description, status',
+        )
+        .in('status', ['open', 'partially_received'])
+        .order('due_date', { ascending: true });
+      if (error) fail('carregar os títulos a receber', error);
+
+      return (data ?? []).map((r) => ({
+        id: r.id as string,
+        tenantId: r.tenant_id as string,
+        source: r.source as Receivable['source'],
+        sourceModuleId: r.source_module_id as string | null,
+        externalRef: r.external_ref as string,
+        dueDate: r.due_date as string,
+        amountCents: Number(r.amount_cents),
+        receivedAmountCents: Number(r.received_amount_cents),
+        currency: r.currency as string,
+        counterpartyName: r.counterparty_name as string | null,
+        counterpartyTaxId: r.counterparty_tax_id as string | null,
+        description: (r.description ?? '') as string,
+        status: r.status as Receivable['status'],
       }));
     },
 

@@ -120,6 +120,9 @@ jobs:
       - name: aplicar 0010_ar.sql
         run: $PSQL -f supabase/migrations/0010_ar.sql
 
+      - name: aplicar 0011_recon_receivables.sql
+        run: $PSQL -f supabase/migrations/0011_recon_receivables.sql
+
       # ---------------------------------------------------------------------
       # 2. SEED — e a prova de que reaplicar não muda nada
       # ---------------------------------------------------------------------
@@ -249,6 +252,9 @@ jobs:
       # alguém "uniformizar" os dois módulos, um dos dois cenários quebra.
       - name: teste do Módulo 5 (isolamento, transições e a divergência)
         run: $PSQL -f supabase/tests/07_ar_isolation.sql
+
+      - name: teste triângulo crédito (ar emite → recon projeta)
+        run: $PSQL -f supabase/tests/08_ar_recon_triangle.sql
 
       # ⛔ CANCELAR É ESTADO, NUNCA DELETE — conferido no banco aplicado.
       - name: nenhuma porta de DELETE em ar.receivables
@@ -509,6 +515,7 @@ jobs:
           $PSQL -q -f supabase/migrations/0008_recon_ap_projection.sql
           $PSQL -q -f supabase/migrations/0009_crm.sql
           $PSQL -q -f supabase/migrations/0010_ar.sql
+          $PSQL -q -f supabase/migrations/0011_recon_receivables.sql
           $PSQL -q -f supabase/seed/0001_platform.sql
 
       # ⚠️ Sem `DATABASE_URL` os testes do store se PULAM — de propósito, para

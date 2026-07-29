@@ -6,11 +6,12 @@ import {
   normalizeTaxId,
   normalizeText,
   scorePair,
+  scoreReceivablePair,
   suggestMatches,
   unmatchedLines,
 } from './matching.ts';
 import { MANIFEST } from './manifest.ts';
-import type { MatchingSettings, Payable, StatementLine } from './types.ts';
+import type { MatchingSettings, Payable, Receivable, StatementLine } from './types.ts';
 
 /**
  * Testes do motor de conciliação.
@@ -55,6 +56,21 @@ function payable(over: Partial<Payable> & { id: string }): Payable {
     dueDate: '2026-07-10',
     amountCents: 150_00,
     settledAmountCents: 0,
+    currency: 'BRL',
+    description: '',
+    status: 'open',
+    ...over,
+  };
+}
+
+function receivable(over: Partial<Receivable> & { id: string }): Receivable {
+  return {
+    tenantId: TENANT,
+    source: 'imported',
+    externalRef: 'DOC-R-1001',
+    dueDate: '2026-07-10',
+    amountCents: 150_00,
+    receivedAmountCents: 0,
     currency: 'BRL',
     description: '',
     status: 'open',
@@ -263,7 +279,10 @@ describe('suggestMatches — atribuição', () => {
     const out = suggestMatches(lines, payables, SETTINGS);
     assert.equal(out.length, 2);
     assert.equal(new Set(out.map((s) => s.statementLineId)).size, 2);
-    assert.equal(new Set(out.map((s) => s.payableId)).size, 2);
+    assert.equal(
+      new Set(out.map((s) => (s.kind === 'payable' ? s.payableId : s.receivableId))).size,
+      2,
+    );
   });
 
   test('o melhor par ganha o título disputado', () => {
@@ -327,9 +346,88 @@ describe('unmatchedLines — a divergência', () => {
 
     const sug = suggestMatches(lines, payables, SETTINGS);
     const sobra = unmatchedLines(lines, sug);
-
     assert.equal(sobra.length, 1);
     assert.equal(sobra[0]?.id, 'l2');
+  });
+});
+
+describe('scoreReceivablePair — crédito × a receber', () => {
+  test('saída de dinheiro nunca quita conta a receber', () => {
+    const r = scoreReceivablePair(
+      line({ id: 'l1', amountCents: -150_00 }),
+      receivable({ id: 'r1' }),
+      SETTINGS,
+    );
+    assert.equal(r, null);
+  });
+
+  test('crédito casa com título a receber', () => {
+    const r = scoreReceivablePair(
+      line({
+        id: 'l1',
+        amountCents: +150_00,
+        postedAt: '2026-07-10',
+        description: 'PIX DOC-R-1001',
+        counterpartyTaxId: '111',
+        counterpartyName: 'Cliente Alfa',
+      }),
+      receivable({
+        id: 'r1',
+        amountCents: 150_00,
+        externalRef: 'DOC-R-1001',
+        counterpartyTaxId: '111',
+        counterpartyName: 'Cliente Alfa',
+      }),
+      SETTINGS,
+    );
+    assert.ok(r);
+    assert.equal(r.matchedAmountCents, 150_00);
+    assert.ok(r.score >= 0.6);
+  });
+
+  test('débito não casa com receivable via suggestMatches', () => {
+    const out = suggestMatches(
+      [line({ id: 'l1', amountCents: -150_00, description: 'DOC-R-1001' })],
+      [],
+      SETTINGS,
+      [receivable({ id: 'r1', externalRef: 'DOC-R-1001' })],
+    );
+    assert.deepEqual(out, []);
+  });
+
+  test('crédito não casa com payable via suggestMatches', () => {
+    const out = suggestMatches(
+      [line({ id: 'l1', amountCents: +150_00, description: 'NF-1001' })],
+      [payable({ id: 'p1', externalRef: 'NF-1001' })],
+      SETTINGS,
+    );
+    assert.deepEqual(out, []);
+  });
+
+  test('crédito e débito no mesmo lote — cada um no seu alvo', () => {
+    const out = suggestMatches(
+      [
+        line({ id: 'l-deb', amountCents: -150_00, description: 'PAGTO NF-1001' }),
+        line({ id: 'l-cred', amountCents: +200_00, description: 'PIX DOC-R-2001' }),
+      ],
+      [payable({ id: 'p1', externalRef: 'NF-1001', amountCents: 150_00 })],
+      SETTINGS,
+      [receivable({ id: 'r1', externalRef: 'DOC-R-2001', amountCents: 200_00 })],
+    );
+    assert.equal(out.length, 2);
+    const deb = out.find((s) => s.statementLineId === 'l-deb');
+    const cred = out.find((s) => s.statementLineId === 'l-cred');
+    assert.equal(deb?.kind, 'payable');
+    assert.equal(cred?.kind, 'receivable');
+  });
+
+  test('receber a maior: saldo restante zero — título sai do páreo', () => {
+    const r = scoreReceivablePair(
+      line({ id: 'l1', amountCents: +50_00 }),
+      receivable({ id: 'r1', amountCents: 100_00, receivedAmountCents: 150_00 }),
+      SETTINGS,
+    );
+    assert.equal(r, null);
   });
 });
 

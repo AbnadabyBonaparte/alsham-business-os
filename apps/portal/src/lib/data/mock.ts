@@ -5,6 +5,7 @@ import type {
   CsvMapping,
   MatchingSettings,
   Payable,
+  Receivable,
   StatementLine,
 } from '@alsham/finance-reconciliation';
 
@@ -59,6 +60,21 @@ function payable(over: Partial<Payable> & { id: string }): Payable {
   };
 }
 
+function receivable(over: Partial<Receivable> & { id: string }): Receivable {
+  return {
+    tenantId: TENANT,
+    source: 'imported',
+    externalRef: '',
+    dueDate: '2026-07-10',
+    amountCents: 0,
+    receivedAmountCents: 0,
+    currency: 'BRL',
+    description: '',
+    status: 'open',
+    ...over,
+  };
+}
+
 const LINES: StatementLine[] = [
   line({
     id: 'l-001',
@@ -102,13 +118,14 @@ const LINES: StatementLine[] = [
     lineNo: 5,
     postedAt: '2026-07-18',
     amountCents: 4_500_00,
-    description: 'CREDITO RECEBIMENTO',
+    description: 'PIX DOC-R-9001 RECEBIMENTO',
+    counterpartyName: 'Cliente Alfa ME',
+    counterpartyTaxId: '33.333.333/0001-33',
     externalId: 'FITID-8805',
   }),
 ];
 
-const PAYABLES: Payable[] = [
-  payable({
+const PAYABLES: Payable[] = [  payable({
     id: 'p-001',
     externalRef: 'NF-2041',
     dueDate: '2026-07-08',
@@ -142,6 +159,18 @@ const PAYABLES: Payable[] = [
     supplierName: 'Fornecedor Delta Ltda',
     supplierTaxId: '44444444000144',
     description: 'Contrato mensal',
+  }),
+];
+
+const RECEIVABLES: Receivable[] = [
+  receivable({
+    id: 'r-001',
+    externalRef: 'DOC-R-9001',
+    dueDate: '2026-07-18',
+    amountCents: 4_500_00,
+    counterpartyName: 'Cliente Alfa ME',
+    counterpartyTaxId: '33333333000133',
+    description: 'Fatura de serviço — julho',
   }),
 ];
 
@@ -278,6 +307,9 @@ export function createMockPort(): DataPort {
     },
     async loadPayables() {
       return PAYABLES;
+    },
+    async loadReceivables() {
+      return RECEIVABLES;
     },
     async loadApprovalQueue() {
       return APPROVALS;

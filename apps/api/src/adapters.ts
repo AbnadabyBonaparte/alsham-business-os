@@ -3,7 +3,12 @@ import type { Pool } from 'pg';
 import type { AuditRecord } from '@alsham/workflow';
 import type { UsageRecorder } from '@alsham/billing';
 import type { SpendDecision, SpendProjectionPort } from '@alsham/marketing';
-import type { ExternalPayable, ExternalPayablePort } from '@alsham/finance-reconciliation';
+import type {
+  ExternalPayable,
+  ExternalPayablePort,
+  ExternalReceivable,
+  ExternalReceivablePort,
+} from '@alsham/finance-reconciliation';
 
 /**
  * Os adaptadores reais dos consumidores.
@@ -159,10 +164,45 @@ export function createExternalPayablePort(pool: Pool): ExternalPayablePort {
 
       const efeito = rows[0]?.efeito;
       if (efeito === undefined) {
-        // A função sempre devolve algo. `undefined` aqui significa que a
-        // chamada não é o que este adaptador pensa que é — e engolir isso
-        // faria a projeção "funcionar" sem gravar nada.
         throw new Error('recon.record_external_payable não devolveu desfecho');
+      }
+      return efeito;
+    },
+  };
+}
+
+/**
+ * Projeção de título a receber — espelho do adaptador de payable.
+ * Chama `recon.record_external_receivable()`; origem por parâmetro.
+ */
+export function createExternalReceivablePort(pool: Pool): ExternalReceivablePort {
+  return {
+    async recordExternalReceivable(receivable: ExternalReceivable) {
+      const { rows } = await pool.query<{
+        efeito: 'created' | 'updated' | 'unchanged' | 'skipped-imported';
+      }>(
+        `select recon.record_external_receivable(
+                  $1::uuid, $2::text, $3::text, $4::date,
+                  $5::bigint, $6::char(3), $7::text, $8::bigint,
+                  $9::text, $10::text, $11::text) as efeito`,
+        [
+          receivable.tenantId,
+          receivable.sourceModuleId,
+          receivable.externalRef,
+          receivable.dueDate,
+          receivable.amountCents,
+          receivable.currency,
+          receivable.status,
+          receivable.receivedAmountCents,
+          receivable.counterpartyName,
+          receivable.counterpartyTaxId,
+          receivable.description,
+        ],
+      );
+
+      const efeito = rows[0]?.efeito;
+      if (efeito === undefined) {
+        throw new Error('recon.record_external_receivable não devolveu desfecho');
       }
       return efeito;
     },

@@ -92,45 +92,16 @@ export const MANIFEST = {
     ],
 
     /**
-     * ⭐ **VAZIO — e esta é a decisão de canon mais pesada da etapa.**
+     * ⭐ **VAZIO — e continua sendo decisão de canon.**
      *
-     * A integração óbvia é o espelho do triângulo da Etapa 10: assim como o
-     * Módulo 1 projeta o título a PAGAR e casa contra os débitos do extrato,
-     * ele deveria projetar o título a RECEBER e casar contra os créditos.
-     * Simétrico, desejável, e é o que qualquer um esperaria aqui.
+     * A conciliação de recebimentos (crédito × título) **já é obra do Módulo 1**:
+     * `0011_recon_receivables.sql`, `external-receivable.ts`, motor direcional.
+     * O `recon` escuta `ar.receivable.*` e projeta — este módulo **emite**.
      *
-     * **Não entra, porque o Módulo 1 não sustenta casamento de crédito hoje** —
-     * e a prova não é opinião, está no código:
-     *
-     *   1. `packages/finance-reconciliation/src/matching.ts`, em `scorePair()`:
-     *      `if (line.amountCents >= 0) return null;`, com o comentário
-     *      *"Título a pagar quita-se com SAÍDA de dinheiro. Entrada não é
-     *      candidata."* **O motor recusa a linha de crédito na primeira
-     *      linha.**
-     *   2. `recon.reconciliation_matches` tem a coluna `payable_id NOT NULL`,
-     *      com chave estrangeira para `recon.payables`. Não há campo
-     *      polimórfico nem `subject_type`.
-     *   3. `recon.approval_queue.subject_type` aceita `'reconciliation-match'`
-     *      e `'statement-closure'`, e nada mais.
-     *   4. O próprio tipo `MatchSuggestion` tem `payableId`, não um alvo
-     *      genérico.
-     *
-     * Para o consumo existir de verdade seria preciso: criar `recon.receivables`,
-     * tornar `reconciliation_matches` polimórfica — **derrubando um `NOT NULL`
-     * de tabela já aplicada em produção** —, e reescrever `scorePair()` para ser
-     * direcional. Isso é **redesenhar o motor do Módulo 1 como efeito colateral
-     * de construir o Módulo 5**, com duas migrations e dois módulos mudando na
-     * mesma etapa.
-     *
-     * O caminho barato existia e foi recusado: projetar o título a receber
-     * dentro de `recon.payables` com sinal invertido. Isso é gambiarra — um
-     * título a receber não é um título a pagar negativo, e a primeira consulta
-     * de "quanto devo" passaria a mentir.
-     *
-     * **Declarar `consumes` aqui sem nada disso faria a Store anunciar uma
-     * conciliação de recebimentos que não acontece.** A integração está
-     * registrada como NÃO CONSTRUÍDA em `MODULO-AR-SPEC §2.3` e em
-     * `MODULO-RECON-SPEC §7`, com o que falta.
+     * O que **ainda** não existe aqui é o fechamento do ciclo: este módulo
+     * escutar a confirmação da baixa no recon e liquidar o título sozinho.
+     * Sem handler, `consumes` permanece `[]` (Lei 7). Quando o handler nascer,
+     * a lista muda.
      */
     consumes: [],
   },

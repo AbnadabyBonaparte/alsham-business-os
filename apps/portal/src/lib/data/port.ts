@@ -5,6 +5,7 @@ import type {
   MatchingSettings,
   ParsedStatement,
   Payable,
+  Receivable,
   StatementLine,
 } from '@alsham/finance-reconciliation';
 
@@ -59,6 +60,8 @@ export interface DataPort {
 
   loadStatementLines(): Promise<StatementLine[]>;
   loadPayables(): Promise<Payable[]>;
+  /** Projeções locais de títulos a receber (crédito do extrato). */
+  loadReceivables(): Promise<Receivable[]>;
   loadApprovalQueue(): Promise<ApprovalItem[]>;
 
   /** Os extratos ainda abertos, para a tela de fechamento. */

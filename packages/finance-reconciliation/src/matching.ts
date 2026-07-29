@@ -3,24 +3,19 @@ import type {
   MatchSuggestion,
   MatchingSettings,
   Payable,
+  Receivable,
   StatementLine,
 } from './types.ts';
 
 /**
  * O motor de sugestão de baixa — **lógica pura, determinística, sem I/O**.
  *
- * Minerado do Smart Reconciliation™ (Roadmap, Fase 3): *"sugestão automática
- * de baixa e IA que identifica divergências"*. Esta é a primeira metade —
- * a sugestão. A IA que aprende padrões é da Fase 3 e está **NÃO CONSTRUÍDA**;
- * o campo `strategy`, gravado a cada casamento, é o que vai alimentá-la.
+ * Direcional desde a conciliação de recebimentos:
+ *   · débito (amount < 0)  ↔ título a pagar
+ *   · crédito (amount > 0) ↔ título a receber
  *
- * **Nada aqui toca banco, rede ou relógio.** Mesma entrada, mesma saída,
- * sempre — é o que torna o motor testável sem infraestrutura, e é por isso
- * que ele mora no pacote e não numa function do Postgres.
- *
- * **Nada aqui embute política.** Toleranças e limiar chegam por
- * `MatchingSettings`, que vem de `core.tenant_modules.settings`. A função
- * aplica a política do tenant; ela não tem uma.
+ * Nada aqui toca banco, rede ou relógio. Política (tolerâncias / limiar) entra
+ * por `MatchingSettings`.
  */
 
 /** Peso de cada sinal. Fixo: é a régua do produto, não do tenant. */
@@ -37,6 +32,12 @@ interface Signal {
   readonly key: string;
   readonly weight: number;
   readonly strength: number;
+}
+
+interface ScoredPair {
+  readonly score: number;
+  readonly strategy: string;
+  readonly matchedAmountCents: Cents;
 }
 
 /** Remove tudo que não for alfanumérico e sobe para maiúsculas. */
@@ -99,29 +100,17 @@ function nameOverlap(a: string, b: string): number {
   return hits / Math.min(wa.size, wb.size);
 }
 
-/**
- * Pontua um par linha↔título.
- *
- * Devolve `null` quando o par **não é candidato** — e o único portão
- * eliminatório é o valor. Fora da tolerância de valor, não há score que
- * salve: conciliação que casa valores diferentes não é conciliação.
- */
-export function scorePair(
+function scoreSignals(
   line: StatementLine,
-  payable: Payable,
+  remaining: number,
+  flowAbs: number,
+  dueDate: string,
+  externalRef: string,
+  taxId: string | null | undefined,
+  counterpartyName: string | null | undefined,
   settings: MatchingSettings,
-): { score: number; strategy: string; matchedAmountCents: Cents } | null {
-  // Título a pagar quita-se com SAÍDA de dinheiro. Entrada não é candidata.
-  if (line.amountCents >= 0) return null;
-
-  // Moedas diferentes não se conciliam. Conversão é outra capacidade.
-  if (line.currency !== payable.currency) return null;
-
-  const outflow = Math.abs(line.amountCents);
-  const remaining = payable.amountCents - payable.settledAmountCents;
-  if (remaining <= 0) return null;
-
-  const amountDistance = Math.abs(outflow - remaining);
+): ScoredPair | null {
+  const amountDistance = Math.abs(flowAbs - remaining);
   if (amountDistance > settings.amountToleranceCents) return null;
 
   const signals: Signal[] = [
@@ -130,30 +119,24 @@ export function scorePair(
       weight: WEIGHTS.amount,
       strength: decay(amountDistance, settings.amountToleranceCents),
     },
+    {
+      key: 'date',
+      weight: WEIGHTS.date,
+      strength: decay(daysBetween(line.postedAt, dueDate), settings.dateToleranceDays),
+    },
   ];
 
-  // Data: aplica-se sempre, porque as duas datas sempre existem.
-  signals.push({
-    key: 'date',
-    weight: WEIGHTS.date,
-    strength: decay(daysBetween(line.postedAt, payable.dueDate), settings.dateToleranceDays),
-  });
-
-  // Identificador fiscal: só entra na conta quando os DOIS lados o têm.
-  // Ausente não é evidência contra — é ausência de evidência.
   const lineTax = normalizeTaxId(line.counterpartyTaxId);
-  const payableTax = normalizeTaxId(payable.supplierTaxId);
-  if (lineTax && payableTax) {
+  const otherTax = normalizeTaxId(taxId);
+  if (lineTax && otherTax) {
     signals.push({
       key: 'tax-id',
       weight: WEIGHTS.taxId,
-      strength: lineTax === payableTax ? 1 : 0,
+      strength: lineTax === otherTax ? 1 : 0,
     });
   }
 
-  // Referência do título citada na descrição do lançamento.
-  // Referência curta demais casaria por acaso; abaixo de 4 caracteres, ignora.
-  const ref = normalizeText(payable.externalRef);
+  const ref = normalizeText(externalRef);
   if (ref.length >= 4) {
     signals.push({
       key: 'reference',
@@ -162,12 +145,11 @@ export function scorePair(
     });
   }
 
-  // Nome da contraparte: o sinal mais fraco, e de propósito.
-  if (line.counterpartyName && payable.supplierName) {
+  if (line.counterpartyName && counterpartyName) {
     signals.push({
       key: 'name',
       weight: WEIGHTS.name,
-      strength: nameOverlap(line.counterpartyName, payable.supplierName),
+      strength: nameOverlap(line.counterpartyName, counterpartyName),
     });
   }
 
@@ -185,31 +167,90 @@ export function scorePair(
   return {
     score,
     strategy,
-    // Baixa parcial: casa-se o menor dos dois, nunca mais do que se deve.
-    matchedAmountCents: Math.min(outflow, remaining),
+    matchedAmountCents: Math.min(flowAbs, remaining),
   };
 }
 
 /**
- * Sugere casamentos entre linhas de extrato e títulos a pagar.
+ * Pontua um par linha↔título a pagar.
  *
- * Estratégia: pontua todos os pares candidatos, ordena por confiança e faz
- * atribuição gulosa **1:1** — cada linha vai para no máximo um título, cada
- * título recebe no máximo uma linha.
+ * Portão: só **débito** (saída). Crédito nunca quita conta a pagar.
+ */
+export function scorePair(
+  line: StatementLine,
+  payable: Payable,
+  settings: MatchingSettings,
+): ScoredPair | null {
+  // Título a pagar quita-se com SAÍDA de dinheiro. Entrada não é candidata.
+  if (line.amountCents >= 0) return null;
+
+  if (line.currency !== payable.currency) return null;
+
+  const outflow = Math.abs(line.amountCents);
+  const remaining = payable.amountCents - payable.settledAmountCents;
+  if (remaining <= 0) return null;
+
+  return scoreSignals(
+    line,
+    remaining,
+    outflow,
+    payable.dueDate,
+    payable.externalRef,
+    payable.supplierTaxId,
+    payable.supplierName,
+    settings,
+  );
+}
+
+/**
+ * Pontua um par linha↔título a receber.
  *
- * A escolha do 1:1 é honesta, não ingênua: o schema permite baixa parcial e
- * muitos-para-muitos, e o humano pode montar isso na tela. O que a sugestão
- * automática **não** faz é tentar adivinhar rateio — combinação de N linhas
- * para M títulos multiplica o risco de sugerir bobagem com cara de certeza.
- * Rateio automático é candidato à Fase 3, junto com a IA.
+ * Portão: só **crédito** (entrada). Débito nunca quita conta a receber.
+ * Saldo restante nunca negativo — receber a maior zera o candidato.
+ */
+export function scoreReceivablePair(
+  line: StatementLine,
+  receivable: Receivable,
+  settings: MatchingSettings,
+): ScoredPair | null {
+  // Título a receber quita-se com ENTRADA de dinheiro. Saída não é candidata.
+  if (line.amountCents <= 0) return null;
+
+  if (line.currency !== receivable.currency) return null;
+
+  const inflow = line.amountCents;
+  const remaining = Math.max(0, receivable.amountCents - receivable.receivedAmountCents);
+  if (remaining <= 0) return null;
+
+  return scoreSignals(
+    line,
+    remaining,
+    inflow,
+    receivable.dueDate,
+    receivable.externalRef,
+    receivable.counterpartyTaxId,
+    receivable.counterpartyName,
+    settings,
+  );
+}
+
+function targetKey(s: MatchSuggestion): string {
+  return s.kind === 'payable' ? `p:${s.payableId}` : `r:${s.receivableId}`;
+}
+
+/**
+ * Sugere casamentos entre linhas de extrato e títulos (a pagar e/ou a receber).
  *
- * Determinístico: empates são desfeitos por `statementLineId` e `payableId`,
- * então a mesma entrada devolve sempre a mesma saída, em qualquer máquina.
+ * Atribuição gulosa **1:1** por linha e por título. Empates: score ↓,
+ * `statementLineId`, chave do alvo — mesma entrada, mesma saída.
+ *
+ * `receivables` é opcional para não quebrar quem ainda só passa payables.
  */
 export function suggestMatches(
   lines: readonly StatementLine[],
   payables: readonly Payable[],
   settings: MatchingSettings,
+  receivables: readonly Receivable[] = [],
 ): MatchSuggestion[] {
   const openLines = lines.filter(
     (l) => l.status === 'unmatched' || l.status === 'suggested',
@@ -217,15 +258,32 @@ export function suggestMatches(
   const openPayables = payables.filter(
     (p) => p.status === 'open' || p.status === 'partially_settled',
   );
+  const openReceivables = receivables.filter(
+    (r) => r.status === 'open' || r.status === 'partially_received',
+  );
 
   const candidates: MatchSuggestion[] = [];
+
   for (const line of openLines) {
     for (const payable of openPayables) {
       const scored = scorePair(line, payable, settings);
       if (scored === null) continue;
       candidates.push({
+        kind: 'payable',
         statementLineId: line.id,
         payableId: payable.id,
+        matchedAmountCents: scored.matchedAmountCents,
+        score: scored.score,
+        strategy: scored.strategy,
+      });
+    }
+    for (const receivable of openReceivables) {
+      const scored = scoreReceivablePair(line, receivable, settings);
+      if (scored === null) continue;
+      candidates.push({
+        kind: 'receivable',
+        statementLineId: line.id,
+        receivableId: receivable.id,
         matchedAmountCents: scored.matchedAmountCents,
         score: scored.score,
         strategy: scored.strategy,
@@ -237,17 +295,18 @@ export function suggestMatches(
     (a, b) =>
       b.score - a.score ||
       a.statementLineId.localeCompare(b.statementLineId) ||
-      a.payableId.localeCompare(b.payableId),
+      targetKey(a).localeCompare(targetKey(b)),
   );
 
   const usedLines = new Set<string>();
-  const usedPayables = new Set<string>();
+  const usedTargets = new Set<string>();
   const chosen: MatchSuggestion[] = [];
 
   for (const c of candidates) {
-    if (usedLines.has(c.statementLineId) || usedPayables.has(c.payableId)) continue;
+    const key = targetKey(c);
+    if (usedLines.has(c.statementLineId) || usedTargets.has(key)) continue;
     usedLines.add(c.statementLineId);
-    usedPayables.add(c.payableId);
+    usedTargets.add(key);
     chosen.push(c);
   }
 
@@ -256,9 +315,6 @@ export function suggestMatches(
 
 /**
  * As linhas que sobraram — **a divergência**.
- *
- * É o número que interessa ao humano depois de rodar o motor: não o que
- * casou, e sim o que não casou e vai precisar de olho e de caneta.
  */
 export function unmatchedLines(
   lines: readonly StatementLine[],
@@ -271,12 +327,6 @@ export function unmatchedLines(
   );
 }
 
-/**
- * O retrato de um extrato: o que casou e — o que interessa — o que sobrou.
- *
- * É o número que o operador olha antes de fechar o período, e o mesmo que
- * viaja no evento `recon.reconciliation.completed`.
- */
 export interface StatementSummary {
   readonly totalLines: number;
   readonly matchedLines: number;
@@ -291,15 +341,6 @@ export interface StatementSummary {
 
 /**
  * Resume um extrato a partir das suas linhas.
- *
- * ⭐ Vive aqui, e não na tela, porque **define o que conta como conciliado** —
- * e isso é regra de negócio. `ignored` sai da conta de divergência de
- * propósito: linha marcada como ignorada foi uma decisão humana, não uma
- * pendência.
- *
- * `readyToClose` é uma LEITURA, não uma permissão: quem pode fechar é a
- * policy no banco, e se o tenant quiser fechar com divergência em aberto,
- * isso é política dele (`settings.approval.*`), não trava do produto.
  */
 export function summarizeStatement(lines: readonly StatementLine[]): StatementSummary {
   let matched = 0;

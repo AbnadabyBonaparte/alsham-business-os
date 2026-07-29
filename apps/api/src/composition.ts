@@ -8,12 +8,16 @@ import {
   CONSUMED_EVENT_PATTERN as AP_EVENT_PATTERN,
   CONSUMER_ID as RECON_CONSUMER_ID,
   handleExternalPayable,
+  RECEIVABLE_CONSUMED_EVENT_PATTERN as AR_EVENT_PATTERN,
+  RECEIVABLE_CONSUMER_ID as RECON_AR_CONSUMER_ID,
+  handleExternalReceivable,
 } from '@alsham/finance-reconciliation';
 
 import { createPgOutboxStore } from './outbox-store.ts';
 import {
   createAuditWriter,
   createExternalPayablePort,
+  createExternalReceivablePort,
   createSpendProjectionPort,
   createUsageRecorder,
 } from './adapters.ts';
@@ -117,6 +121,18 @@ export function buildSubscriptions(pool: Pool): Subscription[] {
       eventType: AP_EVENT_PATTERN,
       handle: async (envelope) => {
         await handleExternalPayable(createExternalPayablePort(pool))(envelope);
+      },
+    },
+
+    // 4. ⭐ O MÓDULO 1 ESCUTANDO O MÓDULO 5 — o triângulo do crédito.
+    //
+    //    Mesmo pacote, outro consumidor, outro padrão (`ar.*`). Sem importar
+    //    o accounts-receivable. A origem gravada continua vindo do envelope.
+    {
+      consumer: RECON_AR_CONSUMER_ID,
+      eventType: AR_EVENT_PATTERN,
+      handle: async (envelope) => {
+        await handleExternalReceivable(createExternalReceivablePort(pool))(envelope);
       },
     },
   ];
