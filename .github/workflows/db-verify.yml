@@ -165,6 +165,12 @@ jobs:
       - name: aplicar 0022_revoke_public_execute.sql
         run: $PSQL -f supabase/migrations/0022_revoke_public_execute.sql
 
+      # ⭐ MISSÃO TRINA — o Módulo 8: o estoque como LIVRO imutável. O saldo é
+      # view com security_invoker; não existe coluna de saldo, e há guarda
+      # adiante conferindo isso no banco aplicado.
+      - name: aplicar 0023_inv.sql
+        run: $PSQL -f supabase/migrations/0023_inv.sql
+
       # ---------------------------------------------------------------------
       # 2. SEED — e a prova de que reaplicar não muda nada
       # ---------------------------------------------------------------------
@@ -192,12 +198,12 @@ jobs:
           FALTA=$($PSQL -tAc "
             select coalesce(string_agg(n.nspname||'.'||c.relname, ', '), '')
               from pg_class c join pg_namespace n on n.oid = c.relnamespace
-             where n.nspname in ('core','recon','marketing','ap','crm','ar','po','ops') and c.relkind = 'r'
+             where n.nspname in ('core','recon','marketing','ap','crm','ar','po','ops','inv') and c.relkind = 'r'
                and (not c.relrowsecurity or not c.relforcerowsecurity);")
           [ -z "$FALTA" ] || { echo "::error::sem RLS enable+force: $FALTA"; exit 1; }
           $PSQL -c "select n.nspname as schema, count(*) as tabelas
                       from pg_class c join pg_namespace n on n.oid=c.relnamespace
-                     where n.nspname in ('core','recon','marketing','ap','crm','ar','po','ops') and c.relkind='r'
+                     where n.nspname in ('core','recon','marketing','ap','crm','ar','po','ops','inv') and c.relkind='r'
                      group by 1 order by 1;"
 
       - name: nenhuma policy USING (true)
@@ -207,7 +213,7 @@ jobs:
               from pg_policy p
               join pg_class c on c.oid = p.polrelid
               join pg_namespace n on n.oid = c.relnamespace
-             where n.nspname in ('core','recon','marketing','ap','crm','ar','po','ops')
+             where n.nspname in ('core','recon','marketing','ap','crm','ar','po','ops','inv')
                and pg_get_expr(p.polqual, p.polrelid) = 'true';")
           [ -z "$ABERTAS" ] || { echo "::error::policy aberta (lição paga do suna-core): $ABERTAS"; exit 1; }
 
@@ -218,7 +224,7 @@ jobs:
                              where n.nspname='public' and c.relkind='r';")
           [ "$PUB" = "0" ] || { echo "::error::$PUB tabela(s) em public — expostas via API"; exit 1; }
           ANON=$($PSQL -tAc "select count(*) from information_schema.role_table_grants
-                              where grantee='anon' and table_schema in ('core','recon','marketing','ap','crm','ar','po','ops');")
+                              where grantee='anon' and table_schema in ('core','recon','marketing','ap','crm','ar','po','ops','inv');")
           [ "$ANON" = "0" ] || { echo "::error::anon tem $ANON grant(s) no Business OS"; exit 1; }
 
       - name: o seed não semeou tenant nem usuário
@@ -364,6 +370,76 @@ jobs:
       #     não é comentário bonito.
       - name: teste do Módulo 7 (esteira do tenant, trilha imutável, refazer)
         run: $PSQL -f supabase/tests/12_ops_isolation.sql
+
+      # ⭐⭐ A PROVA DO MÓDULO 8: o livro imutável e o saldo honesto.
+      #
+      # Sete cenários, e três deles não existem em teste de pacote nenhum:
+      #
+      #   · o livro é IMUTÁVEL até para o dono do banco (camada 3);
+      #   · o AJUSTE exige razão (constraint) E permissão própria — a
+      #     assimetria user-a × user-b prova que quem conta não é quem confere;
+      #   · o saldo NEGATIVO passa e a view soma sob a RLS de quem lê
+      #     (security_invoker) — o Beta não soma o estoque do Alfa.
+      - name: teste do Módulo 8 (livro imutável, ajuste com razão, saldo negativo)
+        run: $PSQL -f supabase/tests/13_inv_isolation.sql
+
+      # ⛔ O LIVRO NÃO TEM PORTA DE EDIÇÃO — conferido no banco aplicado.
+      #
+      # `inv.movements` aceita INSERT direto (o fato É o dado, como
+      # `crm.interactions`) — mas UPDATE e DELETE não existem para o cliente,
+      # e o saldo NÃO é coluna: é view que soma o livro.
+      - name: o livro do estoque não se edita, e o saldo não é coluna
+        run: |
+          G=$($PSQL -tAc "select coalesce(string_agg(distinct privilege_type, ',' order by privilege_type), '')
+                            from information_schema.role_table_grants
+                           where table_schema='inv' and table_name='movements'
+                             and grantee in ('anon','authenticated','PUBLIC');")
+          [ "$G" = "INSERT,SELECT" ] || {
+            echo "::error::inv.movements tem privilégios além de INSERT/SELECT: [$G]"; exit 1; }
+          P=$($PSQL -tAc "select count(*) from pg_policy p
+                            join pg_class c on c.oid=p.polrelid
+                            join pg_namespace n on n.oid=c.relnamespace
+                           where n.nspname='inv' and c.relname='movements'
+                             and p.polcmd in ('w','d');")
+          [ "$P" = "0" ] || { echo "::error::apareceu policy de UPDATE/DELETE no livro"; exit 1; }
+          T=$($PSQL -tAc "select count(*) from pg_trigger t
+                            join pg_class c on c.oid=t.tgrelid
+                            join pg_namespace n on n.oid=c.relnamespace
+                           where n.nspname='inv' and c.relname='movements'
+                             and t.tgname='movements_immutable' and not t.tgisinternal;")
+          [ "$T" = "1" ] || { echo "::error::o gatilho de imutabilidade sumiu do livro"; exit 1; }
+          # E o saldo é CONSEQUÊNCIA: nenhuma coluna de saldo em inv.items,
+          # e a view soma com a RLS de quem lê.
+          C=$($PSQL -tAc "select count(*) from information_schema.columns
+                           where table_schema='inv' and table_name='items'
+                             and column_name in ('balance','quantity','quantity_on_hand','saldo');")
+          [ "$C" = "0" ] || { echo "::error::inv.items ganhou coluna de saldo — o saldo é a soma do livro"; exit 1; }
+          V=$($PSQL -tAc "select count(*) from pg_class c
+                            join pg_namespace n on n.oid=c.relnamespace
+                           where n.nspname='inv' and c.relname='balances' and c.relkind='v'
+                             and c.reloptions::text like '%security_invoker=true%';")
+          [ "$V" = "1" ] || { echo "::error::inv.balances sem security_invoker — a view somaria todos os tenants"; exit 1; }
+
+      - name: nenhuma porta de DELETE em inv
+        run: |
+          G=$($PSQL -tAc "select count(*) from information_schema.role_table_grants
+                            where table_schema='inv' and privilege_type='DELETE'
+                              and grantee in ('anon','authenticated','PUBLIC');")
+          [ "$G" = "0" ] || { echo "::error::alguém concedeu DELETE em inv ao cliente — arquivar é status"; exit 1; }
+          P=$($PSQL -tAc "select count(*) from pg_policy p
+                            join pg_class c on c.oid=p.polrelid
+                            join pg_namespace n on n.oid=c.relnamespace
+                           where n.nspname='inv' and p.polcmd='d';")
+          [ "$P" = "0" ] || { echo "::error::apareceu policy de DELETE em inv"; exit 1; }
+
+      - name: o oitavo cartão (inv) tem consumes vazio
+        run: |
+          C=$($PSQL -tAc "select jsonb_array_length(events_consumes)
+                            from core.module_registry where module_id='inv';")
+          [ "$C" = "0" ] || {
+            echo "::error::o módulo inv declara $C consumo(s) — o caminho po→inv está NÃO CONSTRUÍDO (spec §5)"
+            exit 1; }
+          echo "inv no catálogo com consumes vazio."
 
       # ⭐⭐ A LEI DAS ETAPAS, CONFERIDA NO BANCO APLICADO.
       #
@@ -522,8 +598,8 @@ jobs:
           # Só apareceu porque os números foram conferidos contra o banco.
           N=$($PSQL -tAc "select count(*) from core.module_registry
                            where status='published'
-                             and module_id in ('recon','marketing','ap','crm','ar','po','ops');")
-          [ "$N" = "7" ] || { echo "::error::o catálogo tem $N dos 7 módulos reais publicados"; exit 1; }
+                             and module_id in ('recon','marketing','ap','crm','ar','po','ops','inv');")
+          [ "$N" = "8" ] || { echo "::error::o catálogo tem $N dos 8 módulos reais publicados"; exit 1; }
           C=$($PSQL -tAc "select jsonb_array_length(events_consumes)
                             from core.module_registry where module_id='crm';")
           [ "$C" = "0" ] || {
@@ -662,7 +738,7 @@ jobs:
           ABERTAS=$($PSQL -tAc "
             select coalesce(string_agg(n.nspname||'.'||p.proname, ', ' order by p.proname), '')
               from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-             where n.nspname in ('core','recon','marketing','ap','crm','ar','po','ops')
+             where n.nspname in ('core','recon','marketing','ap','crm','ar','po','ops','inv')
                and has_function_privilege('anon', p.oid, 'execute');")
           [ -z "$ABERTAS" ] || { echo "::error::função executável por anon: $ABERTAS"; exit 1; }
 
@@ -673,7 +749,7 @@ jobs:
             OK=$($PSQL -tAc "
               select count(*) from pg_proc p join pg_namespace n on n.oid = p.pronamespace
                where p.proname = '$FN'
-                 and n.nspname in ('core','recon','marketing','ap','crm','ar','po','ops')
+                 and n.nspname in ('core','recon','marketing','ap','crm','ar','po','ops','inv')
                  and has_function_privilege('authenticated', p.oid, 'execute');")
             [ "$OK" -ge 1 ] || { echo "::error::$FN() deixou de ser chamável pelo portal"; exit 1; }
           done
@@ -767,6 +843,7 @@ jobs:
           $PSQL -q -f supabase/migrations/0020_ops_machine_draft.sql
           $PSQL -q -f supabase/migrations/0021_tenant_panel.sql
           $PSQL -q -f supabase/migrations/0022_revoke_public_execute.sql
+          $PSQL -q -f supabase/migrations/0023_inv.sql
           $PSQL -q -f supabase/seed/0001_platform.sql
 
       # ⚠️ Sem `DATABASE_URL` os testes do store se PULAM — de propósito, para
@@ -1029,6 +1106,37 @@ jobs:
             echo "$COLUNA"; exit 1
           fi
 
+          # Módulo 8: o SALDO é a decisão. A armadilha específica é a mais
+          # tentadora de todas: um `reduce` somando movimentos direto na tela
+          # monta a lista e parece certo — e esquece o sinal do tipo, ou o
+          # local, ou soma o arquivado. O saldo é buildBalances()/balanceFor(),
+          # no pacote, e o sinal é signedQuantity().
+          if grep -rInE 'function (buildBalances|balanceFor|balanceState|ledgerFor|signedQuantity|validateNewItem|validateNewMovement|permissionForMovement|summarizeInventory)' \
+               apps --include='*.ts' --include='*.tsx'; then
+            echo "::error::o domínio do estoque foi redeclarado em apps/"; exit 1
+          fi
+          INV=$(grep -Ev '^\s*(\*|//|/\*)' apps/portal/src/app/inv-actions.ts)
+          for FN in validateNewItem validateNewMovement canTransition permissionForMovement; do
+            echo "$INV" | grep -Eq "\b$FN\(" \
+              || { echo "::error::a ação do estoque deixou de chamar $FN() do pacote"; exit 1; }
+          done
+          IPAGE=$(grep -Ev '^\s*(\*|//|/\*)' apps/portal/src/app/estoque/page.tsx)
+          echo "$IPAGE" | grep -Eq '\bbuildBalances\(' \
+            || { echo "::error::a tela do estoque deixou de usar buildBalances() do pacote"; exit 1; }
+          IEXTRATO=$(grep -Ev '^\s*(\*|//|/\*)' 'apps/portal/src/app/estoque/[itemId]/page.tsx')
+          for FN in ledgerFor balanceFor signedQuantity; do
+            echo "$IEXTRATO" | grep -Eq "\b$FN\(" \
+              || { echo "::error::o extrato deixou de usar $FN() do pacote"; exit 1; }
+          done
+          # O jeito mais provável de a soma migrar para a pele: o sinal do
+          # tipo escrito à mão num componente.
+          SOMA=$(grep -rIn --include='*.ts' --include='*.tsx' -E "kind\s*===?\s*'out'\s*\?\s*-" apps 2>/dev/null \
+                 | grep -Ev '^[^:]+:[0-9]+:\s*(\*|//|/\*)' || true)
+          if [ -n "$SOMA" ]; then
+            echo "::error::o sinal do movimento foi decidido em apps/ — ele é signedQuantity(), no pacote"
+            echo "$SOMA"; exit 1
+          fi
+
           # ⭐ E a Lei das Etapas na PELE: nenhum nome de etapa escrito em apps/.
           # A tela desenha o que o tenant desenhou; ela não conhece "briefing".
           #
@@ -1057,7 +1165,7 @@ jobs:
       - name: módulo não conhece módulo
         run: |
           FALHOU=0
-          MODULOS="finance-reconciliation marketing accounts-payable crm accounts-receivable purchase-orders ops"
+          MODULOS="finance-reconciliation marketing accounts-payable crm accounts-receivable purchase-orders ops inventory"
 
           # 1. Nenhum módulo importa outro módulo, em nenhuma forma.
           for MOD in $MODULOS; do
@@ -1075,7 +1183,7 @@ jobs:
           #    `devDependencies` de teste também não vale — se o teste precisa
           #    do outro módulo, o acoplamento é real.
           for MOD in $MODULOS; do
-            if grep -qE '"@alsham/(finance-reconciliation|marketing|accounts-payable|crm|accounts-receivable|purchase-orders|ops)"' \
+            if grep -qE '"@alsham/(finance-reconciliation|marketing|accounts-payable|crm|accounts-receivable|purchase-orders|ops|inventory)"' \
                  <(grep -v "\"@alsham/$MOD\"" "packages/$MOD/package.json"); then
               echo "::error::packages/$MOD declara outro módulo como dependência"
               FALHOU=1
@@ -1109,6 +1217,7 @@ jobs:
             [0017_po.sql]=po
             [0018_ops.sql]=ops
             [0020_ops_machine_draft.sql]=ops
+            [0023_inv.sql]=inv
           )
           for ARQUIVO in "${!SCHEMA_DE[@]}"; do
             DONO="${SCHEMA_DE[$ARQUIVO]}"
@@ -1127,7 +1236,7 @@ jobs:
           #    produz o evento. Ela recebe TUDO por argumento, do payload — que
           #    o produtor monta autossuficiente exatamente por isso.
           PROJ=$(sed 's/--.*//' supabase/migrations/0008_recon_ap_projection.sql)
-          if echo "$PROJ" | grep -qE "\b(ap|marketing|crm|ar|ops)\."; then
+          if echo "$PROJ" | grep -qE "\b(ap|marketing|crm|ar|ops|inv)\."; then
             echo "::error::a projeção lê o schema de outro módulo — ela só pode ler o payload"
             FALHOU=1
           fi

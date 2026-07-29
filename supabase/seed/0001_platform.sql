@@ -660,6 +660,73 @@ on conflict (module_id) do update set
 -- ⛔ Sete módulos no catálogo, zero permissão concedida pelo seed.
 
 -- =============================================================================
+-- 4.6 O MÓDULO `inv` NO CATÁLOGO DA STORE — o 8º cartão
+-- Transcrito de packages/inventory/src/manifest.ts.
+-- -----------------------------------------------------------------------------
+-- ⚠️ Mesma regra dos outros sete: este bloco e o `MANIFEST` do pacote andam
+-- juntos, e há teste no CI que compara os dois campo a campo.
+--
+-- ⭐ **Domain `operations`, capacidade *Estoque*** — a nona da lista do
+-- Domain na Taxonomia §5. *Almoxarifado* e *Inventário* NÃO são declaradas:
+-- multi-depósito estruturado e contagem periódica com fechamento são
+-- capacidades futuras, e listá-las seria vender o que não existe.
+--
+-- ⭐ **`events_consumes` é VAZIO**, e é Lei 7: o recebimento do `po` virar
+-- entrada exigiria um fato com DELTA por linha e um vínculo linha↔item que o
+-- `po` não tem (sem catálogo, por decisão de canon dele). Ver a spec §6.
+-- =============================================================================
+
+insert into core.module_registry (
+  module_id, name, version, summary,
+  layer, domain_key,
+  capabilities, permissions, events_emits, events_consumes, agents,
+  requires_core, status
+)
+values (
+  'inv',
+  'Estoque',
+  '0.1.0',
+  'O estoque como livro de movimentos imutável: entrada, saída e ajuste com razão. O saldo é a soma do livro — calculado, nunca editado.',
+  'domain', 'operations',
+  '[
+     {"key":"stock","canonicalName":"Estoque"}
+   ]'::jsonb,
+  '[
+     {"key":"inv.item.manage","moduleId":"inv","description":"Cadastrar e editar itens, arquivá-los e reativá-los. Nunca apagar."},
+     {"key":"inv.movement.register","moduleId":"inv","description":"Lançar entradas e saídas no livro de movimentos."},
+     {"key":"inv.movement.adjust","moduleId":"inv","description":"Lançar AJUSTES — o movimento que reescreve a contagem, sempre com razão obrigatória."}
+   ]'::jsonb,
+  '[
+     {"type":"inv.item.registered","version":1,"description":"Um item entrou no catálogo do tenant, com descrição, unidade e SKU opcional."},
+     {"type":"inv.item.updated","version":1,"description":"Mudou fato do item: descrição, unidade, SKU — ou ele voltou do arquivo (reativar não tem fato próprio)."},
+     {"type":"inv.item.archived","version":1,"description":"O item foi arquivado — a ação destrutiva deste módulo. O livro dele continua inteiro; item arquivado não movimenta."},
+     {"type":"inv.movement.registered","version":1,"description":"Uma linha entrou no livro: entrada, saída ou ajuste com razão, com o item pelo nome e o saldo resultante."}
+   ]'::jsonb,
+  -- Vazio, e é Lei 7. Ver o comentário acima e a spec do módulo.
+  '[]'::jsonb,
+  '[]'::jsonb,
+  '0.0.x',
+  'published'
+)
+on conflict (module_id) do update set
+  name            = excluded.name,
+  version         = excluded.version,
+  summary         = excluded.summary,
+  layer           = excluded.layer,
+  domain_key      = excluded.domain_key,
+  vertical_key    = excluded.vertical_key,
+  capabilities    = excluded.capabilities,
+  permissions     = excluded.permissions,
+  events_emits    = excluded.events_emits,
+  events_consumes = excluded.events_consumes,
+  agents          = excluded.agents,
+  requires_core   = excluded.requires_core,
+  status          = excluded.status,
+  updated_at      = now();
+
+-- ⛔ Oito módulos no catálogo, zero permissão concedida pelo seed.
+
+-- =============================================================================
 -- 5. PLANOS-BASE
 -- Minerado de: `plan_limits` (5 planos) do kraken-v2 (PROVADO em produção).
 -- -----------------------------------------------------------------------------

@@ -257,6 +257,21 @@ export const PECAS = [
     padrao: /(m[óo]dulo 7|packages\/ops\b|@alsham\/ops|0018_ops)/i,
     onde: 'packages/ops/',
   },
+  // ⚠️ MISSÃO TRINA: cada módulo novo entra num OBJETO LITERAL PRÓPRIO — a
+  // lição do rebase da Etapa 13 (duas peças na mesma chave: a segunda
+  // sobrescreve a primeira em silêncio). Conte as linhas ✅ da saída.
+  {
+    nome: 'Módulo 8 — Estoque',
+    detector: [
+      'packages/inventory/src/manifest.ts',
+      'packages/inventory/src/inventory.ts',
+      'supabase/migrations/0023_inv.sql',
+    ],
+    // "estoque" solto aparece em prosa sobre a capacidade; o padrão exige o
+    // NOME DA PEÇA — mesma lição dos Módulos 5, 6 e 7.
+    padrao: /(m[óo]dulo 8|packages\/inventory|@alsham\/inventory|0023_inv)/i,
+    onde: 'packages/inventory/',
+  },
   {
     nome: 'Menu filtrado por permissão',
     detector: ['packages/permissions/src/menu.ts'],
@@ -358,6 +373,11 @@ const SECOES = [
   { arquivo: 'docs/canon/MODULO-CRM-SPEC.md', titulo: '## 6. ESTADO DA OBRA' },
   { arquivo: 'docs/canon/MODULO-AR-SPEC.md', titulo: '## 5. ESTADO DA OBRA' },
   { arquivo: 'docs/canon/MODULO-PO-SPEC.md', titulo: '## 4. ESTADO DA CONSTRUÇÃO' },
+  // ⚠️ A entrada do OPS FALTAVA aqui desde a Etapa 13 — o CLAUDE.md §5.6 o
+  // cita como fonte de estado e o CI não conferia a seção. Regularizada na
+  // Missão Trina, junto com as cinco specs novas.
+  { arquivo: 'docs/canon/MODULO-OPS-SPEC.md', titulo: '## 5. ESTADO DA OBRA' },
+  { arquivo: 'docs/canon/MODULO-INV-SPEC.md', titulo: '## 7. ESTADO DA OBRA' },
 ];
 
 /**

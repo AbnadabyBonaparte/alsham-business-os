@@ -20,6 +20,8 @@ import { createOpsSupabasePort } from './ops-supabase';
 import { createArSupabasePort } from './ar-supabase';
 import { createPoMockPort } from './po-mock';
 import { createPoSupabasePort } from './po-supabase';
+import { createInvMockPort } from './inv-mock';
+import { createInvSupabasePort } from './inv-supabase';
 import { createSupabaseServerClient } from '../supabase/server';
 import { resolveSession } from '../session';
 import type { DataPort } from './port';
@@ -29,6 +31,7 @@ import type { ApPort } from './ap-port';
 import type { CrmPort } from './crm-port';
 import type { ArPort } from './ar-port';
 import type { PoPort } from './po-port';
+import type { InvPort } from './inv-port';
 import type { OpsPort } from './ops-port';
 import type { ForgePort } from './forge-port';
 import type { BrandPort } from './brand-port';
@@ -43,6 +46,7 @@ export type { ApPort, PayableRow } from './ap-port';
 export type { CrmPort, PartyRow, InteractionRow } from './crm-port';
 export type { ArPort, ReceivableRow } from './ar-port';
 export type { PoPort, OrderRow } from './po-port';
+export type { InvPort, ItemRow, MovementRow } from './inv-port';
 export type { OpsPort, PipelineWithStages } from './ops-port';
 export type { ForgePort, GenerationResponse } from './forge-port';
 export type { BrandPort } from './brand-port';
@@ -206,6 +210,22 @@ export async function getOpsPort(): Promise<OpsPort> {
   if (!db) return createOpsMockPort();
 
   return createOpsSupabasePort(db, session.activeTenant.id);
+}
+
+/**
+ * A porta do Módulo 8 — **oitava porta, mesmo encanamento**.
+ *
+ * As mesmas oito linhas, deliberadamente: porta que serve dois módulos vira
+ * porta que serve cinco, e desinstalar um deixa métodos que não respondem.
+ */
+export async function getInvPort(): Promise<InvPort> {
+  const session = await resolveSession();
+  if (session.mode !== 'authenticated') return createInvMockPort();
+
+  const db = await createSupabaseServerClient();
+  if (!db) return createInvMockPort();
+
+  return createInvSupabasePort(db, session.activeTenant.id);
 }
 
 /**
