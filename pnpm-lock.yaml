@@ -32,6 +32,9 @@ importers:
       '@alsham/core':
         specifier: workspace:*
         version: link:../../packages/core
+      '@alsham/dunning':
+        specifier: workspace:*
+        version: link:../../packages/dunning
       '@alsham/finance-reconciliation':
         specifier: workspace:*
         version: link:../../packages/finance-reconciliation
@@ -81,6 +84,9 @@ importers:
       '@alsham/deals':
         specifier: workspace:*
         version: link:../../packages/deals
+      '@alsham/dunning':
+        specifier: workspace:*
+        version: link:../../packages/dunning
       '@alsham/event-management':
         specifier: workspace:*
         version: link:../../packages/event-management
@@ -221,6 +227,19 @@ importers:
         version: 5.9.3
 
   packages/deals:
+    dependencies:
+      '@alsham/core':
+        specifier: workspace:*
+        version: link:../core
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.2
+        version: 22.20.1
+      typescript:
+        specifier: ^5.7.2
+        version: 5.9.3
+
+  packages/dunning:
     dependencies:
       '@alsham/core':
         specifier: workspace:*

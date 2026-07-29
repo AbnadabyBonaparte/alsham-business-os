@@ -930,6 +930,70 @@ on conflict (module_id) do update set
 -- ⛔ Onze módulos no catálogo, zero permissão concedida pelo seed.
 
 -- =============================================================================
+-- 4.10 O MÓDULO `dun` NO CATÁLOGO DA STORE — o 12º cartão
+-- Transcrito de packages/dunning/src/manifest.ts.
+-- -----------------------------------------------------------------------------
+-- ⭐ **Domain `finance`, capacidade *Cobrança*** — a régua cobra O CLIENTE DO
+-- TENANT; `billing` cobra o tenant. Duas "cobranças", donos diferentes.
+--
+-- ⭐⭐ **`events_consumes` NÃO É VAZIO — e o handler EXISTE** (Lei 7 do jeito
+-- certo): `dun-title.ts` + `dun.record_external_receivable()` + inscrição na
+-- composição + teste triangular. A régua só faz sentido escutando.
+-- =============================================================================
+
+insert into core.module_registry (
+  module_id, name, version, summary,
+  layer, domain_key,
+  capabilities, permissions, events_emits, events_consumes, agents,
+  requires_core, status
+)
+values (
+  'dun',
+  'Régua de Cobrança',
+  '0.1.0',
+  'A régua que o tenant desenha para os títulos vencidos: diz o que fazer, registra que foi feito — quem, quando, por qual canal. Não envia nada; a baixa na origem tira o título sozinho.',
+  'domain', 'finance',
+  '[
+     {"key":"collections","canonicalName":"Cobrança"}
+   ]'::jsonb,
+  '[
+     {"key":"dun.ruler.design","moduleId":"dun","description":"Desenhar a régua: passos ordenados, dias após o vencimento, canal em texto livre."},
+     {"key":"dun.step.execute","moduleId":"dun","description":"Executar um passo da régua sobre um título vencido — o ato fica registrado com quem, quando e por qual canal."}
+   ]'::jsonb,
+  '[
+     {"type":"dun.title.entered","version":1,"description":"Um título vencido e em aberto entrou na régua — decidido pelo mesmo fato que o trouxe, ou pelo primeiro passo executado."},
+     {"type":"dun.title.left","version":1,"description":"O título saiu da régua — baixa, cancelamento ou vencimento renegociado NA ORIGEM. A régua não segura ninguém."},
+     {"type":"dun.step.executed","version":1,"description":"Um passo foi executado: título, passo pelo nome, canal, dias de atraso e anotação. É o fato que uma integração de envio escutaria."}
+   ]'::jsonb,
+  -- ⭐ NÃO vazio — os três têm handler construído. Ver a spec §3.
+  '[
+     {"type":"ar.receivable.registered","version":1,"description":"Um título a receber nasceu — se vencido e em aberto, entra na régua."},
+     {"type":"ar.receivable.updated","version":1,"description":"O título mudou (recebimento, vencimento, valor) — a régua reprojetará e decide entrada/saída."},
+     {"type":"ar.receivable.cancelled","version":1,"description":"O título foi cancelado na origem — sai da régua sozinho."}
+   ]'::jsonb,
+  '[]'::jsonb,
+  '0.0.x',
+  'published'
+)
+on conflict (module_id) do update set
+  name            = excluded.name,
+  version         = excluded.version,
+  summary         = excluded.summary,
+  layer           = excluded.layer,
+  domain_key      = excluded.domain_key,
+  vertical_key    = excluded.vertical_key,
+  capabilities    = excluded.capabilities,
+  permissions     = excluded.permissions,
+  events_emits    = excluded.events_emits,
+  events_consumes = excluded.events_consumes,
+  agents          = excluded.agents,
+  requires_core   = excluded.requires_core,
+  status          = excluded.status,
+  updated_at      = now();
+
+-- ⛔ Doze módulos no catálogo, zero permissão concedida pelo seed.
+
+-- =============================================================================
 -- 5. PLANOS-BASE
 -- Minerado de: `plan_limits` (5 planos) do kraken-v2 (PROVADO em produção).
 -- -----------------------------------------------------------------------------

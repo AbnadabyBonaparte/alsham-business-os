@@ -189,6 +189,12 @@ jobs:
       - name: aplicar 0026_evt.sql
         run: $PSQL -f supabase/migrations/0026_evt.sql
 
+      # ⭐⭐ O Módulo 12: a régua — projeção alimentada por FATO (padrão E10,
+      # quarta aplicação), a Lei das Etapas pela terceira vez, e o ato
+      # registrado. O módulo NÃO envia nada.
+      - name: aplicar 0027_dun.sql
+        run: $PSQL -f supabase/migrations/0027_dun.sql
+
       # ---------------------------------------------------------------------
       # 2. SEED — e a prova de que reaplicar não muda nada
       # ---------------------------------------------------------------------
@@ -216,12 +222,12 @@ jobs:
           FALTA=$($PSQL -tAc "
             select coalesce(string_agg(n.nspname||'.'||c.relname, ', '), '')
               from pg_class c join pg_namespace n on n.oid = c.relnamespace
-             where n.nspname in ('core','recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt') and c.relkind = 'r'
+             where n.nspname in ('core','recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt','dun') and c.relkind = 'r'
                and (not c.relrowsecurity or not c.relforcerowsecurity);")
           [ -z "$FALTA" ] || { echo "::error::sem RLS enable+force: $FALTA"; exit 1; }
           $PSQL -c "select n.nspname as schema, count(*) as tabelas
                       from pg_class c join pg_namespace n on n.oid=c.relnamespace
-                     where n.nspname in ('core','recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt') and c.relkind='r'
+                     where n.nspname in ('core','recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt','dun') and c.relkind='r'
                      group by 1 order by 1;"
 
       - name: nenhuma policy USING (true)
@@ -231,7 +237,7 @@ jobs:
               from pg_policy p
               join pg_class c on c.oid = p.polrelid
               join pg_namespace n on n.oid = c.relnamespace
-             where n.nspname in ('core','recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt')
+             where n.nspname in ('core','recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt','dun')
                and pg_get_expr(p.polqual, p.polrelid) = 'true';")
           [ -z "$ABERTAS" ] || { echo "::error::policy aberta (lição paga do suna-core): $ABERTAS"; exit 1; }
 
@@ -242,7 +248,7 @@ jobs:
                              where n.nspname='public' and c.relkind='r';")
           [ "$PUB" = "0" ] || { echo "::error::$PUB tabela(s) em public — expostas via API"; exit 1; }
           ANON=$($PSQL -tAc "select count(*) from information_schema.role_table_grants
-                              where grantee='anon' and table_schema in ('core','recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt');")
+                              where grantee='anon' and table_schema in ('core','recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt','dun');")
           [ "$ANON" = "0" ] || { echo "::error::anon tem $ANON grant(s) no Business OS"; exit 1; }
 
       - name: o seed não semeou tenant nem usuário
@@ -550,6 +556,60 @@ jobs:
             exit 1; }
           echo "evt no catálogo com consumes vazio."
 
+      # ⭐⭐ A PROVA DO MÓDULO 12: O TRIÂNGULO DA RÉGUA.
+      #
+      # Oito cenários, e os que nenhum teste de pacote alcança:
+      #   · a origem gravada vem do ENVELOPE — um produtor fictício
+      #     (`erp-bridge`) grava a origem DELE;
+      #   · a BAIXA NA ORIGEM tira o título da régua SOZINHA, com o fato
+      #     dun.title.left saindo — e o passo passa a ser recusado;
+      #   · um usuário real NÃO executa dun.record_external_receivable —
+      #     dar essa caneta à tela deixaria o cliente forjar título.
+      - name: teste do triângulo da régua (ar emite → dun projeta → passo → baixa)
+        run: $PSQL -f supabase/tests/17_dun_triangle.sql
+
+      # ⛔ A PROJEÇÃO E O ATO NÃO TÊM PORTA DE ESCRITA — no banco aplicado.
+      - name: a régua não se escreve à mão
+        run: |
+          G=$($PSQL -tAc "select coalesce(string_agg(distinct privilege_type, ',' order by privilege_type), '')
+                            from information_schema.role_table_grants
+                           where table_schema='dun' and table_name='titles'
+                             and grantee in ('anon','authenticated','PUBLIC');")
+          [ "$G" = "SELECT" ] || { echo "::error::dun.titles tem privilégios além de SELECT: [$G]"; exit 1; }
+          E=$($PSQL -tAc "select coalesce(string_agg(distinct privilege_type, ',' order by privilege_type), '')
+                            from information_schema.role_table_grants
+                           where table_schema='dun' and table_name='step_executions'
+                             and grantee in ('anon','authenticated','PUBLIC');")
+          [ "$E" = "SELECT" ] || { echo "::error::dun.step_executions tem privilégios além de SELECT: [$E]"; exit 1; }
+          # E a porta de projeção continua fechada ao cliente.
+          A=$($PSQL -tAc "select count(*) from pg_proc p
+                            join pg_namespace n on n.oid = p.pronamespace
+                           where n.nspname='dun' and p.proname='record_external_receivable'
+                             and (has_function_privilege('authenticated', p.oid, 'execute')
+                               or has_function_privilege('anon', p.oid, 'execute'));")
+          [ "$A" = "0" ] || { echo "::error::dun.record_external_receivable está concedida ao cliente"; exit 1; }
+          # Uma régua ativa por tenant: o índice parcial existe.
+          I=$($PSQL -tAc "select count(*) from pg_indexes
+                           where schemaname='dun' and indexname='rulers_one_active';")
+          [ "$I" = "1" ] || { echo "::error::o índice de régua única sumiu — a lei virou lembrança"; exit 1; }
+
+      # ⭐ O 12º CARTÃO DECLARA OS TRÊS CONSUMOS QUE O HANDLER COBRE — a Lei 7
+      # do jeito certo, conferida no banco.
+      - name: o décimo segundo cartão (dun) declara os três consumos do handler
+        run: |
+          C=$($PSQL -tAc "select jsonb_array_length(events_consumes)
+                            from core.module_registry where module_id='dun';")
+          [ "$C" = "3" ] || {
+            echo "::error::o módulo dun declara $C consumo(s) — esperado 3 (o handler cobre três)"
+            exit 1; }
+          for T in ar.receivable.registered ar.receivable.updated ar.receivable.cancelled; do
+            OK=$($PSQL -tAc "select count(*) from core.module_registry,
+                                  jsonb_array_elements(events_consumes) e
+                              where module_id='dun' and e->>'type' = '$T';")
+            [ "$OK" = "1" ] || { echo "::error::o cartão do dun não declara $T"; exit 1; }
+          done
+          echo "dun no catálogo com os três consumos do handler."
+
       - name: nenhuma porta de DELETE em quote.proposals
         run: |
           G=$($PSQL -tAc "select count(*) from information_schema.role_table_grants
@@ -738,8 +798,8 @@ jobs:
           # Só apareceu porque os números foram conferidos contra o banco.
           N=$($PSQL -tAc "select count(*) from core.module_registry
                            where status='published'
-                             and module_id in ('recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt');")
-          [ "$N" = "11" ] || { echo "::error::o catálogo tem $N dos 11 módulos reais publicados"; exit 1; }
+                             and module_id in ('recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt','dun');")
+          [ "$N" = "12" ] || { echo "::error::o catálogo tem $N dos 12 módulos reais publicados"; exit 1; }
           C=$($PSQL -tAc "select jsonb_array_length(events_consumes)
                             from core.module_registry where module_id='crm';")
           [ "$C" = "0" ] || {
@@ -878,7 +938,7 @@ jobs:
           ABERTAS=$($PSQL -tAc "
             select coalesce(string_agg(n.nspname||'.'||p.proname, ', ' order by p.proname), '')
               from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-             where n.nspname in ('core','recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt')
+             where n.nspname in ('core','recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt','dun')
                and has_function_privilege('anon', p.oid, 'execute');")
           [ -z "$ABERTAS" ] || { echo "::error::função executável por anon: $ABERTAS"; exit 1; }
 
@@ -889,7 +949,7 @@ jobs:
             OK=$($PSQL -tAc "
               select count(*) from pg_proc p join pg_namespace n on n.oid = p.pronamespace
                where p.proname = '$FN'
-                 and n.nspname in ('core','recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt')
+                 and n.nspname in ('core','recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt','dun')
                  and has_function_privilege('authenticated', p.oid, 'execute');")
             [ "$OK" -ge 1 ] || { echo "::error::$FN() deixou de ser chamável pelo portal"; exit 1; }
           done
@@ -987,6 +1047,7 @@ jobs:
           $PSQL -q -f supabase/migrations/0024_quote.sql
           $PSQL -q -f supabase/migrations/0025_deal.sql
           $PSQL -q -f supabase/migrations/0026_evt.sql
+          $PSQL -q -f supabase/migrations/0027_dun.sql
           $PSQL -q -f supabase/seed/0001_platform.sql
 
       # ⚠️ Sem `DATABASE_URL` os testes do store se PULAM — de propósito, para
@@ -1355,6 +1416,25 @@ jobs:
             echo "$VAGAS"; exit 1
           fi
 
+          # Módulo 12: a fila, o atraso e o PRÓXIMO PASSO são DECISÃO. A
+          # armadilha: um `dueDate < hoje` na tela decide quem está vencido —
+          # a mesma do ap, agora na régua (a guarda de dueDate acima já cobre
+          # o literal; esta confere as chamadas).
+          if grep -rInE 'function (isInQueue|daysOverdue|dueSteps|nextStep|positionOf|validateRulerSteps|outstandingCentsOf|summarizeQueue)' \
+               apps --include='*.ts' --include='*.tsx'; then
+            echo "::error::o domínio da régua foi redeclarado em apps/"; exit 1
+          fi
+          DN=$(grep -Ev '^\s*(\*|//|/\*)' apps/portal/src/app/dun-actions.ts)
+          for FN in validateRulerSteps isInQueue nextStep; do
+            echo "$DN" | grep -Eq "\b$FN\(" \
+              || { echo "::error::a ação da régua deixou de chamar $FN() do pacote"; exit 1; }
+          done
+          DFILA=$(grep -Ev '^\s*(\*|//|/\*)' apps/portal/src/components/dun-queue.tsx)
+          for FN in isInQueue daysOverdue nextStep positionOf outstandingCentsOf; do
+            echo "$DFILA" | grep -Eq "\b$FN\(" \
+              || { echo "::error::a fila da régua deixou de usar $FN() do pacote"; exit 1; }
+          done
+
           # ⭐ E a Lei das Etapas na PELE: nenhum nome de etapa escrito em apps/.
           # A tela desenha o que o tenant desenhou; ela não conhece "briefing".
           #
@@ -1383,7 +1463,7 @@ jobs:
       - name: módulo não conhece módulo
         run: |
           FALHOU=0
-          MODULOS="finance-reconciliation marketing accounts-payable crm accounts-receivable purchase-orders ops inventory quotes deals event-management"
+          MODULOS="finance-reconciliation marketing accounts-payable crm accounts-receivable purchase-orders ops inventory quotes deals event-management dunning"
 
           # 1. Nenhum módulo importa outro módulo, em nenhuma forma.
           for MOD in $MODULOS; do
@@ -1401,7 +1481,7 @@ jobs:
           #    `devDependencies` de teste também não vale — se o teste precisa
           #    do outro módulo, o acoplamento é real.
           for MOD in $MODULOS; do
-            if grep -qE '"@alsham/(finance-reconciliation|marketing|accounts-payable|crm|accounts-receivable|purchase-orders|ops|inventory|quotes|deals|event-management)"' \
+            if grep -qE '"@alsham/(finance-reconciliation|marketing|accounts-payable|crm|accounts-receivable|purchase-orders|ops|inventory|quotes|deals|event-management|dunning)"' \
                  <(grep -v "\"@alsham/$MOD\"" "packages/$MOD/package.json"); then
               echo "::error::packages/$MOD declara outro módulo como dependência"
               FALHOU=1
@@ -1439,6 +1519,7 @@ jobs:
             [0024_quote.sql]=quote
             [0025_deal.sql]=deal
             [0026_evt.sql]=evt
+            [0027_dun.sql]=dun
           )
           for ARQUIVO in "${!SCHEMA_DE[@]}"; do
             DONO="${SCHEMA_DE[$ARQUIVO]}"
@@ -1457,7 +1538,7 @@ jobs:
           #    produz o evento. Ela recebe TUDO por argumento, do payload — que
           #    o produtor monta autossuficiente exatamente por isso.
           PROJ=$(sed 's/--.*//' supabase/migrations/0008_recon_ap_projection.sql)
-          if echo "$PROJ" | grep -qE "\b(ap|marketing|crm|ar|ops|inv|quote|deal|evt)\."; then
+          if echo "$PROJ" | grep -qE "\b(ap|marketing|crm|ar|ops|inv|quote|deal|evt|dun)\."; then
             echo "::error::a projeção lê o schema de outro módulo — ela só pode ler o payload"
             FALHOU=1
           fi
@@ -1475,6 +1556,22 @@ jobs:
           fi
           echo "$CONS" | grep -qE 'envelope\.producedBy' \
             || { echo "::error::o consumidor deixou de ler a procedência do envelope"; FALHOU=1; }
+
+          # ⭐ E o QUARTO consumidor (a régua) obedece às mesmas três leis: a
+          #    projeção dele não lê schema de produtor, não chumba a origem, e
+          #    o handler lê envelope.producedBy.
+          PROJD=$(sed 's/--.*//' supabase/migrations/0027_dun.sql)
+          if echo "$PROJD" | grep -qE "'(ar|accounts-receivable)'"; then
+            echo "::error::a projeção da régua cita o nome do módulo produtor — a origem vem de producedBy"
+            FALHOU=1
+          fi
+          DUNC=$(grep -Ev '^\s*(\*|//|/\*)' packages/dunning/src/dun-title.ts)
+          if echo "$DUNC" | grep -qE "sourceModuleId:\s*'"; then
+            echo "::error::o consumidor da régua chumbou a origem — ela tem de vir de envelope.producedBy"
+            FALHOU=1
+          fi
+          echo "$DUNC" | grep -qE 'envelope\.producedBy' \
+            || { echo "::error::o consumidor da régua deixou de ler a procedência do envelope"; FALHOU=1; }
 
           [ "$FALHOU" = "0" ] || exit 1
           # ⚠️ O número sai da própria lista, não de uma constante escrita à
@@ -1543,7 +1640,7 @@ jobs:
           # porque o nome original continuava contido no novo. A sabotagem da
           # Etapa 10 pegou exatamente isso, e a fraqueza valia para as quatro
           # verificações antigas também — foram corrigidas junto.
-          for FN in deliverDue eventUsageHook handleSpendDecision auditSubscription handleExternalPayable; do
+          for FN in deliverDue eventUsageHook handleSpendDecision auditSubscription handleExternalPayable handleDunTitle; do
             echo "$COMP" | grep -Eq "\b$FN\(" \
               || { echo "::error::a composição deixou de chamar $FN() do pacote"; exit 1; }
           done

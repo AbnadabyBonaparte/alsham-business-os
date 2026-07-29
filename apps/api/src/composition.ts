@@ -22,11 +22,17 @@ import {
   RECON_MATCH_CONSUMER_ID as AP_RECON_MATCH_CONSUMER_ID,
   handleReconMatchSettlement as handleApReconMatchSettlement,
 } from '@alsham/accounts-payable';
+import {
+  CONSUMED_EVENT_PATTERN as DUN_EVENT_PATTERN,
+  CONSUMER_ID as DUN_CONSUMER_ID,
+  handleDunTitle,
+} from '@alsham/dunning';
 
 import { createPgOutboxStore } from './outbox-store.ts';
 import {
   createAuditWriter,
   createApReconMatchSettlementPort,
+  createDunTitleProjectionPort,
   createExternalPayablePort,
   createExternalReceivablePort,
   createReconMatchSettlementPort,
@@ -169,6 +175,23 @@ export function buildSubscriptions(pool: Pool): Subscription[] {
       eventType: AP_RECON_MATCH_EVENT_TYPE,
       handle: async (envelope) => {
         await handleApReconMatchSettlement(createApReconMatchSettlementPort(pool))(envelope);
+      },
+    },
+
+    // 7. ⭐ O MÓDULO 12 ESCUTANDO O MÓDULO 5 — a régua acorda com o título.
+    //
+    //    Segundo consumidor do MESMO padrão `ar.*` (o recon é o outro, na
+    //    inscrição 4): o correio entrega o mesmo fato aos dois, cada um com
+    //    a sua idempotência por consumidor. A régua projeta o título e
+    //    decide entrada/saída — baixa na origem tira da régua sozinha.
+    //
+    //    ⛔ E aqui também NÃO está escrito o nome do módulo produtor: a
+    //    origem gravada vem de `envelope.producedBy`, dentro do handler.
+    {
+      consumer: DUN_CONSUMER_ID,
+      eventType: DUN_EVENT_PATTERN,
+      handle: async (envelope) => {
+        await handleDunTitle(createDunTitleProjectionPort(pool))(envelope);
       },
     },
   ];

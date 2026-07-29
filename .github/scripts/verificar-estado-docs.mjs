@@ -307,6 +307,19 @@ export const PECAS = [
     onde: 'packages/event-management/',
   },
   {
+    nome: 'Módulo 12 — Régua de Cobrança',
+    detector: [
+      'packages/dunning/src/manifest.ts',
+      'packages/dunning/src/dun-title.ts',
+      'supabase/migrations/0027_dun.sql',
+    ],
+    // ⚠️ NUNCA a palavra "cobrança" solta: ela tem duas donas (a régua e o
+    // billing), e o padrão do billing já usa "cobrança (billing)". O padrão
+    // exige o NOME DA PEÇA.
+    padrao: /(m[óo]dulo 12|packages\/dunning|@alsham\/dunning|0027_dun)/i,
+    onde: 'packages/dunning/',
+  },
+  {
     nome: 'Menu filtrado por permissão',
     detector: ['packages/permissions/src/menu.ts'],
     // A dívida da Etapa 10 foi paga: os itens de menu não são mais escritos à
@@ -415,6 +428,7 @@ const SECOES = [
   { arquivo: 'docs/canon/MODULO-QUOTE-SPEC.md', titulo: '## 6. ESTADO DA OBRA' },
   { arquivo: 'docs/canon/MODULO-DEAL-SPEC.md', titulo: '## 6. ESTADO DA OBRA' },
   { arquivo: 'docs/canon/MODULO-EVT-SPEC.md', titulo: '## 6. ESTADO DA OBRA' },
+  { arquivo: 'docs/canon/MODULO-DUN-SPEC.md', titulo: '## 7. ESTADO DA OBRA' },
 ];
 
 /**
