@@ -69,15 +69,13 @@ alheia, que é exatamente o que o Lego proíbe.
 Por isso `ap.payable_payload()` monta o envelope inteiro, e há teste SQL que
 confere campo a campo.
 
-### 2.3 O módulo CONSOME: **nada**, e é Lei 7
+### 2.3 O módulo CONSOME: `recon.match.decided`
 
-Seria fácil declarar que ele escuta a baixa do Módulo 1 e se liquida sozinho — é
-a integração óbvia, e a primeira que um cliente pede. Mas **o handler não
-existe**, e consumo declarado sem consumidor faz o Core acordar um módulo que
-não sabe responder.
+Handler em `recon-settlement.ts` + porta `ap.apply_recon_match` (`0014`).
+Confirmar casamento de débito liquida o título pelo `externalRef`. Rejeitar só
+registra. **Overpay é recusado** — divergência consciente do AR.
 
-Quando o handler existir, `consumes` muda. Até lá, ele é `[]`, e isso é a
-verdade.
+Lei 7 cumprida: primeiro o handler, depois a promessa no manifesto.
 
 ---
 
@@ -205,6 +203,7 @@ duas listas divergirem, o teste quebra antes de o CI chegar no banco.
 | Schema `ap` (`0007_ap.sql`) | ✅ **APLICADO em produção** em 28/07/2026, informado pelo dono — ⚠️ **NÃO VERIFICADO** por este repositório |
 | Porta de projeção do `recon` (`0008_recon_ap_projection.sql`) | ✅ **APLICADO em produção** em 28/07/2026, informado pelo dono — ⚠️ **NÃO VERIFICADO** por este repositório |
 | Consumidor no Módulo 1 (`external-payable.ts`) | ✅ construído — a prova da etapa |
+| Fechamento do ciclo (AP escuta `recon.match.decided`) | ✅ **CONSTRUÍDO em arquivo** — `recon-settlement.ts` + `0014_ap_apply_recon_match.sql`; teste `10` |
 | Inscrição na composição (`apps/api`) | ✅ construída, com teste de ponta contra Postgres |
 | Telas: listar, registrar, cancelar | ✅ construídas — com confirmação em dois passos |
 | Registro de liquidação pela tela | ⚠️ **schema e domínio prontos, sem tela.** O ciclo de vida aceita liquidação parcial e total; a UI é etapa própria |
@@ -220,19 +219,13 @@ Ele registra o que se deve e conta isso à plataforma.
 
 ## 7. O QUE A PRÓXIMA ETAPA HERDA
 
-- **O triângulo está fechado e provado**, mas em ARQUIVO: `0007` e `0008` ainda
-  não foram aplicados. Enquanto não forem, o módulo não existe em produção.
-- ⚠️ **O schema `ap` precisará ser EXPOSTO na Data API do Supabase pelo dono** —
-  lição paga na Etapa 9 com o schema do `marketing`. Sem isso, as telas
-  carregam vazias e o erro não diz o motivo. Está no runbook §8.
-- O padrão do consumo **em duas direções** está pronto: um mesmo pacote é
-  produtor numa ponta e consumidor na outra, sem importar ninguém.
-- A dívida do adaptador de banco (`MODULO-RECON-SPEC §7`) **não piorou**: o
-  módulo ganhou porta própria, como manda a Lei do Lego §5.5.8.
-- ⚠️ **O seed passou a ser `do update` no catálogo** (antes era `do nothing`).
-  Reaplicá-lo agora traz a linha do módulo para a verdade do manifesto — e
-  desfaz edições feitas à mão no `module_registry`. É o preço de ter uma fonte
-  só, e está documentado no próprio seed.
+- **Ciclo do débito fechado em arquivo:** confirmar casamento emite
+  `recon.match.decided`; o AP liquida (`0014`). Apply: depois de `0012`/`0013`,
+  aplicar `0014` e redeploy do `apps/api`.
+- ⚠️ **O schema `ap` precisa estar EXPOSTO na Data API** (runbook).
+- **Ainda NÃO CONSTRUÍDO neste módulo:** botões de liquidação/estorno na tela.
+- O padrão do consumo **em duas direções** está pronto nos dois lados (AP e AR).
+- ⚠️ **O seed é `do update` no catálogo** — reaplicar traz a verdade do manifesto.
 
 ---
 

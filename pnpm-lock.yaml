@@ -17,6 +17,9 @@ importers:
 
   apps/api:
     dependencies:
+      '@alsham/accounts-payable':
+        specifier: workspace:*
+        version: link:../../packages/accounts-payable
       '@alsham/accounts-receivable':
         specifier: workspace:*
         version: link:../../packages/accounts-receivable

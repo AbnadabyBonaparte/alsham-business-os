@@ -65,8 +65,24 @@ describe('o manifesto obedece ao contrato do Core', () => {
     }
   });
 
-  test('não declara consumo sem consumidor construído (Lei 7)', () => {
-    assert.deepEqual(MANIFEST.events.consumes, []);
+  test('declara consumo de recon.match.decided e o handler existe', () => {
+    const handler = readFileSync(resolve(HERE, './recon-settlement.ts'), 'utf8');
+    const applyMig = (() => {
+      try {
+        return readFileSync(
+          resolve(HERE, '../../../supabase/migrations/0014_ap_apply_recon_match.sql'),
+          'utf8',
+        );
+      } catch {
+        return '';
+      }
+    })();
+    assert.ok(/recon\.match\.decided/.test(handler));
+    assert.ok(/ap\.apply_recon_match/.test(applyMig));
+    assert.deepEqual(
+      MANIFEST.events.consumes.map((c) => c.type),
+      ['recon.match.decided'],
+    );
   });
 
   test('não existe dependência de outro módulo — só do Core', () => {
@@ -152,6 +168,17 @@ describe('o seed transcreve o manifesto fielmente', () => {
     for (const ev of MANIFEST.events.emits) {
       assert.equal(seeded.find((e) => e.type === ev.type)?.version, ev.version);
     }
+  });
+
+  test('os eventos consumidos do seed são exatamente os do manifesto', () => {
+    const seeded = jsonBlockContaining('recon.match.decided') as {
+      type: string;
+      version: number;
+    }[];
+    assert.deepEqual(
+      seeded.map((e) => e.type).sort(),
+      MANIFEST.events.consumes.map((e) => e.type).sort(),
+    );
   });
 
   test('⛔ o seed NÃO concede permissão de módulo — quem concede é o instalador', () => {

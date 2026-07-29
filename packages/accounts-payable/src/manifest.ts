@@ -105,16 +105,19 @@ export const MANIFEST = {
     ],
 
     /**
-     * **Vazio, e é Lei 7.**
+     * ⭐ **DEIXOU DE SER VAZIO** — fechamento do ciclo do débito.
      *
-     * Seria fácil declarar que este módulo escuta a baixa do Módulo 1 e se
-     * liquida sozinho — é a integração óbvia, e é a primeira que um cliente
-     * pede. Mas o handler não existe, e consumo declarado sem consumidor faz o
-     * Core acordar um módulo que não sabe responder.
-     *
-     * Quando o handler existir, esta lista muda. Até lá, ela é a verdade.
+     * Handler em `recon-settlement.ts` + `ap.apply_recon_match` (`0014`).
+     * Lei 7 na ordem certa. Consumir não é depender: sem import do recon.
      */
-    consumes: [],
+    consumes: [
+      {
+        type: 'recon.match.decided',
+        version: 1,
+        description:
+          'Um casamento de débito foi confirmado ou rejeitado na conciliação. Confirmar liquida o título a pagar pelo externalRef; rejeitar só registra. Overpay é recusado.',
+      },
+    ],
   },
 
   /**

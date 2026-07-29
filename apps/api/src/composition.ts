@@ -17,10 +17,16 @@ import {
   RECON_MATCH_CONSUMER_ID,
   handleReconMatchSettlement,
 } from '@alsham/accounts-receivable';
+import {
+  RECON_MATCH_EVENT_TYPE as AP_RECON_MATCH_EVENT_TYPE,
+  RECON_MATCH_CONSUMER_ID as AP_RECON_MATCH_CONSUMER_ID,
+  handleReconMatchSettlement as handleApReconMatchSettlement,
+} from '@alsham/accounts-payable';
 
 import { createPgOutboxStore } from './outbox-store.ts';
 import {
   createAuditWriter,
+  createApReconMatchSettlementPort,
   createExternalPayablePort,
   createExternalReceivablePort,
   createReconMatchSettlementPort,
@@ -151,6 +157,18 @@ export function buildSubscriptions(pool: Pool): Subscription[] {
       eventType: RECON_MATCH_EVENT_TYPE,
       handle: async (envelope) => {
         await handleReconMatchSettlement(createReconMatchSettlementPort(pool))(envelope);
+      },
+    },
+
+    // 6. ⭐ O MÓDULO 3 ESCUTANDO O MÓDULO 1 — fecha o ciclo do débito.
+    //
+    //    Mesmo evento `recon.match.decided`; outro consumidor; alvo payable.
+    //    O AP não importa o recon — só a string do contrato.
+    {
+      consumer: AP_RECON_MATCH_CONSUMER_ID,
+      eventType: AP_RECON_MATCH_EVENT_TYPE,
+      handle: async (envelope) => {
+        await handleApReconMatchSettlement(createApReconMatchSettlementPort(pool))(envelope);
       },
     },
   ];
