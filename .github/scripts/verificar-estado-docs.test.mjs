@@ -78,8 +78,12 @@ for (const linha of MIGRACOES_DEFASADAS) {
  *
  * A regra nunca foi "0003 é exceção". A regra é **"o que foi aplicado não pode
  * ser declarado pendente, e o que não foi, pode"** — e o alvo da exceção anda
- * junto com a fila. Hoje a exceção são `0007` e `0008`, que são, de fato, só
- * arquivo.
+ * junto com a fila.
+ *
+ * ⚠️ **Este teste quebrou de novo na Etapa 15, e desta vez era ELE que estava
+ * velho.** O dono informou o apply de `0010`–`0014` em 29/07/2026; o exemplo
+ * aqui era o `0010_ar.sql`, que passou a ser mordido — corretamente. Hoje a
+ * exceção começa em `0017`, que é, de fato, só arquivo.
  *
  * O teste existe para provar que a guarda **não é uma varredura cega** que
  * proíbe a palavra "pendente" perto de qualquer número de migration. Se ele
@@ -87,7 +91,9 @@ for (const linha of MIGRACOES_DEFASADAS) {
  * não este teste que está errado.
  */
 for (const linha of [
-  '| `0010_ar.sql` | **ARQUIVO, ainda não aplicado** — o Módulo 5 |',
+  '| `0017_po.sql` | **ARQUIVO, ainda não aplicado** — o Módulo 6 |',
+  '| `0019_forge.sql` | **ARQUIVO, ainda não aplicado** — a Forja |',
+  '| `0021_tenant_panel.sql` | **ARQUIVO, ainda não aplicado** — o Painel |',
 ]) {
   test(`pode continuar sendo declarada não aplicada, porque não foi: ${linha.slice(0, 34)}…`, () => {
     assert.equal(APLICADAS.padrao.test(linha), false);
@@ -98,6 +104,8 @@ for (const linha of [
 for (const linha of [
   '| `0003_billing.sql` | **ARQUIVO, ainda não aplicado** |',
   '| `0006_install.sql` | **ARQUIVO, ainda não aplicado** — o instalador |',
+  '| `0010_ar.sql` | **ARQUIVO, ainda não aplicado** — o Módulo 5 |',
+  '| `0014_ap_apply_recon_match.sql` | **ARQUIVO, ainda não aplicado** |',
   '| `0007_ap.sql` | **ARQUIVO, ainda não aplicado** — o Módulo 3 |',
   '| `0008_recon_ap_projection.sql` | **ARQUIVO, ainda não aplicado** |',
   '| `0009_crm.sql` | **ARQUIVO, ainda não aplicado** — o Módulo 4 |',

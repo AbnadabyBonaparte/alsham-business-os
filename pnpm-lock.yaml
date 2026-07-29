@@ -66,6 +66,9 @@ importers:
       '@alsham/ai':
         specifier: workspace:*
         version: link:../../packages/ai
+      '@alsham/billing':
+        specifier: workspace:*
+        version: link:../../packages/billing
       '@alsham/config':
         specifier: workspace:*
         version: link:../../packages/config

@@ -116,6 +116,36 @@ export function checkLimit(input: {
 }
 
 /**
+ * A faixa de consumo de uma métrica — o que o Painel PINTA.
+ *
+ * ⭐ **Minerado do kraken-v2** (`lib/quota.ts`, PROVADO com assinante pagante):
+ * o aviso a **80%** existe porque descobrir que a cota acabou no momento em que
+ * ela acaba é sempre tarde — quem opera precisa do tempo de pedir mais.
+ *
+ * ⚠️ **Isto vive aqui, e não na tela, porque é DECISÃO** (Regra de Ouro,
+ * CLAUDE.md §5.3). O limiar de 80% é regra de produto: se amanhã virar 90%,
+ * muda-se um número neste arquivo e toda tela que pinta cota obedece. Escrito
+ * dentro do componente, ele viraria cinco cópias que divergem em silêncio.
+ *
+ * ⚠️ E repare no que ela **não** faz: não estima, não projeta "você vai
+ * estourar em 3 dias". Isso seria número sem fonte (Lei 7). Ela classifica o
+ * que já foi contado, e só.
+ */
+export type UsageBand = 'unlimited' | 'ok' | 'warning' | 'exceeded';
+
+/** O limiar do aviso. Um lugar só. */
+export const USAGE_WARNING_RATIO = 0.8;
+
+export function usageBand(used: number, limit: number | null): UsageBand {
+  if (limit === null) return 'unlimited';
+  // ⚠️ Teto zero é teto: qualquer consumo já estourou, e dividir por ele daria
+  // `Infinity` (ou `NaN` com uso zero) e pintaria a faixa errada.
+  if (limit <= 0) return used > 0 ? 'exceeded' : 'ok';
+  if (used >= limit) return 'exceeded';
+  return used / limit >= USAGE_WARNING_RATIO ? 'warning' : 'ok';
+}
+
+/**
  * O período de apuração de uma data — `YYYY-MM`, em UTC.
  *
  * UTC de propósito: o mês do consumo não pode mudar conforme o fuso do

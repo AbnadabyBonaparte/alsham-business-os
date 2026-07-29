@@ -333,6 +333,13 @@ grant select, insert, update on core.ai_brand_context to authenticated;
 -- ⛔ SÓ SELECT. Ver §2: quem escreve é a composição, com service_role.
 grant select on core.ai_generations to authenticated;
 
+-- ⚠️ **REVOGAR ANTES DE CONCEDER.** No PostgreSQL toda função nasce com
+-- `EXECUTE` para `PUBLIC` — ou seja, `anon` já podia chamá-la no instante do
+-- `create`, e o `grant` abaixo, sozinho, não concede nada de novo. O
+-- `0001_core.sql` faz esse revoke em bloco no fim, mas esta função nasceu
+-- depois dele. Ver a lição inteira no `0022_revoke_public_execute.sql`, que
+-- fecha o mesmo buraco nas funções que já foram aplicadas.
+revoke all on function core.can_generate(uuid) from public, anon, authenticated;
 grant execute on function core.can_generate(uuid) to authenticated;
 
 -- ⛔ `core.emit_generation_event` NÃO é concedida a `authenticated`: ninguém

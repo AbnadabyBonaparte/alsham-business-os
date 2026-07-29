@@ -233,6 +233,18 @@ export const PECAS = [
     ],
     padrao: /(m[óo]dulo 6|packages\/purchase-orders|@alsham\/purchase-orders|0017_po|compras \(pedidos\))/i,
     onde: 'packages/purchase-orders/',
+  },
+  // ⚠️ **A CHAVE ACIMA FALTAVA, e a ausência era invisível.**
+  //
+  // O rebase da Etapa 13 juntou a entrada do Módulo 6 (que veio da main) com a
+  // do Módulo 7 (minha) dentro do MESMO objeto literal. Em JavaScript isso não
+  // é erro: a segunda chave simplesmente sobrescreve a primeira. O verificador
+  // seguiu passando, verde, **conferindo seis peças e dizendo que conferiu
+  // sete** — o Módulo 6 sumiu da lista de saída e ninguém leu a lista.
+  //
+  // É a forma mais silenciosa de guarda quebrada: ela não falha nem acusa.
+  // Só deixa de olhar. Quem mexer aqui: conte as linhas ✅ da saída.
+  {
     nome: 'Módulo 7 — Esteira de Produção',
     detector: [
       'packages/ops/src/manifest.ts',
@@ -255,6 +267,31 @@ export const PECAS = [
     padrao: /(menu\s+filtrado|visibleMenu|packages\/permissions\/src\/menu)/i,
     onde: 'packages/permissions/src/menu.ts',
   },
+  {
+    nome: 'A Forja — IA Base do Core',
+    detector: [
+      'packages/ai/src/forge.ts',
+      'apps/api/src/forge-service.ts',
+      'supabase/migrations/0019_forge.sql',
+    ],
+    // ⚠️ "IA" sozinho é curto demais e aparece em prosa sobre capacidades da
+    // Taxonomia que de fato não existem (RAG, agentes, embeddings). O padrão
+    // exige o NOME DA PEÇA — mesma lição dos Módulos 5 e 7.
+    padrao: /(a\s+forja|packages\/ai\/src\/forge|@alsham\/ai\b|0019_forge|forge-service)/i,
+    onde: 'packages/ai/ + apps/api/src/forge-service.ts',
+  },
+  {
+    nome: 'Painel Executivo (home do tenant)',
+    detector: [
+      'supabase/migrations/0021_tenant_panel.sql',
+      'apps/portal/src/lib/data/panel-port.ts',
+    ],
+    // ⚠️ "painel" sozinho é a palavra que este repositório usa para o portal
+    // inteiro, desde a Etapa 4. O padrão exige o nome próprio da peça ou o
+    // arquivo.
+    padrao: /(painel\s+executivo|0021_tenant_panel|tenant_courier_summary|panel-port)/i,
+    onde: 'apps/portal/src/app/page.tsx',
+  },
 ];
 
 /**
@@ -267,11 +304,17 @@ export const PECAS = [
  * convite a editá-la — e arquivo aplicado editado faz o próximo ambiente nascer
  * diferente da produção EM SILÊNCIO.
  *
- * `0010` NÃO entra: ela é, de fato, só arquivo. Aplicá-la é ato do dono
- * (runbook §10), e declará-la pendente é a verdade.
+ * ⚠️ **Na Etapa 15 a lista saltou de `0009` para `0014`.** O dono informou, em
+ * 29/07/2026, ter aplicado `0010`–`0014` — as quatro entraram fora do rito e
+ * foram reconciliadas no livro depois. Um documento que continuasse chamando
+ * o `0010_ar.sql` de "arquivo, não aplicado" convidaria o próximo agente a
+ * editá-lo, que é exatamente o que esta guarda existe para impedir.
+ *
+ * `0017` em diante NÃO entra: essas são, de fato, só arquivo. Aplicá-las é ato
+ * do dono (runbook §11 a §15), e declará-las pendentes é a verdade.
  */
 export const APLICADAS = {
-  padrao: /(0001_core|0002_recon|0003_billing|0004_marketing|0005_courier_cron|0006_install|0007_ap|0008_recon_ap_projection|0009_crm)/i,
+  padrao: /(0001_core|0002_recon|0003_billing|0004_marketing|0005_courier_cron|0006_install|0007_ap|0008_recon_ap_projection|0009_crm|0010_ar|0011_recon_receivables|0012_recon_match_decided|0013_ar_apply_recon_match|0014_ap_apply_recon_match)/i,
   marcador: /n[ãa]o\s+aplicad|arquivo,\s*n[ãa]o\s+aplicad/i,
 };
 

@@ -12,6 +12,8 @@ import { createArMockPort } from './ar-mock';
 import { createOpsMockPort } from './ops-mock';
 import { createForgeMockPort } from './forge-mock';
 import { createBrandMockPort } from './brand-mock';
+import { createPanelMockPort } from './panel-mock';
+import { createPanelSupabasePort } from './panel-supabase';
 import { createBrandSupabasePort } from './brand-supabase';
 import { createForgeHttpPort } from './forge-http';
 import { createOpsSupabasePort } from './ops-supabase';
@@ -30,6 +32,7 @@ import type { PoPort } from './po-port';
 import type { OpsPort } from './ops-port';
 import type { ForgePort } from './forge-port';
 import type { BrandPort } from './brand-port';
+import type { PanelPort } from './panel-port';
 
 export { DataPortError } from './port';
 export { loadAllPermissions } from './menu-port';
@@ -43,6 +46,7 @@ export type { PoPort, OrderRow } from './po-port';
 export type { OpsPort, PipelineWithStages } from './ops-port';
 export type { ForgePort, GenerationResponse } from './forge-port';
 export type { BrandPort } from './brand-port';
+export type { PanelPort, CourierSummary, PlanUsageRow, AuditRow } from './panel-port';
 
 /**
  * Escolhe o adapter — e é só isto que muda entre demonstração e produção.
@@ -245,4 +249,25 @@ export async function getBrandPort(): Promise<BrandPort> {
   if (!db) return createBrandMockPort();
 
   return createBrandSupabasePort(db, session.activeTenant.id);
+}
+
+/**
+ * A porta do PAINEL EXECUTIVO — **Core, não módulo.**
+ *
+ * O Painel é a home da plataforma: ele não some quando um módulo é
+ * desinstalado, e por isso não segue a regra de "porta própria por módulo".
+ */
+export async function getPanelPort(): Promise<PanelPort> {
+  const session = await resolveSession();
+  if (session.mode !== 'authenticated') return createPanelMockPort();
+
+  const db = await createSupabaseServerClient();
+  if (!db) return createPanelMockPort();
+
+  // ⚠️ O plano NÃO vem da sessão de propósito: `TenantRef` é o que o
+  // seletor de tenant precisa, e acrescentar campo ali faria toda tela pagar
+  // por um dado que só o Painel usa. Quem lê o plano é a função do banco
+  // (`core.tenant_plan_usage`), que já cruza `core.tenants` com
+  // `core.plan_limits` — e assim há uma fonte só.
+  return createPanelSupabasePort(db, session.activeTenant.id, '');
 }

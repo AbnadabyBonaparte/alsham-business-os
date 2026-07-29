@@ -152,6 +152,19 @@ jobs:
       - name: aplicar 0020_ops_machine_draft.sql
         run: $PSQL -f supabase/migrations/0020_ops_machine_draft.sql
 
+      # ⭐ O PAINEL EXECUTIVO — leitura ESTREITA, do tenant. Nenhuma tabela
+      # nova: o Painel lê, não guarda. E a `core.courier_status()` continua
+      # fechada — há guarda adiante que reprova conceder aquela função.
+      - name: aplicar 0021_tenant_panel.sql
+        run: $PSQL -f supabase/migrations/0021_tenant_panel.sql
+
+      # ⛔ E o EXECUTE que o Postgres concede a PUBLIC por padrão — o buraco
+      # que uma sabotagem da Etapa 15 descobriu: apagar um `grant` e a guarda
+      # não reclamar, porque o privilégio vinha de `PUBLIC`. Oito funções
+      # `security definer` eram chamáveis por `anon`.
+      - name: aplicar 0022_revoke_public_execute.sql
+        run: $PSQL -f supabase/migrations/0022_revoke_public_execute.sql
+
       # ---------------------------------------------------------------------
       # 2. SEED — e a prova de que reaplicar não muda nada
       # ---------------------------------------------------------------------
@@ -595,6 +608,76 @@ jobs:
                                 where grantee in ('anon','authenticated')
                                   and table_name = 'courier_health';")
           [ "$ABERTO" = "0" ] || { echo "::error::a visão de saúde está exposta a $ABERTO papel(is)"; exit 1; }
+
+      # ⭐ E A LEITURA DO PAINEL É ESTREITA — a global CONTINUA fechada.
+      #
+      # O jeito de o Painel Executivo (Etapa 15) nascer errado é um `grant
+      # execute on function core.courier_status() to authenticated` — uma linha
+      # que resolveria a tela e vazaria o volume de negócio dos vizinhos: um
+      # cliente saberia, pelo número de pendentes, quando outro está
+      # importando um extrato grande. A resposta certa foi função NOVA.
+      - name: a saúde global continua fechada; a do tenant é estreita
+        run: |
+          for FN in courier_status tenant_courier_view; do
+            ABERTA=$($PSQL -tAc "
+              select count(*) from pg_proc p
+                join pg_namespace n on n.oid = p.pronamespace
+               where n.nspname='core' and p.proname='$FN'
+                 and (has_function_privilege('authenticated', p.oid, 'execute')
+                   or has_function_privilege('anon', p.oid, 'execute'));")
+            [ "$ABERTA" = "0" ] || { echo "::error::core.$FN() está concedida — ela conta a fila de TODOS"; exit 1; }
+          done
+
+          for FN in tenant_courier_summary tenant_plan_usage; do
+            OK=$($PSQL -tAc "
+              select count(*) from pg_proc p
+                join pg_namespace n on n.oid = p.pronamespace
+               where n.nspname='core' and p.proname='$FN'
+                 and has_function_privilege('authenticated', p.oid, 'execute');")
+            [ "$OK" = "1" ] || { echo "::error::core.$FN() não está disponível ao tenant — o Painel não carrega"; exit 1; }
+          done
+
+          # ⛔ E a checagem de vínculo é a PRIMEIRA linha das três: função
+          # `security definer` que confia no uuid recebido é RLS desligada com
+          # outro nome.
+          for FN in tenant_courier_view tenant_plan_usage; do
+            $PSQL -tAc "select prosrc from pg_proc p join pg_namespace n on n.oid=p.pronamespace
+                         where n.nspname='core' and p.proname='$FN';" \
+              | grep -q 'is_tenant_member' \
+              || { echo "::error::core.$FN() não confere o vínculo do chamador"; exit 1; }
+          done
+          echo "o tenant vê o veredito e os números dele. A fila do vizinho, não."
+
+      # ⛔ NENHUMA FUNÇÃO CHAMÁVEL POR QUEM NÃO FEZ LOGIN.
+      #
+      # Tabela nasce fechada; **função nasce ABERTA a `PUBLIC`**. Toda função
+      # criada depois do `revoke ... on all functions` do seu schema herda esse
+      # privilégio e ninguém percebe, porque o `grant` escrito logo abaixo dá a
+      # impressão de que ele é a autorização — quando na verdade é decoração.
+      #
+      # ⚠️ Esta guarda existe porque a de cima MENTIU: a sabotagem "apagar o
+      # grant do consumo do plano" passou verde. Ver `0022_revoke_public_execute.sql`.
+      - name: nenhuma função de negócio aberta a anon
+        run: |
+          ABERTAS=$($PSQL -tAc "
+            select coalesce(string_agg(n.nspname||'.'||p.proname, ', ' order by p.proname), '')
+              from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+             where n.nspname in ('core','recon','marketing','ap','crm','ar','po','ops')
+               and has_function_privilege('anon', p.oid, 'execute');")
+          [ -z "$ABERTAS" ] || { echo "::error::função executável por anon: $ABERTAS"; exit 1; }
+
+          # E o que o portal chama de verdade continua chamável — a guarda de
+          # segurança não pode fechar a porta do cliente junto.
+          for FN in install_module uninstall_module advance_order skip_stage send_back_order \
+                    tenant_courier_summary tenant_plan_usage; do
+            OK=$($PSQL -tAc "
+              select count(*) from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+               where p.proname = '$FN'
+                 and n.nspname in ('core','recon','marketing','ap','crm','ar','po','ops')
+                 and has_function_privilege('authenticated', p.oid, 'execute');")
+            [ "$OK" -ge 1 ] || { echo "::error::$FN() deixou de ser chamável pelo portal"; exit 1; }
+          done
+          echo "anon não executa nada; o portal continua executando o que precisa."
 
   correio:
     name: o correio contra Postgres de verdade
@@ -1219,3 +1302,177 @@ jobs:
           fi
           grep -q 'resolveSession' apps/portal/src/lib/data/index.ts \
             || { echo "::error::a porta de dados deixou de resolver o tenant pela sessão"; exit 1; }
+
+      # =====================================================================
+      # ⚖️ A LEI DO MOTOR — O FORNECEDOR É RECEITA INTERNA (Etapa 14)
+      # =====================================================================
+      #
+      # O cliente vê o produto e o **motor ALSHAM**. Se ele lê "powered by
+      # <fornecedor>" numa tela, conclui que pode ir direto na ferramenta e
+      # dispensar a ALSHAM — e a orquestração, que é o que vendemos, vira
+      # detalhe. O nome do fornecedor é permitido **só em código não-visível**:
+      # `apps/api/src/forge-adapters.ts`, env vars e docs de engenharia.
+      #
+      # ⭐ A defesa principal NÃO é esta guarda: é o TIPO. `EngineLabel`, em
+      # `@alsham/ai`, não tem campo para fornecedor — a tela não teria onde
+      # colocá-lo mesmo querendo. Esta guarda é a segunda camada, para o dia em
+      # que alguém escrever o nome à mão numa string de UI.
+      - name: nenhum nome de fornecedor no que o cliente vê
+        run: |
+          FORNECEDORES='anthropic|openai|chatgpt|gpt-[0-9]|gemini|google ai|vertex ai|llama|mistral|deepseek|ideogram|midjourney|stable diffusion|fal\.ai|opus clip|runway|elevenlabs'
+          FALHOU=0
+
+          # ⚠️ `CLAUDE.md` é o arquivo de instruções DESTE repositório e o nome
+          # dele contém o de um fornecedor. Uma versão anterior desta guarda
+          # reprovou o próprio arquivo que a manda existir. Escopo é código de
+          # tela e de domínio — nunca a documentação de engenharia.
+          ALVOS=$(find apps/portal/src packages/ai/src -type f \( -name '*.ts' -o -name '*.tsx' \) ! -name '*.test.ts' ! -name '*.test.tsx')
+
+          for F in $ALVOS; do
+            if grep -InEi "$FORNECEDORES" "$F"; then
+              echo "::error file=$F::nome de fornecedor em código visível ao cliente (Lei do Motor)"
+              FALHOU=1
+            fi
+          done
+
+          # E no bundle já compilado, que é onde ele chegaria de verdade.
+          if [ -d apps/portal/.next/static ]; then
+            if grep -rlEi "$FORNECEDORES" apps/portal/.next/static 2>/dev/null; then
+              echo "::error::nome de fornecedor chegou ao bundle de CLIENTE"; FALHOU=1
+            fi
+          fi
+
+          # ⭐ E o TIPO continua sem onde guardá-lo — a defesa principal.
+          #
+          # ⚠️ O escopo aqui era `forge.ts` só, e a sabotagem "acrescentar
+          # `readonly provider: string` a `EngineLabel`" passou verde: o tipo
+          # vive em `types.ts`. Guarda que olha o arquivo errado é guarda que
+          # não existe.
+          for A in $ALVOS; do
+            if grep -InE 'provider|vendor|fornecedor' "$A" | grep -vE '^\s*[0-9]+:\s*(\*|//)' | grep -q .; then
+              echo "::error file=$A::campo de fornecedor em @alsham/ai — o rótulo do motor não tem esse campo"
+              FALHOU=1
+            fi
+          done
+
+          [ "$FALHOU" = "0" ] || exit 1
+          echo "o cliente vê o motor ALSHAM, e só."
+
+      # ⛔ A CHAVE DO MOTOR É DO SERVIDOR — a mesma fronteira da chave-mãe.
+      #
+      # ⚠️ **Há duas coisas diferentes aqui, e confundi-las foi o primeiro erro
+      # desta guarda.**
+      #
+      #   · `FORGE_SECRET` é a CHAVE DA PORTA entre `apps/portal` e `apps/api`.
+      #     O portal **tem** de tê-la — é com ela que ele se identifica no
+      #     endpoint. Proibi-la aqui reprovaria `getForgePort()`, que é
+      #     justamente a fronteira funcionando.
+      #   · `ALSHAM_*_API_KEY` e os endpoints do fornecedor são a CHAVE DO
+      #     MOTOR. Essas o portal nunca vê, em nenhuma hipótese: quem chama o
+      #     fornecedor é `apps/api`, e quem paga a conta é quem apresenta a
+      #     chave.
+      #
+      # ⚠️ E o escopo é `src` + `.env.example`, **não a pasta inteira**: o
+      # `.next/` já existe quando este job roda (o build precede a guarda de
+      # bundle), e os *source maps* de lá contêm o código-fonte inteiro em
+      # forma de string. Grepar a pasta do build é grepar o próprio código
+      # duas vezes, e a segunda dá falso positivo.
+      - name: a chave do motor não encosta no portal
+        run: |
+          FALHOU=0
+          if grep -rInE 'process\.env\.(ALSHAM_TEXT_API_KEY|ALSHAM_IMAGE_API_KEY|ALSHAM_TEXT_ENDPOINT|ALSHAM_IMAGE_ENDPOINT|ALSHAM_TEXT_MODEL)' \
+               apps/portal/src apps/portal/.env.example 2>/dev/null; then
+            echo "::error::apps/portal leu uma chave/endpoint de motor — isso é de apps/api"; FALHOU=1
+          fi
+          if grep -rInE 'NEXT_PUBLIC_[A-Z_]*(API_KEY|SECRET|TOKEN)' \
+               apps/portal/src apps/api/src --include='*.ts' --include='*.tsx' 2>/dev/null; then
+            echo "::error::segredo declarado como variável PÚBLICA — isso vai para o navegador"; FALHOU=1
+          fi
+          if grep -rInE '^[[:space:]]*NEXT_PUBLIC_[A-Z_]*(API_KEY|SECRET|TOKEN)' apps/*/.env.example 2>/dev/null; then
+            echo "::error::segredo público declarado no .env.example"; FALHOU=1
+          fi
+          # E o portal não chama fornecedor nenhum direto: ele fala com apps/api.
+          if grep -rInE "fetch\(\s*['\"]https://api\." apps/portal/src 2>/dev/null; then
+            echo "::error::apps/portal chama uma API externa direto — a fronteira é apps/api"; FALHOU=1
+          fi
+          # E nenhum dos dois segredos chega ao navegador.
+          if [ -d apps/portal/.next/static ]; then
+            if grep -rlE 'FORGE_SECRET|ALSHAM_(TEXT|IMAGE)_API_KEY' apps/portal/.next/static 2>/dev/null; then
+              echo "::error::nome de segredo no bundle de CLIENTE"; FALHOU=1
+            fi
+          fi
+          [ "$FALHOU" = "0" ] || exit 1
+          echo "a chave da porta é do portal; a chave do motor, só do servidor."
+
+      # ⛔ SEM MEDIÇÃO, SEM GERAÇÃO.
+      #
+      # É a regra que impede o produto de queimar dinheiro sem saber: uma
+      # geração que não vira linha no `usage_ledger` é custo invisível. A
+      # cadeia inteira depende de `checkLimit()` negar por omissão, e o modo
+      # de quebrá-la em silêncio é gerar ANTES de medir.
+      - name: geração sem medição não passa
+        run: |
+          SVC=$(grep -Ev '^\s*(\*|//|/\*)' apps/api/src/forge-service.ts)
+          for FN in checkLimit canGenerate; do
+            echo "$SVC" | grep -Eq "\b$FN\(" \
+              || { echo "::error::forge-service deixou de chamar $FN() do pacote"; exit 1; }
+          done
+          # ⚠️ `insert into`, não a menção. A primeira versão procurava só
+          # `usage_ledger` — e o serviço LÊ a tabela para somar o consumo do
+          # mês, algumas linhas antes de escrever. Trocar o `insert` de tabela
+          # deixava a guarda verde: a leitura sozinha a satisfazia. Uma geração
+          # que consulta a conta e não a debita é exatamente o custo invisível
+          # que esta guarda existe para impedir.
+          echo "$SVC" | grep -Eq 'insert into core\.usage_ledger' \
+            || { echo "::error::a geração deixou de LANÇAR consumo no usage_ledger"; exit 1; }
+
+          # ⭐ A ORDEM IMPORTA: a checagem vem ANTES da chamada ao adaptador.
+          # Medir depois de gastar é medir o prejuízo, não evitá-lo.
+          L_CHECK=$(echo "$SVC" | grep -nE '\bcanGenerate\(' | head -1 | cut -d: -f1)
+          L_CALL=$(echo "$SVC"  | grep -nE '\badapter\.(generate|run)\(|adapterFor\(' | head -1 | cut -d: -f1)
+          if [ -n "$L_CHECK" ] && [ -n "$L_CALL" ] && [ "$L_CHECK" -gt "$L_CALL" ]; then
+            echo "::error::a checagem de cota ficou DEPOIS da chamada ao motor"; exit 1
+          fi
+
+          # E a decisão não foi reescrita na tela.
+          if grep -rInE 'function (canGenerate|engineState|whyCannotGenerate|composePrompt)' apps --include='*.ts' --include='*.tsx'; then
+            echo "::error::a decisão da forja foi redeclarada em apps/ — ela vive em packages/ai"; exit 1
+          fi
+          echo "sem medição, sem geração."
+
+      # ⭐ O PAINEL EXECUTIVO NÃO DECIDE, E NÃO INVENTA NÚMERO (Etapa 15).
+      - name: o painel lê, e cada número tem fonte
+        run: |
+          PAGE=$(grep -Ev '^\s*(\*|//|/\*|\{/\*)' apps/portal/src/app/page.tsx)
+          FALHOU=0
+
+          # A faixa de consumo é decisão de produto e vive no pacote.
+          echo "$PAGE" | grep -Eq '\busageBand\(' \
+            || { echo "::error::o Painel deixou de usar usageBand() de @alsham/billing"; FALHOU=1; }
+          if grep -rInE 'function usageBand|USAGE_WARNING_RATIO\s*=' apps --include='*.ts' --include='*.tsx'; then
+            echo "::error::o limiar de aviso foi redeclarado em apps/ — ele vive em packages/billing"; FALHOU=1
+          fi
+
+          # Os atalhos são o MESMO menu — não uma segunda lista para manter.
+          echo "$PAGE" | grep -Eq '\bvisibleMenu\(' \
+            || { echo "::error::o Painel montou lista própria de atalhos em vez de usar visibleMenu()"; FALHOU=1; }
+
+          # ⛔ E ele NÃO pode ler a saúde global do correio.
+          if echo "$PAGE" | grep -Eq "courier_status|courier_health"; then
+            echo "::error::o Painel leu a fila GLOBAL — o tenant vê tenant_courier_summary()"; FALHOU=1
+          fi
+          if grep -rInE "rpc\('courier_status'|from\('courier_health'\)" apps/portal/src 2>/dev/null; then
+            echo "::error::o portal chamou a saúde global da fila"; FALHOU=1
+          fi
+          # ⚠️ A CHAMADA, não a palavra. A primeira versão fazia
+          # `grep -q tenant_courier_summary` no arquivo — e o cabeçalho dele
+          # explica, em prosa, justamente por que a leitura é essa. Trocar o
+          # `rpc()` por `courier_status` deixava a guarda verde, satisfeita
+          # pelo próprio comentário que documenta a regra violada. É a quarta
+          # vez neste repositório que uma guarda tropeça na documentação que
+          # deveria proteger: leia código, nunca prosa.
+          grep -Eq "rpc\('tenant_courier_summary'" apps/portal/src/lib/data/panel-supabase.ts \
+            || { echo "::error::a porta do Painel deixou de CHAMAR a leitura estreita do tenant"; FALHOU=1; }
+
+          [ "$FALHOU" = "0" ] || exit 1
+          echo "o painel lê; quem decide é o banco e o pacote."
