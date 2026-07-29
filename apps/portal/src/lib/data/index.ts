@@ -29,6 +29,8 @@ import { createDealSupabasePort } from './deal-supabase';
 import { createEvtMockPort } from './evt-mock';
 import { createEvtSupabasePort } from './evt-supabase';
 import { createDunMockPort } from './dun-mock';
+import { createCtrMockPort } from './ctr-mock';
+import { createCtrSupabasePort } from './ctr-supabase';
 import { createDunSupabasePort } from './dun-supabase';
 import { createSupabaseServerClient } from '../supabase/server';
 import { resolveSession } from '../session';
@@ -44,6 +46,7 @@ import type { QuotePort } from './quote-port';
 import type { DealPort } from './deal-port';
 import type { EvtPort } from './evt-port';
 import type { DunPort } from './dun-port';
+import type { CtrPort } from './ctr-port';
 import type { OpsPort } from './ops-port';
 import type { ForgePort } from './forge-port';
 import type { BrandPort } from './brand-port';
@@ -63,6 +66,7 @@ export type { QuotePort, ProposalRow } from './quote-port';
 export type { DealPort, FunnelWithStages, OpportunityRow } from './deal-port';
 export type { EvtPort, EventRow, RegistrationRow } from './evt-port';
 export type { DunPort, RulerWithSteps, DunTitleRow } from './dun-port';
+export type { CtrPort, ContractRow } from './ctr-port';
 export type { OpsPort, PipelineWithStages } from './ops-port';
 export type { ForgePort, GenerationResponse } from './forge-port';
 export type { BrandPort } from './brand-port';
@@ -294,6 +298,16 @@ export async function getDunPort(): Promise<DunPort> {
   if (!db) return createDunMockPort();
 
   return createDunSupabasePort(db, session.activeTenant.id);
+}
+
+export async function getCtrPort(): Promise<CtrPort> {
+  const session = await resolveSession();
+  if (session.mode !== 'authenticated') return createCtrMockPort();
+
+  const db = await createSupabaseServerClient();
+  if (!db) return createCtrMockPort();
+
+  return createCtrSupabasePort(db, session.activeTenant.id);
 }
 
 /**

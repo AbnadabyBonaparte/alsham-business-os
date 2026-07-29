@@ -320,6 +320,19 @@ export const PECAS = [
     onde: 'packages/dunning/',
   },
   {
+    nome: 'Módulo 13 — Contratos',
+    detector: [
+      'packages/contracts/src/manifest.ts',
+      'packages/contracts/src/contract.ts',
+      'supabase/migrations/0028_ctr.sql',
+    ],
+    // ⚠️ NUNCA a palavra "contrato" solta: ela é vocabulário do CORAÇÃO do
+    // canon (o CONTRATO do Lego, contrato puro, contrato público). O padrão
+    // exige o NOME DA PEÇA.
+    padrao: /(m[óo]dulo 13|packages\/contracts|@alsham\/contracts|0028_ctr)/i,
+    onde: 'packages/contracts/',
+  },
+  {
     nome: 'Menu filtrado por permissão',
     detector: ['packages/permissions/src/menu.ts'],
     // A dívida da Etapa 10 foi paga: os itens de menu não são mais escritos à
@@ -429,6 +442,7 @@ const SECOES = [
   { arquivo: 'docs/canon/MODULO-DEAL-SPEC.md', titulo: '## 6. ESTADO DA OBRA' },
   { arquivo: 'docs/canon/MODULO-EVT-SPEC.md', titulo: '## 6. ESTADO DA OBRA' },
   { arquivo: 'docs/canon/MODULO-DUN-SPEC.md', titulo: '## 7. ESTADO DA OBRA' },
+  { arquivo: 'docs/canon/MODULO-CTR-SPEC.md', titulo: '## 6. ESTADO DA OBRA' },
 ];
 
 /**

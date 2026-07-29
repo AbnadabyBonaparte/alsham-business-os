@@ -991,7 +991,67 @@ on conflict (module_id) do update set
   status          = excluded.status,
   updated_at      = now();
 
--- ⛔ Doze módulos no catálogo, zero permissão concedida pelo seed.
+-- -----------------------------------------------------------------------------
+-- 4.11 O MÓDULO `ctr` NO CATÁLOGO DA STORE — o 13º cartão
+-- -----------------------------------------------------------------------------
+-- Contratos (Domain legal — capacidade *Contratos*). Os termos originais
+-- congelam em vigor; o VIGENTE é calculado dos atos imutáveis (reajuste com
+-- índice em texto livre, renovação que estende o MESMO contrato). `consumes`
+-- vazio por decisão de canon (Lei 7) — ver a spec §5.
+-- =============================================================================
+
+insert into core.module_registry (
+  module_id, name, version, summary,
+  layer, domain_key,
+  capabilities, permissions, events_emits, events_consumes, agents,
+  requires_core, status
+)
+values (
+  'ctr',
+  'Contratos',
+  '0.1.0',
+  'A carteira de contratos do tenant: vigência, valor e partes com os termos originais congelados em vigor — o vigente é calculado dos atos registrados (reajuste, renovação). Rescindir exige razão; encerrar exige calendário.',
+  'domain', 'legal',
+  '[
+     {"key":"contracts","canonicalName":"Contratos"}
+   ]'::jsonb,
+  '[
+     {"key":"ctr.contract.manage","moduleId":"ctr","description":"Registrar e editar contratos em rascunho, e pô-los em vigor."},
+     {"key":"ctr.contract.amend","moduleId":"ctr","description":"Registrar reajuste (índice em texto livre, valor novo) e renovação (estender a vigência) — atos imutáveis no mesmo contrato."},
+     {"key":"ctr.contract.decide","moduleId":"ctr","description":"Encerrar por prazo vencido ou rescindir com razão — o desfecho é terminal e carimbado pelo servidor."}
+   ]'::jsonb,
+  '[
+     {"type":"ctr.contract.registered","version":1,"description":"Um contrato nasceu (rascunho), com as partes pelo nome."},
+     {"type":"ctr.contract.updated","version":1,"description":"O rascunho mudou no que é FATO: termos, partes, vigência."},
+     {"type":"ctr.contract.activated","version":1,"description":"O contrato entrou em vigor — a partir daqui os termos mudam só por ato."},
+     {"type":"ctr.contract.adjusted","version":1,"description":"Reajuste registrado: índice em texto livre, valor anterior e novo. O sistema registra; quem calcula é gente."},
+     {"type":"ctr.contract.renewed","version":1,"description":"A vigência foi estendida por renovação — o MESMO contrato, prazo novo."},
+     {"type":"ctr.contract.ended","version":1,"description":"Fim natural: a vigência venceu e o encerramento foi registrado."},
+     {"type":"ctr.contract.terminated","version":1,"description":"Rescisão: ato com razão obrigatória, carimbado pelo servidor."},
+     {"type":"ctr.contract.cancelled","version":1,"description":"O rascunho foi cancelado antes de entrar em vigor."}
+   ]'::jsonb,
+  '[]'::jsonb,
+  '[]'::jsonb,
+  '0.0.x',
+  'published'
+)
+on conflict (module_id) do update set
+  name            = excluded.name,
+  version         = excluded.version,
+  summary         = excluded.summary,
+  layer           = excluded.layer,
+  domain_key      = excluded.domain_key,
+  vertical_key    = excluded.vertical_key,
+  capabilities    = excluded.capabilities,
+  permissions     = excluded.permissions,
+  events_emits    = excluded.events_emits,
+  events_consumes = excluded.events_consumes,
+  agents          = excluded.agents,
+  requires_core   = excluded.requires_core,
+  status          = excluded.status,
+  updated_at      = now();
+
+-- ⛔ Treze módulos no catálogo, zero permissão concedida pelo seed.
 
 -- =============================================================================
 -- 5. PLANOS-BASE

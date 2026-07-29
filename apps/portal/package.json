@@ -15,6 +15,7 @@
     "@alsham/ai": "workspace:*",
     "@alsham/billing": "workspace:*",
     "@alsham/config": "workspace:*",
+    "@alsham/contracts": "workspace:*",
     "@alsham/core": "workspace:*",
     "@alsham/crm": "workspace:*",
     "@alsham/deals": "workspace:*",
