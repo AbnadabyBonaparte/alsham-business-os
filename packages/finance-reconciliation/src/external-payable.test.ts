@@ -226,8 +226,10 @@ describe('este módulo não conhece o módulo que produz o que ele escuta', () =
 });
 
 describe('o manifesto e o consumidor contam a mesma história', () => {
-  test('cada tipo declarado em `consumes` tem tradução construída (Lei 7)', () => {
-    const declarados = MANIFEST.events.consumes.map((c) => c.type);
+  test('cada tipo ap.* declarado em `consumes` tem tradução construída (Lei 7)', () => {
+    const declarados = MANIFEST.events.consumes
+      .map((c) => c.type)
+      .filter((t) => t.startsWith('ap.payable.'));
     assert.deepEqual([...declarados].sort(), [...CONSUMED_EVENT_TYPES].sort());
   });
 

@@ -55,15 +55,16 @@ async function Conteudo() {
 
   try {
     // A política é do TENANT, não do app: vem de core.tenant_modules.settings.
-    const [permissions, settings, lines, payables] = await Promise.all([
+    const [permissions, settings, lines, payables, receivables] = await Promise.all([
       port.listPermissions(),
       port.loadMatchingSettings(),
       port.loadStatementLines(),
       port.loadPayables(),
+      port.loadReceivables(),
     ]);
 
     // ── a única "lógica" desta página: delegar ──────────────────────────────
-    const suggestions = suggestMatches(lines, payables, settings);
+    const suggestions = suggestMatches(lines, payables, settings, receivables);
     const divergences = unmatchedLines(lines, suggestions);
     // ───────────────────────────────────────────────────────────────────────
 
@@ -77,7 +78,7 @@ async function Conteudo() {
 
         <SectionHeader
           title="Mesa de conciliação"
-          subtitle="O sistema sugere; o humano confere e visa. O score e a regra que casou ficam à vista."
+          subtitle="O sistema sugere; o humano confere e visa. Débito casa com a pagar; crédito, com a receber."
           aside={
             <div className="flex flex-wrap items-center gap-2">
               <Badge tone="neutral">
@@ -104,6 +105,7 @@ async function Conteudo() {
           suggestions={suggestions}
           lines={lines}
           payables={payables}
+          receivables={receivables}
           canManage={canManage}
         />
 

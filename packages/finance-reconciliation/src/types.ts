@@ -130,6 +130,46 @@ export interface Payable {
 }
 
 // -----------------------------------------------------------------------------
+// CONTAS A RECEBER — projeção local (espelho consciente do payable)
+// -----------------------------------------------------------------------------
+
+export type ReceivableSource = 'imported' | 'event';
+
+/**
+ * Estados alinhados ao módulo AR (`partially_received` / `received`), não ao
+ * vocabulário de pagamento. Um título a receber **não é** um payable com sinal
+ * invertido — a divergência "receber a maior" vive aqui (`receivedAmountCents`
+ * pode passar de `amountCents`).
+ */
+export type ReceivableStatus =
+  | 'open'
+  | 'partially_received'
+  | 'received'
+  | 'cancelled';
+
+export interface Receivable {
+  readonly id: Uuid;
+  readonly tenantId: TenantId;
+  readonly source: ReceivableSource;
+  readonly sourceModuleId?: string | null;
+  readonly externalRef: string;
+  readonly dueDate: IsoDate;
+  /** Sempre positivo: é o valor a receber. O sinal é da linha do extrato. */
+  readonly amountCents: Cents;
+  /**
+   * Quanto já entrou. **Pode passar de `amountCents`** — receber a maior é
+   * permitido (MODULO-AR-SPEC). O motor de casamento trata saldo restante
+   * como `max(0, amount - received)`.
+   */
+  readonly receivedAmountCents: Cents;
+  readonly currency: CurrencyCode;
+  readonly counterpartyName?: string | null;
+  readonly counterpartyTaxId?: string | null;
+  readonly description: string;
+  readonly status: ReceivableStatus;
+}
+
+// -----------------------------------------------------------------------------
 // CASAMENTO
 // -----------------------------------------------------------------------------
 
@@ -138,11 +178,16 @@ export type MatchOrigin = 'auto' | 'manual';
 
 export type MatchStatus = 'suggested' | 'confirmed' | 'rejected';
 
+/**
+ * Casamento persistido — polimórfico: exatamente um de `payableId` /
+ * `receivableId` (CHECK no schema `0011`).
+ */
 export interface ReconciliationMatch {
   readonly id: Uuid;
   readonly tenantId: TenantId;
   readonly statementLineId: Uuid;
-  readonly payableId: Uuid;
+  readonly payableId?: Uuid | null;
+  readonly receivableId?: Uuid | null;
   readonly matchedAmountCents: Cents;
   /** Confiança de 0 a 1. `null` quando `origin === 'manual'`. */
   readonly score?: number | null;
@@ -212,13 +257,28 @@ export interface MatchingSettings {
   readonly minScore: number;
 }
 
-/** Uma sugestão de casamento produzida pelo motor. Nada aqui foi gravado ainda. */
-export interface MatchSuggestion {
-  readonly statementLineId: Uuid;
-  readonly payableId: Uuid;
-  readonly matchedAmountCents: Cents;
-  /** 0 a 1, com 4 casas. */
-  readonly score: number;
-  /** Os sinais que dispararam, em ordem estável. @example 'amount+date+tax-id' */
-  readonly strategy: string;
-}
+/**
+ * Uma sugestão de casamento produzida pelo motor. Nada aqui foi gravado ainda.
+ *
+ * ⭐ União discriminada: débito casa com payable; crédito casa com receivable.
+ * Um campo `payableId` só mentiria sobre metade dos casamentos.
+ */
+export type MatchSuggestion =
+  | {
+      readonly kind: 'payable';
+      readonly statementLineId: Uuid;
+      readonly payableId: Uuid;
+      readonly matchedAmountCents: Cents;
+      /** 0 a 1, com 4 casas. */
+      readonly score: number;
+      /** Os sinais que dispararam, em ordem estável. @example 'amount+date+tax-id' */
+      readonly strategy: string;
+    }
+  | {
+      readonly kind: 'receivable';
+      readonly statementLineId: Uuid;
+      readonly receivableId: Uuid;
+      readonly matchedAmountCents: Cents;
+      readonly score: number;
+      readonly strategy: string;
+    };

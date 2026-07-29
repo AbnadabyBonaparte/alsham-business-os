@@ -27,8 +27,8 @@ const migrationCode = migration.replace(/--[^\n]*/g, '');
  * contrato. Quem lê o seed inteiro compara o campo de um com o do outro.
  */
 const blocoDoModulo = (() => {
-  const inserts = sql.split(/insert into core\.module_registry/);
-  const meu = inserts.find((b) => b.includes("'ar',\n"));
+  const inserts = sql.split(/insert into core\.module_registry/i);
+  const meu = inserts.find((b) => /['"]ar['"]\s*,/.test(b) && /Contas a Receber/.test(b));
   assert.ok(meu, 'o seed não registra o módulo ar');
   return meu.slice(0, meu.indexOf('on conflict'));
 })();
@@ -89,37 +89,54 @@ describe('o manifesto obedece ao contrato do Core', () => {
   });
 
   /**
-   * ⭐⭐ **A DECISÃO DE CANON DA ETAPA, GUARDADA POR TESTE.**
+   * ⭐⭐ **A DECISÃO DE CANON, ATUALIZADA COM A CONCILIAÇÃO DE RECEBIMENTOS.**
    *
-   * `consumes` é vazio porque o Módulo 1 não sustenta casamento de crédito. Se
-   * alguém declarar o consumo sem antes consertar o motor, este teste é o que
-   * morde — e ele confere as DUAS pré-condições no código real, não a
-   * intenção.
+   * Enquanto o Módulo 1 recusava crédito, `consumes` do AR ficava vazio e este
+   * teste mordia quem declarasse consumo cedo demais.
+   *
+   * Agora o motor casa crédito e a projeção existe — mas o consumo do
+   * **fechamento** (AR escutar a baixa do recon) continua NÃO CONSTRUÍDO.
+   * Por isso `consumes` do AR permanece `[]`. O que passou a ser obrigatório
+   * é o **recon** declarar `ar.receivable.*` no próprio manifesto.
    */
-  test('⛔ não declara consumo enquanto o motor recusar linha de crédito (Lei 7)', () => {
+  test('⛔ AR não declara consumo de baixa; recon deve escutar ar.receivable.*', () => {
     const motor = readFileSync(MATCHING, 'utf8');
-    const recon = readFileSync(RECON_SQL, 'utf8').replace(/--[^\n]*/g, '');
+    const reconMig = (() => {
+      try {
+        return readFileSync(
+          resolve(HERE, '../../../supabase/migrations/0011_recon_receivables.sql'),
+          'utf8',
+        );
+      } catch {
+        return '';
+      }
+    })();
 
-    const motorRecusaCredito = /if \(line\.amountCents >= 0\) return null;/.test(motor);
-    const casamentoSoPagavel = /payable_id\s+uuid\s+not null/.test(recon);
+    const motorAindaRecusaCredito =
+      /if \(line\.amountCents >= 0\) return null;/.test(motor) &&
+      !/scoreReceivablePair/.test(motor);
+    const semTabelaReceivables = !/create table recon\.receivables/i.test(reconMig);
 
-    if (motorRecusaCredito || casamentoSoPagavel) {
-      assert.deepEqual(
-        MANIFEST.events.consumes,
-        [],
-        'o consumo foi declarado, mas o Módulo 1 ainda não casa crédito: ' +
-          `motor recusa crédito=${motorRecusaCredito}, casamento só aceita payable=${casamentoSoPagavel}`,
-      );
-      return;
-    }
-
-    // Se um dia as duas pré-condições caírem, este teste passa a exigir o
-    // contrário — declarar o consumo, porque aí ele é possível e a Store
-    // deveria anunciá-lo.
-    assert.notDeepEqual(
+    assert.deepEqual(
       MANIFEST.events.consumes,
       [],
-      'o Módulo 1 passou a casar crédito: o consumo pode (e deve) ser declarado, com handler',
+      'AR ainda não escuta a baixa do recon — consumes deve continuar vazio até o handler existir',
+    );
+
+    if (motorAindaRecusaCredito || semTabelaReceivables) {
+      assert.fail(
+        'pré-condições antigas ainda valem: o motor ou a migration 0011 não fecharam o crédito',
+      );
+    }
+
+    const reconManifest = readFileSync(
+      resolve(HERE, '../../finance-reconciliation/src/manifest.ts'),
+      'utf8',
+    );
+    assert.match(
+      reconManifest,
+      /ar\.receivable\.registered/,
+      'com o motor de crédito pronto, o recon deve declarar o consumo ar.receivable.*',
     );
   });
 

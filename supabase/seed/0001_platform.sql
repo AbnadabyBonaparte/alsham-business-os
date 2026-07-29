@@ -139,7 +139,10 @@ values (
   '[
      {"type":"ap.payable.registered","version":1,"description":"Um título a pagar nasceu em outro módulo. Vira projeção local, com a origem que veio no envelope, e a mesa de conciliação passa a ter contra o que casar."},
      {"type":"ap.payable.updated","version":1,"description":"O valor, o vencimento ou a liquidação de um título mudaram na origem. A projeção acompanha."},
-     {"type":"ap.payable.cancelled","version":1,"description":"Um título foi cancelado na origem. A projeção passa a cancelled — some da mesa, nunca do banco."}
+     {"type":"ap.payable.cancelled","version":1,"description":"Um título foi cancelado na origem. A projeção passa a cancelled — some da mesa, nunca do banco."},
+     {"type":"ar.receivable.registered","version":1,"description":"Um título a receber nasceu em outro módulo. Vira projeção local em recon.receivables; a mesa passa a ter contra o que casar o crédito do extrato."},
+     {"type":"ar.receivable.updated","version":1,"description":"O valor, o vencimento ou o recebimento de um título mudaram na origem. A projeção acompanha — inclusive receber a maior."},
+     {"type":"ar.receivable.cancelled","version":1,"description":"Um título a receber foi cancelado na origem. A projeção passa a cancelled — some da mesa, nunca do banco."}
    ]'::jsonb,
   -- Nenhum agente embarcado ainda: o motor de IA é da Fase 8.
   '[]'::jsonb,

@@ -21,6 +21,7 @@ export { MANIFEST, PERMISSIONS, EVENTS } from './manifest.ts';
 export {
   suggestMatches,
   scorePair,
+  scoreReceivablePair,
   unmatchedLines,
   summarizeStatement,
   normalizeTaxId,
@@ -45,13 +46,15 @@ export type {
   Payable,
   PayableSource,
   PayableStatus,
+  Receivable,
+  ReceivableSource,
+  ReceivableStatus,
   ReconciliationMatch,
   StatementLine,
   StatementLineStatus,
   StatementSourceFormat,
   StatementStatus,
 } from './types.ts';
-
 export {
   parseStatement,
   parseOfx,
@@ -90,3 +93,22 @@ export type {
   HandledOutcome,
   Translation,
 } from './external-payable.ts';
+
+/**
+ * ⭐ O lado do crédito: este módulo CONSUMINDO `ar.receivable.*`.
+ * Ver `external-receivable.ts` — sem importar o produtor.
+ */
+export {
+  RECEIVABLE_CONSUMED_EVENT_TYPES,
+  RECEIVABLE_CONSUMED_EVENT_PATTERN,
+  RECEIVABLE_CONSUMER_ID,
+  toExternalReceivable,
+  handleExternalReceivable,
+} from './external-receivable.ts';
+
+export type {
+  ExternalReceivable,
+  ExternalReceivablePort,
+  ReceivableHandledOutcome,
+  ReceivableTranslation,
+} from './external-receivable.ts';
