@@ -1051,7 +1051,63 @@ on conflict (module_id) do update set
   status          = excluded.status,
   updated_at      = now();
 
--- ⛔ Treze módulos no catálogo, zero permissão concedida pelo seed.
+-- -----------------------------------------------------------------------------
+-- 4.12 O MÓDULO `cash` NO CATÁLOGO DA STORE — o 14º cartão
+-- -----------------------------------------------------------------------------
+-- Fluxo de Caixa (Domain finance — capacidade *Fluxo de caixa*). O livro do
+-- inv no dinheiro: lançamentos imutáveis, categoria do tenant, saldo em view,
+-- CAIXA realizado (o futuro é recusado — previsão é Orçamento). `consumes`
+-- vazio pela decisão contra a DUPLA CONTAGEM — ver a spec §5.
+-- =============================================================================
+
+insert into core.module_registry (
+  module_id, name, version, summary,
+  layer, domain_key,
+  capabilities, permissions, events_emits, events_consumes, agents,
+  requires_core, status
+)
+values (
+  'cash',
+  'Fluxo de Caixa',
+  '0.1.0',
+  'O livro-caixa do tenant: lançamentos imutáveis (entrada, saída, ajuste com razão), categoria desenhada pelo tenant e saldo sempre calculado. Registra o realizado — previsão é Orçamento.',
+  'domain', 'finance',
+  '[
+     {"key":"cash-flow","canonicalName":"Fluxo de caixa"}
+   ]'::jsonb,
+  '[
+     {"key":"cash.entry.register","moduleId":"cash","description":"Lançar entradas e saídas no livro-caixa — o sinal vem do tipo, nunca do operador."},
+     {"key":"cash.entry.adjust","moduleId":"cash","description":"Lançar AJUSTE com razão obrigatória — o movimento que reescreve a conta."},
+     {"key":"cash.category.manage","moduleId":"cash","description":"Desenhar as categorias do tenant: criar, renomear, arquivar e reativar."}
+   ]'::jsonb,
+  '[
+     {"type":"cash.entry.registered","version":1,"description":"Um lançamento entrou no livro — com o sinal do tipo, a categoria pelo nome e o dia em que o dinheiro moveu."},
+     {"type":"cash.category.registered","version":1,"description":"Uma categoria nasceu no desenho do tenant."},
+     {"type":"cash.category.updated","version":1,"description":"A categoria mudou (nome, ou reativação — que não é fato novo, é a mesma)."},
+     {"type":"cash.category.archived","version":1,"description":"A categoria saiu de uso — o livro dela continua inteiro."}
+   ]'::jsonb,
+  '[]'::jsonb,
+  '[]'::jsonb,
+  '0.0.x',
+  'published'
+)
+on conflict (module_id) do update set
+  name            = excluded.name,
+  version         = excluded.version,
+  summary         = excluded.summary,
+  layer           = excluded.layer,
+  domain_key      = excluded.domain_key,
+  vertical_key    = excluded.vertical_key,
+  capabilities    = excluded.capabilities,
+  permissions     = excluded.permissions,
+  events_emits    = excluded.events_emits,
+  events_consumes = excluded.events_consumes,
+  agents          = excluded.agents,
+  requires_core   = excluded.requires_core,
+  status          = excluded.status,
+  updated_at      = now();
+
+-- ⛔ Catorze módulos no catálogo, zero permissão concedida pelo seed.
 
 -- =============================================================================
 -- 5. PLANOS-BASE

@@ -333,6 +333,19 @@ export const PECAS = [
     onde: 'packages/contracts/',
   },
   {
+    nome: 'Módulo 14 — Fluxo de Caixa',
+    detector: [
+      'packages/cashflow/src/manifest.ts',
+      'packages/cashflow/src/cashflow.ts',
+      'supabase/migrations/0029_cash.sql',
+    ],
+    // ⚠️ NUNCA a palavra "caixa" solta: ela mora em "caixa de saída" (o
+    // outbox do Core) e em "livro-caixa" do billing. O padrão exige o NOME
+    // DA PEÇA.
+    padrao: /(m[óo]dulo 14|packages\/cashflow|@alsham\/cashflow|0029_cash)/i,
+    onde: 'packages/cashflow/',
+  },
+  {
     nome: 'Menu filtrado por permissão',
     detector: ['packages/permissions/src/menu.ts'],
     // A dívida da Etapa 10 foi paga: os itens de menu não são mais escritos à
@@ -443,6 +456,7 @@ const SECOES = [
   { arquivo: 'docs/canon/MODULO-EVT-SPEC.md', titulo: '## 6. ESTADO DA OBRA' },
   { arquivo: 'docs/canon/MODULO-DUN-SPEC.md', titulo: '## 7. ESTADO DA OBRA' },
   { arquivo: 'docs/canon/MODULO-CTR-SPEC.md', titulo: '## 6. ESTADO DA OBRA' },
+  { arquivo: 'docs/canon/MODULO-CASH-SPEC.md', titulo: '## 6. ESTADO DA OBRA' },
 ];
 
 /**

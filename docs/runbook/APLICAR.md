@@ -1256,8 +1256,9 @@ O rito é o mesmo do Passo 16 — migration na ordem, seed, Data API, Store:
 
 1. **Aplicar a migration** no SQL Editor, na ordem:
    - `0028_ctr.sql` — Módulo 13, Contratos (schema `ctr`)
+   - `0029_cash.sql` — Módulo 14, Fluxo de Caixa (schema `cash`)
 2. **Reaplicar o seed** — os cartões novos entram no catálogo.
-3. ⚠️ **Expor os schemas novos na Data API**: `ctr`. Sem isso as telas
+3. ⚠️ **Expor os schemas novos na Data API**: `ctr`, `cash`. Sem isso as telas
    carregam vazias, sem erro que diga o motivo.
 4. **Instalar cada módulo pela Store**, no tenant que o contratou.
 
