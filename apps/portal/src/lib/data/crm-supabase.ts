@@ -86,6 +86,31 @@ function traduzErro(error: unknown, oQue: string): never {
   fail(oQue, error);
 }
 
+interface InteractionDbRow {
+  id: string;
+  party_id: string;
+  occurred_at: string;
+  channel: string;
+  note: string | null;
+  created_at: string;
+}
+
+/**
+ * O tradutor da interação — extraído para o topo quando o carregamento em lote
+ * nasceu. Duas cópias do mesmo `snake_case → camelCase` são duas chances de o
+ * dia em que a coluna mudar consertar só uma delas.
+ */
+function toInteraction(r: InteractionDbRow): InteractionRow {
+  return {
+    id: r.id,
+    partyId: r.party_id,
+    occurredAt: r.occurred_at,
+    channel: r.channel,
+    note: r.note ?? '',
+    createdAt: r.created_at,
+  };
+}
+
 export function createCrmSupabasePort(db: SupabaseClient, tenantId: string): CrmPort {
   return {
     kind: 'supabase',
@@ -120,24 +145,34 @@ export function createCrmSupabasePort(db: SupabaseClient, tenantId: string): Crm
         .order('occurred_at', { ascending: false })
         .limit(200);
       if (error) fail('carregar o histórico de contato', error);
-      return (data ?? []).map((r) => {
-        const row = r as unknown as {
-          id: string;
-          party_id: string;
-          occurred_at: string;
-          channel: string;
-          note: string | null;
-          created_at: string;
-        };
-        return {
-          id: row.id,
-          partyId: row.party_id,
-          occurredAt: row.occurred_at,
-          channel: row.channel,
-          note: row.note ?? '',
-          createdAt: row.created_at,
-        } satisfies InteractionRow;
-      });
+      return (data ?? []).map((r) => toInteraction(r as unknown as InteractionDbRow));
+    },
+
+    async loadInteractionsFor(partyIds: readonly string[]) {
+      // Mapa pré-preenchido com TODAS as contrapartes pedidas: quem não tem
+      // contato precisa aparecer com lista vazia, e não sumir do resultado.
+      const porContraparte: Record<string, InteractionRow[]> = Object.fromEntries(
+        partyIds.map((id) => [id, [] as InteractionRow[]]),
+      );
+      if (partyIds.length === 0) return porContraparte;
+
+      const { data, error } = await db
+        .schema(CRM)
+        .from('interactions')
+        .select('id, party_id, occurred_at, channel, note, created_at')
+        .in('party_id', [...partyIds])
+        .order('occurred_at', { ascending: false })
+        // ⚠️ Teto do CONJUNTO, não por contraparte. Com 500 contrapartes na
+        // porta, um teto por contraparte aqui seria um teto que não existe.
+        .limit(2000);
+      if (error) fail('carregar o histórico de contato', error);
+
+      for (const r of data ?? []) {
+        const row = r as unknown as InteractionDbRow;
+        const lista = porContraparte[row.party_id];
+        if (lista !== undefined) lista.push(toInteraction(row));
+      }
+      return porContraparte;
     },
 
     async createParty(party: Party) {

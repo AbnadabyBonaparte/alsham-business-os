@@ -894,6 +894,117 @@ Ordem (depois de `0010`–`0014` se ainda não aplicados):
 
 Nenhum agente aplica em produção. Integração pedido recebido → Contas a Pagar
 continua **NÃO CONSTRUÍDA** (`MODULO-PO-SPEC §2.3`).
+## PASSO 12 — `0018_ops.sql` (Etapa 13, Módulo 7: Esteira de Produção)
+
+⚠️ **Só depois do Passo 10.** A migration `0011` supõe `0001`→`0010` aplicadas.
+
+### 12.0 — ⛔ ANTES DE TUDO: EXPOR O SCHEMA `ops` NA DATA API
+
+**Quinta vez que este aviso aparece, e ele continua sendo a lição mais cara do
+repositório.** Sem isto a tela da esteira carrega **vazia, sem erro nenhum** — e
+você vai procurar o defeito no código.
+
+`Project Settings → API → Exposed schemas` → acrescente **`ops`** à lista.
+
+Faça **antes** de aplicar. Reaplicar o SQL não conserta a exposição.
+
+### 12.1 — Aplicar
+
+No **SQL Editor** do projeto, cole o conteúdo de
+`supabase/migrations/0018_ops.sql` inteiro e execute.
+
+**Esperado:** `Success. No rows returned.` — cinco tabelas, treze policies,
+quinze funções e dez gatilhos no schema `ops`. (Números contados no banco de
+prova em 28/07/2026.)
+
+### 12.2 — Reaplicar o seed
+
+O catálogo ganhou o **sexto cartão**. Cole `supabase/seed/0001_platform.sql` e
+execute de novo.
+
+⚠️ Lembrete permanente: os blocos de `core.module_registry` são
+`on conflict do update`. **Reaplicar o seed desfaz edição feita à mão no
+catálogo** — e é assim que se quer.
+
+```sql
+select module_id, name, status from core.module_registry order by module_id;
+```
+**Esperado:** seis linhas, todas `published`.
+
+### 12.3 — Conferência de segurança
+
+```sql
+select c.relname,
+       c.relrowsecurity  as rls_ligada,
+       c.relforcerowsecurity as rls_forcada
+  from pg_class c join pg_namespace n on n.oid = c.relnamespace
+ where n.nspname = 'ops' and c.relkind = 'r'
+ order by 1;
+```
+**Esperado:** cinco linhas, `true` nas duas colunas em todas.
+
+```sql
+-- Só a ETAPA tem porta de DELETE, e é decisão: redesenhar a esteira é
+-- tentativa e erro. As outras quatro tabelas não têm.
+select table_name, privilege_type
+  from information_schema.role_table_grants
+ where table_schema = 'ops' and privilege_type = 'DELETE'
+   and grantee in ('anon','authenticated','PUBLIC');
+```
+**Esperado:** **uma** linha — `pipeline_stages | DELETE`.
+
+### 12.4 — Instalar o módulo no tenant, **pela Store**
+
+Como nos anteriores: entre no portal como dono, abra **Store**, e instale
+**Esteira de Produção**. É `core.install_module()` que concede as três
+permissões, num papel **do tenant**.
+
+⛔ **Nunca conceda `ops.*` por SQL direto.** Permissão de módulo concedida à mão
+não é revogada ao desinstalar.
+
+### 12.5 — ⭐ O primeiro desenho é SEU
+
+Abra **Esteiras** e desenhe a primeira. **Não semeamos nenhuma de propósito** —
+sugerir uma seria opinar sobre como a sua empresa trabalha.
+
+Marque *exige aprovação* nas etapas em que alguém precisa decidir para o
+trabalho seguir, e *pode ser pulada* nas que nem sempre se aplicam. As duas
+marcas são mecânicas, não decorativas:
+
+- passar de uma etapa marcada como aprovação **exige `ops.order.decide`**;
+- pular uma etapa **exige a razão**, e ela fica na trilha para sempre.
+
+### 12.6 — Conferir o fato na caixa de saída
+
+Abra uma OS e avance uma etapa. Depois:
+
+```sql
+select event_type, produced_by, status, payload ->> 'stageName' as etapa
+  from core.event_outbox
+ where event_type like 'ops.%'
+ order by occurred_at desc limit 5;
+```
+**Esperado:** `ops.order.opened` e `ops.stage.advanced`, produzidos por `ops`, e
+o payload trazendo o **nome** da etapa — não só o id.
+
+⚠️ `delivered` aqui significa "a trilha registrou". Nenhum módulo escuta `ops.*`
+— é o esperado, e está declarado em `MODULO-OPS-SPEC §4.1`.
+
+### 12.7 — ⭐ O teste de mesa que vale a pena fazer uma vez
+
+Pule uma etapa pulável e escreva a razão. Depois:
+
+```sql
+select kind, from_stage_name, to_stage_name, note
+  from ops.order_events
+ where kind = 'skipped'
+ order by occurred_at desc limit 1;
+```
+
+**Esperado:** a linha existe, com o nome das duas etapas e a sua razão. Agora
+**apague a etapa pulada** em Esteiras e rode a consulta de novo: **a linha
+continua lá, com o nome**. É a decisão do `0011` sobre o nome carimbado
+funcionando — e vê-la funcionando uma vez vale mais do que lê-la.
 
 ---
 
@@ -911,9 +1022,13 @@ Honestidade de escopo, para você não procurar o que não foi construído:
 | Módulo 3 — Contas a Pagar (`0007_ap.sql`) | ✅ **CONSTRUÍDO** e **APLICADO em produção** em 28/07/2026, informado pelo dono — ⚠️ **NÃO VERIFICADO** por este repositório |
 | Módulo 4 — Relacionamentos (`0009_crm.sql`) | ✅ **CONSTRUÍDO** e **APLICADO em produção** em 28/07/2026, informado pelo dono — ⚠️ **NÃO VERIFICADO** por este repositório |
 | Módulo 5 — Contas a Receber (`0010_ar.sql`) | ✅ **CONSTRUÍDO** — arquivo, ainda não aplicado (§10) |
-| Módulo 6 — Compras / Pedidos (`0017_po.sql`) | ✅ **CONSTRUÍDO** — arquivo, ainda não aplicado (§11). **Expor schema `po` na Data API** ao aplicar. |
+| Módulo 6 — Compras / Pedidos (`0017_po.sql`) | ✅ **CONSTRUÍDO** — arquivo, ainda não aplicado (§12). **Expor schema `po` na Data API** ao aplicar. |
 | Pedido recebido → título no Contas a Pagar | **NÃO CONSTRUÍDO** — ver `MODULO-PO-SPEC §2.3` |
 | Conciliação de RECEBIMENTOS (crédito × título a receber) | ✅ **CONSTRUÍDA** em arquivo (`0011`–`0013`) — apply do dono |
+| Módulo 7 — Esteira de Produção (`0018_ops.sql`) | ✅ **CONSTRUÍDO** — arquivo, ainda não aplicado (§12) |
+| Upload de arquivo no entregável | **NÃO CONSTRUÍDO**, e é decisão: *Storage & Arquivos* é capacidade do Core, ainda não construída. Ver `MODULO-OPS-SPEC §3.4` |
+| Reordenar/renomear etapa **pela tela** | **NÃO CONSTRUÍDO** — o schema aceita (a `position` é `deferrable` justamente para isso); o formulário de edição é etapa própria |
+| Conciliação de RECEBIMENTOS (crédito × título a receber) | **NÃO CONSTRUÍDA** — o motor do Módulo 1 recusa linha de crédito; ver `MODULO-AR-SPEC §2.3` |
 | Baixa por perda de título a receber | **NÃO CONSTRUÍDA** — ver `MODULO-AR-SPEC §5` |
 | Consumidor do Módulo 1 (título vindo de outro módulo) | ✅ construído e inscrito na composição — fecha o triângulo |
 | Registro de liquidação e estorno **pela tela** | **NÃO CONSTRUÍDO** — o ciclo de vida aceita os dois e é provado; o botão é etapa própria |

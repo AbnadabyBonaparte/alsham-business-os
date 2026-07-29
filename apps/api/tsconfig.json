@@ -4,14 +4,31 @@
     "composite": false,
     "declaration": false,
     "declarationMap": false,
-    "types": ["node"],
+    "types": [
+      "node"
+    ],
     "paths": {
-      "@alsham/core": ["../../packages/core/src/index.ts"],
-      "@alsham/workflow": ["../../packages/workflow/src/index.ts"],
-      "@alsham/billing": ["../../packages/billing/src/index.ts"],
-      "@alsham/marketing": ["../../packages/marketing/src/index.ts"],
-      "@alsham/finance-reconciliation": ["../../packages/finance-reconciliation/src/index.ts"]
+      "@alsham/core": [
+        "../../packages/core/src/index.ts"
+      ],
+      "@alsham/workflow": [
+        "../../packages/workflow/src/index.ts"
+      ],
+      "@alsham/billing": [
+        "../../packages/billing/src/index.ts"
+      ],
+      "@alsham/marketing": [
+        "../../packages/marketing/src/index.ts"
+      ],
+      "@alsham/finance-reconciliation": [
+        "../../packages/finance-reconciliation/src/index.ts"
+      ],
+      "@alsham/ai": [
+        "../../packages/ai/src/index.ts"
+      ]
     }
   },
-  "include": ["src/**/*.ts"]
+  "include": [
+    "src/**/*.ts"
+  ]
 }

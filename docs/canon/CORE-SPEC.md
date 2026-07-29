@@ -141,7 +141,7 @@ O ator não é sempre humano: `user`, `agent` (doutrina da Casa — agente embar
 
 Honestidade de escopo (Lei 7). **Esta seção é do repositório, não da etapa que escreveu este documento** — quem entregar uma peça atualiza a linha dela aqui, e há guarda no CI contra deixá-la envelhecer.
 
-*Conferido em 28/07/2026, depois da Etapa 9.*
+*Conferido em 28/07/2026, depois da Etapa 13.*
 
 | Peça | Estado |
 |---|---|
@@ -154,6 +154,7 @@ Honestidade de escopo (Lei 7). **Esta seção é do repositório, não da etapa 
 | **Módulo 4 — Relacionamentos** (`@alsham/crm` + `0009_crm.sql`) | ✅ **CONSTRUÍDO na Etapa 11** e **APLICADO em produção** em 28/07/2026, informado pelo dono — ⚠️ **NÃO VERIFICADO** por este repositório. O 4º cartão da Store ([MODULO-CRM-SPEC](MODULO-CRM-SPEC.md)) |
 | **Módulo 5 — Contas a Receber** (`@alsham/accounts-receivable` + `0010_ar.sql`) | ✅ **CONSTRUÍDO na Etapa 12** — **arquivo, ainda não aplicado** (runbook §10). O espelho consciente do Módulo 3, com uma divergência declarada ([MODULO-AR-SPEC](MODULO-AR-SPEC.md)) |
 | **Módulo 6 — Compras (Pedidos)** (`@alsham/purchase-orders` + `0017_po.sql`) | ✅ **CONSTRUÍDO** — **arquivo, ainda não aplicado**. Domain `procurement`. `consumes` vazio; caminho pedido→AP NÃO CONSTRUÍDO ([MODULO-PO-SPEC](MODULO-PO-SPEC.md)) |
+| **Módulo 7 — Esteira de Produção** (`@alsham/ops` + `0018_ops.sql`) | ✅ **CONSTRUÍDO na Etapa 13** — **arquivo, ainda não aplicado** (runbook §11). ⭐ **É ele que prova que o produto não é de ninguém em particular:** a esteira é DADO DO TENANT, e o teste SQL escreve a de uma agência e a de uma manutenção predial na mesma tabela ([MODULO-OPS-SPEC](MODULO-OPS-SPEC.md)) |
 | **A composição** (`apps/api`) | ✅ **CONSTRUÍDA na Etapa 8** — o único lugar do repositório onde os módulos se conhecem. Importa todos; nenhum importa outro |
 | Contabilidade de uso (`0003_billing.sql` + `@alsham/billing`) | ✅ construído e **APLICADO em produção** (informado pelo dono, ⚠️ NÃO VERIFICADO aqui). Sem preço (Lei 7) |
 | **Despachante da caixa de saída** (`@alsham/workflow` + `apps/api`) | ✅ **NO AR desde 28/07/2026** — o dono ligou: `apps/api` publicado, `pg_cron` + `pg_net`, job de 1 em 1 minuto. ⚠️ **NÃO VERIFICADO** por este repositório |

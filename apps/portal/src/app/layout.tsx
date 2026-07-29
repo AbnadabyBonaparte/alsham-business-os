@@ -4,13 +4,10 @@ import Link from 'next/link';
 
 import { PRODUCT, COMPANY } from '@alsham/config';
 
-import { PERMISSIONS as AP_PERMISSIONS } from '@alsham/accounts-payable';
-import { PERMISSIONS as CRM_PERMISSIONS } from '@alsham/crm';
-import { PERMISSIONS as AR_PERMISSIONS } from '@alsham/accounts-receivable';
-import { PERMISSIONS as PO_PERMISSIONS } from '@alsham/purchase-orders';
+import { visibleMenu } from '@alsham/permissions';
 
 import { resolveSession } from '@/lib/session';
-import { getApPort, getCrmPort, getArPort, getPoPort } from '@/lib/data';
+import { loadAllPermissions } from '@/lib/data';
 import { TenantSwitcher } from '@/components/tenant-switcher';
 
 import './globals.css';
@@ -19,18 +16,6 @@ export const metadata: Metadata = {
   title: `Conciliação & Aprovações · ${PRODUCT.displayName}`,
   description: 'Painel do tenant — Módulo 1: Conciliação & Aprovações.',
 };
-
-type Rota =
-  | '/conciliacao'
-  | '/aprovacoes'
-  | '/importar'
-  | '/fechamento'
-  | '/campanhas'
-  | '/contas-a-pagar'
-  | '/relacionamentos'
-  | '/contas-a-receber'
-  | '/compras'
-  | '/store';
 
 /**
  * O layout raiz.
@@ -49,66 +34,25 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
   const logado = session.mode === 'authenticated';
 
   /**
-   * ⭐ **O item de menu só existe para quem tem acesso ao módulo.**
+   * ⭐ **O MENU É DECIDIDO NO PACOTE, com UMA leitura de permissões.**
    *
-   * A pergunta é feita ao banco, sob RLS: `ap.*` em `core.role_permissions` só
-   * aparece para quem instalou o módulo e recebeu a permissão pelo instalador.
-   * Módulo não instalado ⇒ conjunto vazio ⇒ nenhum item, e a tela não vira uma
-   * promessa de algo que não foi contratado.
+   * A Etapa 10 deixou a dívida escrita aqui mesmo: os itens nasceram antes do
+   * instalador, e uniformizá-los exigiria *"uma leitura de permissões só para o
+   * menu inteiro em vez de uma por módulo"*. É isto. Antes eram três idas ao
+   * banco (uma por módulo filtrado) e cinco itens sem filtro nenhum; agora é
+   * uma consulta, e `visibleMenu()` — em `@alsham/permissions` — responde por
+   * todos.
    *
    * ⚠️ Esconder o item é **cortesia**, não segurança. Quem impede de verdade é
-   * a RLS: sem `ap.payable.manage` nem `ap.payable.cancel`, `ap.can_access()`
-   * devolve falso e a tela não carrega linha nenhuma, mesmo com a URL digitada
-   * à mão.
+   * a RLS: sem permissão do módulo, `<modulo>.can_access()` devolve falso e a
+   * tela não carrega linha nenhuma, mesmo com a URL digitada à mão.
    *
-   * ⚠️ Os outros itens ainda NÃO são filtrados assim — nasceram antes do
-   * instalador existir. Uniformizá-los é mudança própria, com uma leitura de
-   * permissões só para o menu inteiro em vez de uma por módulo; fazer isso de
-   * carona nesta etapa acrescentaria uma consulta por item sem ninguém ter
-   * pedido.
+   * ⚠️ Qual rota exige o quê **não se decide aqui** (Regra de Ouro §5.3): a
+   * tabela mora em `packages/permissions/src/menu.ts`, com teste que confere
+   * que toda rota existe e que todo módulo publicado tem tela.
    */
-  const temContasAReceber = logado
-    ? await (async () => {
-        try {
-          const port = await getArPort();
-          const permissoes = await port.listPermissions();
-          return Object.values(AR_PERMISSIONS).some((p) => permissoes.has(p));
-        } catch {
-          return false;
-        }
-      })()
-    : false;
-
-  const temRelacionamentos = logado
-    ? await (async () => {
-        try {
-          const port = await getCrmPort();
-          const permissoes = await port.listPermissions();
-          // Qualquer uma das três dá acesso ao módulo — é o mesmo conjunto que
-          // `crm.can_access()` confere no banco.
-          return Object.values(CRM_PERMISSIONS).some((p) => permissoes.has(p));
-        } catch {
-          return false;
-        }
-      })()
-    : false;
-
-  const temContasAPagar = logado
-    ? await (async () => {
-        try {
-          const port = await getApPort();
-          const permissoes = await port.listPermissions();
-          return (
-            permissoes.has(AP_PERMISSIONS.payableManage) ||
-            permissoes.has(AP_PERMISSIONS.payableCancel)
-          );
-        } catch {
-          // Menu não derruba página. Sem resposta, o item some — e a tela do
-          // módulo continua alcançável por URL para quem tiver acesso.
-          return false;
-        }
-      })()
-    : false;
+  const permissoes = logado ? await loadAllPermissions() : new Set<string>();
+  const menu = visibleMenu(permissoes);
 
   const temCompras = logado
     ? await (async () => {
@@ -141,22 +85,11 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
 
               {session.mode !== 'anonymous' && session.mode !== 'no-access' ? (
                 <nav className="flex flex-wrap items-center gap-1 text-sm">
-                  <NavLink href="/importar">Importar</NavLink>
-                  <NavLink href="/conciliacao">Conciliação</NavLink>
-                  <NavLink href="/aprovacoes">Aprovações</NavLink>
-                  <NavLink href="/fechamento">Fechamento</NavLink>
-                  <NavLink href="/campanhas">Campanhas</NavLink>
-                  {temContasAPagar ? (
-                    <NavLink href="/contas-a-pagar">Contas a pagar</NavLink>
-                  ) : null}
-                  {temContasAReceber ? (
-                    <NavLink href="/contas-a-receber">Contas a receber</NavLink>
-                  ) : null}
-                  {temCompras ? <NavLink href="/compras">Compras</NavLink> : null}
-                  {temRelacionamentos ? (
-                    <NavLink href="/relacionamentos">Relacionamentos</NavLink>
-                  ) : null}
-                  <NavLink href="/store">Store</NavLink>
+                  {menu.map((item) => (
+                    <NavLink key={item.href} href={item.href}>
+                      {item.label}
+                    </NavLink>
+                  ))}
                 </nav>
               ) : null}
 
@@ -183,7 +116,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
   );
 }
 
-function NavLink({ href, children }: { href: Rota; children: ReactNode }) {
+function NavLink({ href, children }: { href: string; children: ReactNode }) {
   return (
     <Link
       href={href}

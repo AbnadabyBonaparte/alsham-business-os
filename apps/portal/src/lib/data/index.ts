@@ -9,6 +9,10 @@ import { createApSupabasePort } from './ap-supabase';
 import { createCrmMockPort } from './crm-mock';
 import { createCrmSupabasePort } from './crm-supabase';
 import { createArMockPort } from './ar-mock';
+import { createOpsMockPort } from './ops-mock';
+import { createForgeMockPort } from './forge-mock';
+import { createForgeHttpPort } from './forge-http';
+import { createOpsSupabasePort } from './ops-supabase';
 import { createArSupabasePort } from './ar-supabase';
 import { createPoMockPort } from './po-mock';
 import { createPoSupabasePort } from './po-supabase';
@@ -21,8 +25,11 @@ import type { ApPort } from './ap-port';
 import type { CrmPort } from './crm-port';
 import type { ArPort } from './ar-port';
 import type { PoPort } from './po-port';
+import type { OpsPort } from './ops-port';
+import type { ForgePort } from './forge-port';
 
 export { DataPortError } from './port';
+export { loadAllPermissions } from './menu-port';
 export type { DataPort } from './port';
 export type { MarketingPort } from './marketing-port';
 export type { StorePort } from './store-port';
@@ -30,6 +37,8 @@ export type { ApPort, PayableRow } from './ap-port';
 export type { CrmPort, PartyRow, InteractionRow } from './crm-port';
 export type { ArPort, ReceivableRow } from './ar-port';
 export type { PoPort, OrderRow } from './po-port';
+export type { OpsPort, PipelineWithStages } from './ops-port';
+export type { ForgePort, GenerationResponse } from './forge-port';
 
 /**
  * Escolhe o adapter — e é só isto que muda entre demonstração e produção.
@@ -171,4 +180,49 @@ export async function getPoPort(): Promise<PoPort> {
   if (!db) return createPoMockPort();
 
   return createPoSupabasePort(db, session.activeTenant.id);
+}
+
+/**
+ * A porta do Módulo 7 — **sétima porta, mesmo encanamento**.
+ *
+ * A repetição destas oito linhas continua deliberada e continua registrada,
+ * pelo mesmo motivo de sempre: um `getPort(factory)` genérico economizaria
+ * linhas e custaria a fronteira. Ver a nota em `getMarketingPort()` sobre a
+ * dívida do `@alsham/sdk`, que segue pendente e segue sendo decisão do dono.
+ */
+export async function getOpsPort(): Promise<OpsPort> {
+  const session = await resolveSession();
+  if (session.mode !== 'authenticated') return createOpsMockPort();
+
+  const db = await createSupabaseServerClient();
+  if (!db) return createOpsMockPort();
+
+  return createOpsSupabasePort(db, session.activeTenant.id);
+}
+
+/**
+ * A porta da FORJA — **a única que não fala com o banco.**
+ *
+ * ⛔ Ela fala com `apps/api` por HTTP, porque é lá que a chave do motor vive. O
+ * portal pede; o servidor executa. Nenhuma chave de motor atravessa esta
+ * fronteira, em nenhum sentido.
+ *
+ * ⚠️ **Sem `ALSHAM_API_URL` ou sem `FORGE_SECRET`, cai no mock ROTULADO** — e
+ * o mock devolve o estado `demo`, que a tela é obrigada a mostrar. Nunca um
+ * mock silencioso: a tela diria "gerado" sobre um texto de exemplo.
+ */
+export async function getForgePort(): Promise<ForgePort> {
+  const session = await resolveSession();
+  if (session.mode !== 'authenticated') return createForgeMockPort();
+
+  const baseUrl = process.env.ALSHAM_API_URL;
+  const secret = process.env.FORGE_SECRET;
+  if (!baseUrl || !secret) return createForgeMockPort();
+
+  return createForgeHttpPort({
+    baseUrl,
+    secret,
+    tenantId: session.activeTenant.id,
+    userId: session.userId ?? null,
+  });
 }

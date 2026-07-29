@@ -127,6 +127,20 @@ export function createCrmMockPort(): CrmPort {
         .map((i) => ({ ...i }));
     },
 
+    async loadInteractionsFor(partyIds: readonly string[]) {
+      const porContraparte: Record<string, InteractionRow[]> = Object.fromEntries(
+        partyIds.map((id) => [id, [] as InteractionRow[]]),
+      );
+      for (const i of interactions) {
+        const lista = porContraparte[i.partyId];
+        if (lista !== undefined) lista.push({ ...i });
+      }
+      for (const lista of Object.values(porContraparte)) {
+        lista.sort((a, b) => b.occurredAt.localeCompare(a.occurredAt));
+      }
+      return porContraparte;
+    },
+
     async createParty(party: Party) {
       if (party.taxId !== null && parties.some((p) => p.taxId === party.taxId)) {
         // O banco tem índice único parcial por `(tenant_id, tax_id)`. O mock

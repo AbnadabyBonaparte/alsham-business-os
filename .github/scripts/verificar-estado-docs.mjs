@@ -233,6 +233,27 @@ export const PECAS = [
     ],
     padrao: /(m[óo]dulo 6|packages\/purchase-orders|@alsham\/purchase-orders|0017_po|compras \(pedidos\))/i,
     onde: 'packages/purchase-orders/',
+    nome: 'Módulo 7 — Esteira de Produção',
+    detector: [
+      'packages/ops/src/manifest.ts',
+      'packages/ops/src/order.ts',
+      'supabase/migrations/0018_ops.sql',
+    ],
+    // ⚠️ "esteira" e "ordem de serviço" aparecem em linhas de prosa que falam
+    // do conceito, e `ops` é curto demais para ser padrão sozinho. O padrão
+    // exige o NOME DA PEÇA — mesma lição do Módulo 5.
+    padrao: /(m[óo]dulo 7|packages\/ops\b|@alsham\/ops|0018_ops)/i,
+    onde: 'packages/ops/',
+  },
+  {
+    nome: 'Menu filtrado por permissão',
+    detector: ['packages/permissions/src/menu.ts'],
+    // A dívida da Etapa 10 foi paga: os itens de menu não são mais escritos à
+    // mão no layout, e três deles não são mais os únicos filtrados. Um
+    // documento que ainda diga "os outros itens ainda NÃO são filtrados"
+    // estaria negando o que existe.
+    padrao: /(menu\s+filtrado|visibleMenu|packages\/permissions\/src\/menu)/i,
+    onde: 'packages/permissions/src/menu.ts',
   },
 ];
 

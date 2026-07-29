@@ -17,6 +17,9 @@ const nextConfig: NextConfig = {
     '@alsham/accounts-payable',
     '@alsham/crm',
     '@alsham/accounts-receivable',
+    '@alsham/ops',
+    '@alsham/ai',
+    '@alsham/billing',
     '@alsham/permissions',
   ],
 
