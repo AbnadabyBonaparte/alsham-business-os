@@ -727,6 +727,73 @@ on conflict (module_id) do update set
 -- ⛔ Oito módulos no catálogo, zero permissão concedida pelo seed.
 
 -- =============================================================================
+-- 4.7 O MÓDULO `quote` NO CATÁLOGO DA STORE — o 9º cartão
+-- Transcrito de packages/quotes/src/manifest.ts.
+-- -----------------------------------------------------------------------------
+-- ⭐ **Domain `crm`, capacidades *Propostas* E *Orçamentos*** — o MESMO
+-- artefato com os dois nomes do mercado (a agência propõe, a oficina orça).
+-- *Pipeline* NÃO é declarada: é o Módulo 10.
+--
+-- ⭐ **`events_consumes` é VAZIO**, e é Lei 7: aceite não é fato financeiro —
+-- virar título no `ar` exigiria decisão de FATURAMENTO (vencimento, parcelas)
+-- que a proposta não carrega. Ver a spec §5.
+-- =============================================================================
+
+insert into core.module_registry (
+  module_id, name, version, summary,
+  layer, domain_key,
+  capabilities, permissions, events_emits, events_consumes, agents,
+  requires_core, status
+)
+values (
+  'quote',
+  'Propostas',
+  '0.1.0',
+  'Propostas e orçamentos com itens em texto livre e validade opcional. Aceite e recusa são atos registrados — quem e quando — e renegociar é documento novo.',
+  'domain', 'crm',
+  '[
+     {"key":"proposals","canonicalName":"Propostas"},
+     {"key":"quotes","canonicalName":"Orçamentos"}
+   ]'::jsonb,
+  '[
+     {"key":"quote.proposal.manage","moduleId":"quote","description":"Montar rascunhos, editar itens, enviar a proposta e registrar expiração."},
+     {"key":"quote.proposal.decide","moduleId":"quote","description":"Registrar o aceite ou a recusa da contraparte — o ato fica carimbado com quem e quando."},
+     {"key":"quote.proposal.cancel","moduleId":"quote","description":"Retirar a proposta da mesa — a ação destrutiva deste módulo."}
+   ]'::jsonb,
+  '[
+     {"type":"quote.proposal.registered","version":1,"description":"Uma proposta nasceu (rascunho), com itens em texto livre e contraparte neutra."},
+     {"type":"quote.proposal.updated","version":1,"description":"Mudou fato do rascunho: itens, total, moeda, validade ou contraparte."},
+     {"type":"quote.proposal.sent","version":1,"description":"A proposta foi posta na mesa. Daqui em diante o conteúdo não muda mais."},
+     {"type":"quote.proposal.accepted","version":1,"description":"A contraparte aceitou — registrado por quem tem fé pública do ato, com quem e quando."},
+     {"type":"quote.proposal.declined","version":1,"description":"A contraparte recusou. Terminal: renegociar é documento novo."},
+     {"type":"quote.proposal.expired","version":1,"description":"A validade venceu e alguém registrou o calendário. Só existe com validade vencida."},
+     {"type":"quote.proposal.cancelled","version":1,"description":"A proposta foi retirada da mesa — a ação destrutiva deste módulo. Nunca DELETE."}
+   ]'::jsonb,
+  -- Vazio, e é Lei 7. Ver o comentário acima e a spec do módulo.
+  '[]'::jsonb,
+  '[]'::jsonb,
+  '0.0.x',
+  'published'
+)
+on conflict (module_id) do update set
+  name            = excluded.name,
+  version         = excluded.version,
+  summary         = excluded.summary,
+  layer           = excluded.layer,
+  domain_key      = excluded.domain_key,
+  vertical_key    = excluded.vertical_key,
+  capabilities    = excluded.capabilities,
+  permissions     = excluded.permissions,
+  events_emits    = excluded.events_emits,
+  events_consumes = excluded.events_consumes,
+  agents          = excluded.agents,
+  requires_core   = excluded.requires_core,
+  status          = excluded.status,
+  updated_at      = now();
+
+-- ⛔ Nove módulos no catálogo, zero permissão concedida pelo seed.
+
+-- =============================================================================
 -- 5. PLANOS-BASE
 -- Minerado de: `plan_limits` (5 planos) do kraken-v2 (PROVADO em produção).
 -- -----------------------------------------------------------------------------

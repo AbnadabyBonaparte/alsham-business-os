@@ -22,6 +22,8 @@ import { createPoMockPort } from './po-mock';
 import { createPoSupabasePort } from './po-supabase';
 import { createInvMockPort } from './inv-mock';
 import { createInvSupabasePort } from './inv-supabase';
+import { createQuoteMockPort } from './quote-mock';
+import { createQuoteSupabasePort } from './quote-supabase';
 import { createSupabaseServerClient } from '../supabase/server';
 import { resolveSession } from '../session';
 import type { DataPort } from './port';
@@ -32,6 +34,7 @@ import type { CrmPort } from './crm-port';
 import type { ArPort } from './ar-port';
 import type { PoPort } from './po-port';
 import type { InvPort } from './inv-port';
+import type { QuotePort } from './quote-port';
 import type { OpsPort } from './ops-port';
 import type { ForgePort } from './forge-port';
 import type { BrandPort } from './brand-port';
@@ -47,6 +50,7 @@ export type { CrmPort, PartyRow, InteractionRow } from './crm-port';
 export type { ArPort, ReceivableRow } from './ar-port';
 export type { PoPort, OrderRow } from './po-port';
 export type { InvPort, ItemRow, MovementRow } from './inv-port';
+export type { QuotePort, ProposalRow } from './quote-port';
 export type { OpsPort, PipelineWithStages } from './ops-port';
 export type { ForgePort, GenerationResponse } from './forge-port';
 export type { BrandPort } from './brand-port';
@@ -226,6 +230,19 @@ export async function getInvPort(): Promise<InvPort> {
   if (!db) return createInvMockPort();
 
   return createInvSupabasePort(db, session.activeTenant.id);
+}
+
+/**
+ * A porta do Módulo 9 — **nona porta, mesmo encanamento**.
+ */
+export async function getQuotePort(): Promise<QuotePort> {
+  const session = await resolveSession();
+  if (session.mode !== 'authenticated') return createQuoteMockPort();
+
+  const db = await createSupabaseServerClient();
+  if (!db) return createQuoteMockPort();
+
+  return createQuoteSupabasePort(db, session.activeTenant.id);
 }
 
 /**

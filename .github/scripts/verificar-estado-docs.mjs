@@ -273,6 +273,16 @@ export const PECAS = [
     onde: 'packages/inventory/',
   },
   {
+    nome: 'Módulo 9 — Propostas',
+    detector: [
+      'packages/quotes/src/manifest.ts',
+      'packages/quotes/src/quote.ts',
+      'supabase/migrations/0024_quote.sql',
+    ],
+    padrao: /(m[óo]dulo 9|packages\/quotes|@alsham\/quotes|0024_quote)/i,
+    onde: 'packages/quotes/',
+  },
+  {
     nome: 'Menu filtrado por permissão',
     detector: ['packages/permissions/src/menu.ts'],
     // A dívida da Etapa 10 foi paga: os itens de menu não são mais escritos à
@@ -378,6 +388,7 @@ const SECOES = [
   // Missão Trina, junto com as cinco specs novas.
   { arquivo: 'docs/canon/MODULO-OPS-SPEC.md', titulo: '## 5. ESTADO DA OBRA' },
   { arquivo: 'docs/canon/MODULO-INV-SPEC.md', titulo: '## 7. ESTADO DA OBRA' },
+  { arquivo: 'docs/canon/MODULO-QUOTE-SPEC.md', titulo: '## 6. ESTADO DA OBRA' },
 ];
 
 /**
