@@ -23,6 +23,9 @@ importers:
       '@alsham/accounts-receivable':
         specifier: workspace:*
         version: link:../../packages/accounts-receivable
+      '@alsham/ai':
+        specifier: workspace:*
+        version: link:../../packages/ai
       '@alsham/billing':
         specifier: workspace:*
         version: link:../../packages/billing
@@ -60,6 +63,9 @@ importers:
       '@alsham/accounts-receivable':
         specifier: workspace:*
         version: link:../../packages/accounts-receivable
+      '@alsham/ai':
+        specifier: workspace:*
+        version: link:../../packages/ai
       '@alsham/config':
         specifier: workspace:*
         version: link:../../packages/config
@@ -75,6 +81,9 @@ importers:
       '@alsham/marketing':
         specifier: workspace:*
         version: link:../../packages/marketing
+      '@alsham/ops':
+        specifier: workspace:*
+        version: link:../../packages/ops
       '@alsham/permissions':
         specifier: workspace:*
         version: link:../../packages/permissions
@@ -131,6 +140,22 @@ importers:
 
   packages/accounts-receivable:
     dependencies:
+      '@alsham/core':
+        specifier: workspace:*
+        version: link:../core
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.2
+        version: 22.20.1
+      typescript:
+        specifier: ^5.7.2
+        version: 5.9.3
+
+  packages/ai:
+    dependencies:
+      '@alsham/billing':
+        specifier: workspace:*
+        version: link:../billing
       '@alsham/core':
         specifier: workspace:*
         version: link:../core
@@ -205,6 +230,19 @@ importers:
       '@alsham/workflow':
         specifier: workspace:*
         version: link:../workflow
+      '@types/node':
+        specifier: ^22.10.2
+        version: 22.20.1
+      typescript:
+        specifier: ^5.7.2
+        version: 5.9.3
+
+  packages/ops:
+    dependencies:
+      '@alsham/core':
+        specifier: workspace:*
+        version: link:../core
+    devDependencies:
       '@types/node':
         specifier: ^22.10.2
         version: 22.20.1

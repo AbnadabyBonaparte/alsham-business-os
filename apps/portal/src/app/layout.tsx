@@ -54,17 +54,10 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
   const permissoes = logado ? await loadAllPermissions() : new Set<string>();
   const menu = visibleMenu(permissoes);
 
-  const temCompras = logado
-    ? await (async () => {
-        try {
-          const port = await getPoPort();
-          const permissoes = await port.listPermissions();
-          return Object.values(PO_PERMISSIONS).some((p) => permissoes.has(p));
-        } catch {
-          return false;
-        }
-      })()
-    : false;
+  // ⚠️ A leitura por módulo que existia aqui para Compras foi ABSORVIDA pelo
+  // menu de leitura única. Ela sobreviveria ao merge sem quebrar nada — e por
+  // isso mesmo tinha de sair: duas fontes decidindo o mesmo item de menu é
+  // exatamente a dívida que esta etapa pagou.
 
   return (
     <html lang="pt-BR">
