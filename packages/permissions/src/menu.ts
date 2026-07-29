@@ -54,6 +54,11 @@ const MENU: readonly MenuItem[] = [
   { href: '/compras', label: 'Compras', moduleId: 'po' },
   { href: '/esteira', label: 'Esteira', moduleId: 'ops' },
   { href: '/esteiras', label: 'Esteiras', moduleId: 'ops' },
+  { href: '/estoque', label: 'Estoque', moduleId: 'inv' },
+  { href: '/propostas', label: 'Propostas', moduleId: 'quote' },
+  { href: '/funil', label: 'Funil', moduleId: 'deal' },
+  { href: '/eventos', label: 'Eventos', moduleId: 'evt' },
+  { href: '/cobranca', label: 'Cobrança', moduleId: 'dun' },
   { href: '/store', label: 'Store', moduleId: null },
   { href: '/ajustes', label: 'Ajustes', moduleId: null },
 ];

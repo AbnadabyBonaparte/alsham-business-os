@@ -1224,6 +1224,32 @@ junto.
 
 ---
 
+## PASSO 16 — A MISSÃO TRINA: os cinco módulos (`0023` em diante)
+
+Os cinco módulos da Missão Trina nascem como ARQUIVO, e o apply é seu, na
+ordem das migrations. Para cada um, o rito é o mesmo de sempre:
+
+1. **Aplicar a migration** no SQL Editor do projeto de produção, na ordem:
+   - `0023_inv.sql` — Módulo 8, Estoque (schema `inv`)
+   - `0024_quote.sql` — Módulo 9, Propostas (schema `quote`)
+   - `0025_deal.sql` — Módulo 10, Funil Comercial (schema `deal`)
+   - `0026_evt.sql` — Módulo 11, Eventos (schema `evt`)
+   - `0027_dun.sql` — Módulo 12, Régua de Cobrança (schema `dun`)
+2. **Reaplicar o seed** (`supabase/seed/0001_platform.sql`) — os cartões
+   novos entram no catálogo da Store. Reaplicar não muda o que já está lá.
+3. ⚠️ **Expor os schemas novos na Data API** (Project Settings → API →
+   Exposed schemas): `inv`, `quote`, `deal`, `evt`, `dun`. Sem isso as telas
+   carregam vazias, sem erro que diga o motivo — lição paga cinco vezes.
+4. **Instalar cada módulo pela Store**, no tenant que o contratou. O seed
+   não concede permissão nenhuma; quem concede é `core.install_module()`.
+5. ⚠️ O Módulo 12 (régua) **consome `ar.receivable.*`**: confirme que o
+   `apps/api` foi **redeployado** depois do merge — a inscrição nova
+   (`dun-title-projection`) só existe no build novo. Sem redeploy, os fatos
+   do `ar` são entregues como `no-subscriber` e a régua fica vazia.
+
+Nenhum agente aplica em produção. Depois do apply, a conferência de
+segurança do PASSO 15 (§ pós-apply) vale para os cinco schemas novos.
+
 ## O QUE AINDA NÃO EXISTE
 
 Honestidade de escopo, para você não procurar o que não foi construído:

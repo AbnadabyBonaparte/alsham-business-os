@@ -165,6 +165,36 @@ jobs:
       - name: aplicar 0022_revoke_public_execute.sql
         run: $PSQL -f supabase/migrations/0022_revoke_public_execute.sql
 
+      # ⭐ MISSÃO TRINA — o Módulo 8: o estoque como LIVRO imutável. O saldo é
+      # view com security_invoker; não existe coluna de saldo, e há guarda
+      # adiante conferindo isso no banco aplicado.
+      - name: aplicar 0023_inv.sql
+        run: $PSQL -f supabase/migrations/0023_inv.sql
+
+      # ⭐ O Módulo 9: a proposta com identidade por DOCUMENTO — a mesa
+      # congela o conteúdo, o aceite carimba quem/quando, e os fins são
+      # terminais.
+      - name: aplicar 0024_quote.sql
+        run: $PSQL -f supabase/migrations/0024_quote.sql
+
+      # ⭐ O Módulo 10: a Lei das Etapas, segunda aplicação — estágios do
+      # tenant, movimento LIVRE com trilha imutável, desfecho terminal com
+      # razão. Nenhum enum de estágio, e há guarda adiante.
+      - name: aplicar 0025_deal.sql
+        run: $PSQL -f supabase/migrations/0025_deal.sql
+
+      # ⭐ O Módulo 11: o evento UNIVERSAL (Domain marketing) — a lista abre
+      # ao publicar, a lotação recusa claro, a presença carimba quem/quando.
+      # Nada do ofício do vertical (ingresso, QR, line-up) — há guarda.
+      - name: aplicar 0026_evt.sql
+        run: $PSQL -f supabase/migrations/0026_evt.sql
+
+      # ⭐⭐ O Módulo 12: a régua — projeção alimentada por FATO (padrão E10,
+      # quarta aplicação), a Lei das Etapas pela terceira vez, e o ato
+      # registrado. O módulo NÃO envia nada.
+      - name: aplicar 0027_dun.sql
+        run: $PSQL -f supabase/migrations/0027_dun.sql
+
       # ---------------------------------------------------------------------
       # 2. SEED — e a prova de que reaplicar não muda nada
       # ---------------------------------------------------------------------
@@ -192,12 +222,12 @@ jobs:
           FALTA=$($PSQL -tAc "
             select coalesce(string_agg(n.nspname||'.'||c.relname, ', '), '')
               from pg_class c join pg_namespace n on n.oid = c.relnamespace
-             where n.nspname in ('core','recon','marketing','ap','crm','ar','po','ops') and c.relkind = 'r'
+             where n.nspname in ('core','recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt','dun') and c.relkind = 'r'
                and (not c.relrowsecurity or not c.relforcerowsecurity);")
           [ -z "$FALTA" ] || { echo "::error::sem RLS enable+force: $FALTA"; exit 1; }
           $PSQL -c "select n.nspname as schema, count(*) as tabelas
                       from pg_class c join pg_namespace n on n.oid=c.relnamespace
-                     where n.nspname in ('core','recon','marketing','ap','crm','ar','po','ops') and c.relkind='r'
+                     where n.nspname in ('core','recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt','dun') and c.relkind='r'
                      group by 1 order by 1;"
 
       - name: nenhuma policy USING (true)
@@ -207,7 +237,7 @@ jobs:
               from pg_policy p
               join pg_class c on c.oid = p.polrelid
               join pg_namespace n on n.oid = c.relnamespace
-             where n.nspname in ('core','recon','marketing','ap','crm','ar','po','ops')
+             where n.nspname in ('core','recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt','dun')
                and pg_get_expr(p.polqual, p.polrelid) = 'true';")
           [ -z "$ABERTAS" ] || { echo "::error::policy aberta (lição paga do suna-core): $ABERTAS"; exit 1; }
 
@@ -218,7 +248,7 @@ jobs:
                              where n.nspname='public' and c.relkind='r';")
           [ "$PUB" = "0" ] || { echo "::error::$PUB tabela(s) em public — expostas via API"; exit 1; }
           ANON=$($PSQL -tAc "select count(*) from information_schema.role_table_grants
-                              where grantee='anon' and table_schema in ('core','recon','marketing','ap','crm','ar','po','ops');")
+                              where grantee='anon' and table_schema in ('core','recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt','dun');")
           [ "$ANON" = "0" ] || { echo "::error::anon tem $ANON grant(s) no Business OS"; exit 1; }
 
       - name: o seed não semeou tenant nem usuário
@@ -364,6 +394,252 @@ jobs:
       #     não é comentário bonito.
       - name: teste do Módulo 7 (esteira do tenant, trilha imutável, refazer)
         run: $PSQL -f supabase/tests/12_ops_isolation.sql
+
+      # ⭐⭐ A PROVA DO MÓDULO 8: o livro imutável e o saldo honesto.
+      #
+      # Sete cenários, e três deles não existem em teste de pacote nenhum:
+      #
+      #   · o livro é IMUTÁVEL até para o dono do banco (camada 3);
+      #   · o AJUSTE exige razão (constraint) E permissão própria — a
+      #     assimetria user-a × user-b prova que quem conta não é quem confere;
+      #   · o saldo NEGATIVO passa e a view soma sob a RLS de quem lê
+      #     (security_invoker) — o Beta não soma o estoque do Alfa.
+      - name: teste do Módulo 8 (livro imutável, ajuste com razão, saldo negativo)
+        run: $PSQL -f supabase/tests/13_inv_isolation.sql
+
+      # ⛔ O LIVRO NÃO TEM PORTA DE EDIÇÃO — conferido no banco aplicado.
+      #
+      # `inv.movements` aceita INSERT direto (o fato É o dado, como
+      # `crm.interactions`) — mas UPDATE e DELETE não existem para o cliente,
+      # e o saldo NÃO é coluna: é view que soma o livro.
+      - name: o livro do estoque não se edita, e o saldo não é coluna
+        run: |
+          G=$($PSQL -tAc "select coalesce(string_agg(distinct privilege_type, ',' order by privilege_type), '')
+                            from information_schema.role_table_grants
+                           where table_schema='inv' and table_name='movements'
+                             and grantee in ('anon','authenticated','PUBLIC');")
+          [ "$G" = "INSERT,SELECT" ] || {
+            echo "::error::inv.movements tem privilégios além de INSERT/SELECT: [$G]"; exit 1; }
+          P=$($PSQL -tAc "select count(*) from pg_policy p
+                            join pg_class c on c.oid=p.polrelid
+                            join pg_namespace n on n.oid=c.relnamespace
+                           where n.nspname='inv' and c.relname='movements'
+                             and p.polcmd in ('w','d');")
+          [ "$P" = "0" ] || { echo "::error::apareceu policy de UPDATE/DELETE no livro"; exit 1; }
+          T=$($PSQL -tAc "select count(*) from pg_trigger t
+                            join pg_class c on c.oid=t.tgrelid
+                            join pg_namespace n on n.oid=c.relnamespace
+                           where n.nspname='inv' and c.relname='movements'
+                             and t.tgname='movements_immutable' and not t.tgisinternal;")
+          [ "$T" = "1" ] || { echo "::error::o gatilho de imutabilidade sumiu do livro"; exit 1; }
+          # E o saldo é CONSEQUÊNCIA: nenhuma coluna de saldo em inv.items,
+          # e a view soma com a RLS de quem lê.
+          C=$($PSQL -tAc "select count(*) from information_schema.columns
+                           where table_schema='inv' and table_name='items'
+                             and column_name in ('balance','quantity','quantity_on_hand','saldo');")
+          [ "$C" = "0" ] || { echo "::error::inv.items ganhou coluna de saldo — o saldo é a soma do livro"; exit 1; }
+          V=$($PSQL -tAc "select count(*) from pg_class c
+                            join pg_namespace n on n.oid=c.relnamespace
+                           where n.nspname='inv' and c.relname='balances' and c.relkind='v'
+                             and c.reloptions::text like '%security_invoker=true%';")
+          [ "$V" = "1" ] || { echo "::error::inv.balances sem security_invoker — a view somaria todos os tenants"; exit 1; }
+
+      - name: nenhuma porta de DELETE em inv
+        run: |
+          G=$($PSQL -tAc "select count(*) from information_schema.role_table_grants
+                            where table_schema='inv' and privilege_type='DELETE'
+                              and grantee in ('anon','authenticated','PUBLIC');")
+          [ "$G" = "0" ] || { echo "::error::alguém concedeu DELETE em inv ao cliente — arquivar é status"; exit 1; }
+          P=$($PSQL -tAc "select count(*) from pg_policy p
+                            join pg_class c on c.oid=p.polrelid
+                            join pg_namespace n on n.oid=c.relnamespace
+                           where n.nspname='inv' and p.polcmd='d';")
+          [ "$P" = "0" ] || { echo "::error::apareceu policy de DELETE em inv"; exit 1; }
+
+      # ⭐⭐ A PROVA DO MÓDULO 9: a mesa congelada e o ato carimbado.
+      #
+      # Seis cenários, e três não existem em teste de pacote nenhum:
+      #   · o conteúdo congela DEPOIS do envio, nas três operações;
+      #   · o aceite carimba quem/quando pelo SERVIDOR, exige decide
+      #     (assimetria user-a × user-b) e o fim é terminal contra o gatilho
+      #     real;
+      #   · expirar só passa com validade VENCIDA — calendário, nunca vontade.
+      - name: teste do Módulo 9 (mesa congelada, ato carimbado, fins terminais)
+        run: $PSQL -f supabase/tests/14_quote_isolation.sql
+
+      # ⭐⭐ A PROVA DO MÓDULO 10: o mapa do tenant e o movimento livre.
+      #
+      # Seis cenários; os que nenhum teste de pacote alcança:
+      #   · dois OFÍCIOS (loja e licitação) desenham funis na mesma tabela;
+      #   · o movimento volta SEM rito — e cada movimento vira trilha com os
+      #     nomes carimbados;
+      #   · perder sem razão é recusado pela função E pelo porteiro;
+      #   · o estágio percorrido se apaga e a trilha continua legível.
+      - name: teste do Módulo 10 (funil do tenant, movimento livre, desfecho)
+        run: $PSQL -f supabase/tests/15_deal_isolation.sql
+
+      # ⭐ A Lei das Etapas, SEGUNDA aplicação, conferida no banco: nenhum
+      # enum no schema deal, e a tabela de estágios com as colunas do desenho.
+      - name: nenhum estágio de funil virou enum no banco
+        run: |
+          T=$($PSQL -tAc "select coalesce(string_agg(t.typname, ','), '')
+                            from pg_type t join pg_namespace n on n.oid=t.typnamespace
+                           where n.nspname='deal' and t.typtype='e';")
+          [ -z "$T" ] || { echo "::error::nasceram tipos enumerados em deal: $T — o estágio é dado do tenant"; exit 1; }
+          C=$($PSQL -tAc "select count(*) from information_schema.columns
+                           where table_schema='deal' and table_name='funnel_stages'
+                             and column_name in ('name','position');")
+          [ "$C" = "2" ] || { echo "::error::deal.funnel_stages perdeu uma coluna do desenho"; exit 1; }
+          # E a fronteira com o crm é SOLTA: party_id sem FK.
+          FK=$($PSQL -tAc "select count(*) from pg_constraint c
+                             join pg_class t on t.oid = c.conrelid
+                             join pg_namespace n on n.oid = t.relnamespace
+                            where n.nspname='deal' and c.contype='f'
+                              and c.confrelid::regclass::text like 'crm.%';")
+          [ "$FK" = "0" ] || { echo "::error::deal ganhou FK para crm — o vínculo é ID solto + nome carimbado"; exit 1; }
+
+      - name: nenhuma porta de escrita em deal.opportunity_events
+        run: |
+          G=$($PSQL -tAc "select coalesce(string_agg(distinct privilege_type, ','), '')
+                            from information_schema.role_table_grants
+                           where table_schema='deal' and table_name='opportunity_events'
+                             and grantee in ('anon','authenticated','PUBLIC');")
+          [ "$G" = "SELECT" ] || {
+            echo "::error::deal.opportunity_events tem privilégios além de SELECT: [$G]"; exit 1; }
+
+      - name: o décimo cartão (deal) tem consumes vazio
+        run: |
+          C=$($PSQL -tAc "select jsonb_array_length(events_consumes)
+                            from core.module_registry where module_id='deal';")
+          [ "$C" = "0" ] || {
+            echo "::error::o módulo deal declara $C consumo(s) — o vínculo proposta↔negociação está NÃO CONSTRUÍDO (spec §5)"
+            exit 1; }
+          echo "deal no catálogo com consumes vazio."
+
+      # ⭐⭐ A PROVA DO MÓDULO 11: a lista honesta e a presença carimbada.
+      - name: teste do Módulo 11 (lista publicada, lotação clara, presença)
+        run: $PSQL -f supabase/tests/16_evt_isolation.sql
+
+      # ⛔ O OFÍCIO DO VERTICAL NÃO ENTROU — conferido no banco aplicado.
+      # O perigo da pedreira events-os é importar promessa: cada engine de lá
+      # é tentação de virar coluna aqui.
+      - name: o evento universal não virou o vertical
+        run: |
+          C=$($PSQL -tAc "select count(*) from information_schema.columns
+                           where table_schema='evt'
+                             and (column_name ~* 'ticket|price|qr|sponsor|lineup|badge'
+                                  or column_name in ('email','phone'));")
+          [ "$C" = "0" ] || { echo "::error::o schema evt ganhou coluna do ofício do vertical (ou canal congelado)"; exit 1; }
+          T=$($PSQL -tAc "select coalesce(string_agg(t.typname, ','), '')
+                            from pg_type t join pg_namespace n on n.oid=t.typnamespace
+                           where n.nspname='evt' and t.typtype='e';")
+          [ -z "$T" ] || { echo "::error::nasceram tipos enumerados em evt: $T"; exit 1; }
+
+      - name: nenhuma porta de DELETE em evt
+        run: |
+          G=$($PSQL -tAc "select count(*) from information_schema.role_table_grants
+                            where table_schema='evt' and privilege_type='DELETE'
+                              and grantee in ('anon','authenticated','PUBLIC');")
+          [ "$G" = "0" ] || { echo "::error::alguém concedeu DELETE em evt ao cliente — cancelar é status"; exit 1; }
+          P=$($PSQL -tAc "select count(*) from pg_policy p
+                            join pg_class c on c.oid=p.polrelid
+                            join pg_namespace n on n.oid=c.relnamespace
+                           where n.nspname='evt' and p.polcmd='d';")
+          [ "$P" = "0" ] || { echo "::error::apareceu policy de DELETE em evt"; exit 1; }
+
+      - name: o décimo primeiro cartão (evt) tem consumes vazio
+        run: |
+          C=$($PSQL -tAc "select jsonb_array_length(events_consumes)
+                            from core.module_registry where module_id='evt';")
+          [ "$C" = "0" ] || {
+            echo "::error::o módulo evt declara $C consumo(s) — sem handler, sem promessa (Lei 7)"
+            exit 1; }
+          echo "evt no catálogo com consumes vazio."
+
+      # ⭐⭐ A PROVA DO MÓDULO 12: O TRIÂNGULO DA RÉGUA.
+      #
+      # Oito cenários, e os que nenhum teste de pacote alcança:
+      #   · a origem gravada vem do ENVELOPE — um produtor fictício
+      #     (`erp-bridge`) grava a origem DELE;
+      #   · a BAIXA NA ORIGEM tira o título da régua SOZINHA, com o fato
+      #     dun.title.left saindo — e o passo passa a ser recusado;
+      #   · um usuário real NÃO executa dun.record_external_receivable —
+      #     dar essa caneta à tela deixaria o cliente forjar título.
+      - name: teste do triângulo da régua (ar emite → dun projeta → passo → baixa)
+        run: $PSQL -f supabase/tests/17_dun_triangle.sql
+
+      # ⛔ A PROJEÇÃO E O ATO NÃO TÊM PORTA DE ESCRITA — no banco aplicado.
+      - name: a régua não se escreve à mão
+        run: |
+          G=$($PSQL -tAc "select coalesce(string_agg(distinct privilege_type, ',' order by privilege_type), '')
+                            from information_schema.role_table_grants
+                           where table_schema='dun' and table_name='titles'
+                             and grantee in ('anon','authenticated','PUBLIC');")
+          [ "$G" = "SELECT" ] || { echo "::error::dun.titles tem privilégios além de SELECT: [$G]"; exit 1; }
+          E=$($PSQL -tAc "select coalesce(string_agg(distinct privilege_type, ',' order by privilege_type), '')
+                            from information_schema.role_table_grants
+                           where table_schema='dun' and table_name='step_executions'
+                             and grantee in ('anon','authenticated','PUBLIC');")
+          [ "$E" = "SELECT" ] || { echo "::error::dun.step_executions tem privilégios além de SELECT: [$E]"; exit 1; }
+          # E a porta de projeção continua fechada ao cliente.
+          A=$($PSQL -tAc "select count(*) from pg_proc p
+                            join pg_namespace n on n.oid = p.pronamespace
+                           where n.nspname='dun' and p.proname='record_external_receivable'
+                             and (has_function_privilege('authenticated', p.oid, 'execute')
+                               or has_function_privilege('anon', p.oid, 'execute'));")
+          [ "$A" = "0" ] || { echo "::error::dun.record_external_receivable está concedida ao cliente"; exit 1; }
+          # Uma régua ativa por tenant: o índice parcial existe.
+          I=$($PSQL -tAc "select count(*) from pg_indexes
+                           where schemaname='dun' and indexname='rulers_one_active';")
+          [ "$I" = "1" ] || { echo "::error::o índice de régua única sumiu — a lei virou lembrança"; exit 1; }
+
+      # ⭐ O 12º CARTÃO DECLARA OS TRÊS CONSUMOS QUE O HANDLER COBRE — a Lei 7
+      # do jeito certo, conferida no banco.
+      - name: o décimo segundo cartão (dun) declara os três consumos do handler
+        run: |
+          C=$($PSQL -tAc "select jsonb_array_length(events_consumes)
+                            from core.module_registry where module_id='dun';")
+          [ "$C" = "3" ] || {
+            echo "::error::o módulo dun declara $C consumo(s) — esperado 3 (o handler cobre três)"
+            exit 1; }
+          for T in ar.receivable.registered ar.receivable.updated ar.receivable.cancelled; do
+            OK=$($PSQL -tAc "select count(*) from core.module_registry,
+                                  jsonb_array_elements(events_consumes) e
+                              where module_id='dun' and e->>'type' = '$T';")
+            [ "$OK" = "1" ] || { echo "::error::o cartão do dun não declara $T"; exit 1; }
+          done
+          echo "dun no catálogo com os três consumos do handler."
+
+      - name: nenhuma porta de DELETE em quote.proposals
+        run: |
+          G=$($PSQL -tAc "select count(*) from information_schema.role_table_grants
+                            where table_schema='quote' and table_name='proposals'
+                              and privilege_type='DELETE'
+                              and grantee in ('anon','authenticated','PUBLIC');")
+          [ "$G" = "0" ] || { echo "::error::alguém concedeu DELETE em quote.proposals — retirar é status"; exit 1; }
+          P=$($PSQL -tAc "select count(*) from pg_policy p
+                             join pg_class c on c.oid=p.polrelid
+                             join pg_namespace n on n.oid=c.relnamespace
+                            where n.nspname='quote' and c.relname='proposals' and p.polcmd='d';")
+          [ "$P" = "0" ] || { echo "::error::apareceu policy de DELETE em quote.proposals"; exit 1; }
+
+      - name: o nono cartão (quote) tem consumes vazio
+        run: |
+          C=$($PSQL -tAc "select jsonb_array_length(events_consumes)
+                            from core.module_registry where module_id='quote';")
+          [ "$C" = "0" ] || {
+            echo "::error::o módulo quote declara $C consumo(s) — aceite→título está NÃO CONSTRUÍDO (spec §5)"
+            exit 1; }
+          echo "quote no catálogo com consumes vazio."
+
+      - name: o oitavo cartão (inv) tem consumes vazio
+        run: |
+          C=$($PSQL -tAc "select jsonb_array_length(events_consumes)
+                            from core.module_registry where module_id='inv';")
+          [ "$C" = "0" ] || {
+            echo "::error::o módulo inv declara $C consumo(s) — o caminho po→inv está NÃO CONSTRUÍDO (spec §5)"
+            exit 1; }
+          echo "inv no catálogo com consumes vazio."
 
       # ⭐⭐ A LEI DAS ETAPAS, CONFERIDA NO BANCO APLICADO.
       #
@@ -522,8 +798,8 @@ jobs:
           # Só apareceu porque os números foram conferidos contra o banco.
           N=$($PSQL -tAc "select count(*) from core.module_registry
                            where status='published'
-                             and module_id in ('recon','marketing','ap','crm','ar','po','ops');")
-          [ "$N" = "7" ] || { echo "::error::o catálogo tem $N dos 7 módulos reais publicados"; exit 1; }
+                             and module_id in ('recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt','dun');")
+          [ "$N" = "12" ] || { echo "::error::o catálogo tem $N dos 12 módulos reais publicados"; exit 1; }
           C=$($PSQL -tAc "select jsonb_array_length(events_consumes)
                             from core.module_registry where module_id='crm';")
           [ "$C" = "0" ] || {
@@ -662,7 +938,7 @@ jobs:
           ABERTAS=$($PSQL -tAc "
             select coalesce(string_agg(n.nspname||'.'||p.proname, ', ' order by p.proname), '')
               from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-             where n.nspname in ('core','recon','marketing','ap','crm','ar','po','ops')
+             where n.nspname in ('core','recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt','dun')
                and has_function_privilege('anon', p.oid, 'execute');")
           [ -z "$ABERTAS" ] || { echo "::error::função executável por anon: $ABERTAS"; exit 1; }
 
@@ -673,7 +949,7 @@ jobs:
             OK=$($PSQL -tAc "
               select count(*) from pg_proc p join pg_namespace n on n.oid = p.pronamespace
                where p.proname = '$FN'
-                 and n.nspname in ('core','recon','marketing','ap','crm','ar','po','ops')
+                 and n.nspname in ('core','recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt','dun')
                  and has_function_privilege('authenticated', p.oid, 'execute');")
             [ "$OK" -ge 1 ] || { echo "::error::$FN() deixou de ser chamável pelo portal"; exit 1; }
           done
@@ -767,6 +1043,11 @@ jobs:
           $PSQL -q -f supabase/migrations/0020_ops_machine_draft.sql
           $PSQL -q -f supabase/migrations/0021_tenant_panel.sql
           $PSQL -q -f supabase/migrations/0022_revoke_public_execute.sql
+          $PSQL -q -f supabase/migrations/0023_inv.sql
+          $PSQL -q -f supabase/migrations/0024_quote.sql
+          $PSQL -q -f supabase/migrations/0025_deal.sql
+          $PSQL -q -f supabase/migrations/0026_evt.sql
+          $PSQL -q -f supabase/migrations/0027_dun.sql
           $PSQL -q -f supabase/seed/0001_platform.sql
 
       # ⚠️ Sem `DATABASE_URL` os testes do store se PULAM — de propósito, para
@@ -1029,6 +1310,131 @@ jobs:
             echo "$COLUNA"; exit 1
           fi
 
+          # Módulo 8: o SALDO é a decisão. A armadilha específica é a mais
+          # tentadora de todas: um `reduce` somando movimentos direto na tela
+          # monta a lista e parece certo — e esquece o sinal do tipo, ou o
+          # local, ou soma o arquivado. O saldo é buildBalances()/balanceFor(),
+          # no pacote, e o sinal é signedQuantity().
+          if grep -rInE 'function (buildBalances|balanceFor|balanceState|ledgerFor|signedQuantity|validateNewItem|validateNewMovement|permissionForMovement|summarizeInventory)' \
+               apps --include='*.ts' --include='*.tsx'; then
+            echo "::error::o domínio do estoque foi redeclarado em apps/"; exit 1
+          fi
+          INV=$(grep -Ev '^\s*(\*|//|/\*)' apps/portal/src/app/inv-actions.ts)
+          for FN in validateNewItem validateNewMovement canTransition permissionForMovement; do
+            echo "$INV" | grep -Eq "\b$FN\(" \
+              || { echo "::error::a ação do estoque deixou de chamar $FN() do pacote"; exit 1; }
+          done
+          IPAGE=$(grep -Ev '^\s*(\*|//|/\*)' apps/portal/src/app/estoque/page.tsx)
+          echo "$IPAGE" | grep -Eq '\bbuildBalances\(' \
+            || { echo "::error::a tela do estoque deixou de usar buildBalances() do pacote"; exit 1; }
+          IEXTRATO=$(grep -Ev '^\s*(\*|//|/\*)' 'apps/portal/src/app/estoque/[itemId]/page.tsx')
+          for FN in ledgerFor balanceFor signedQuantity; do
+            echo "$IEXTRATO" | grep -Eq "\b$FN\(" \
+              || { echo "::error::o extrato deixou de usar $FN() do pacote"; exit 1; }
+          done
+          # O jeito mais provável de a soma migrar para a pele: o sinal do
+          # tipo escrito à mão num componente.
+          SOMA=$(grep -rIn --include='*.ts' --include='*.tsx' -E "kind\s*===?\s*'out'\s*\?\s*-" apps 2>/dev/null \
+                 | grep -Ev '^[^:]+:[0-9]+:\s*(\*|//|/\*)' || true)
+          if [ -n "$SOMA" ]; then
+            echo "::error::o sinal do movimento foi decidido em apps/ — ele é signedQuantity(), no pacote"
+            echo "$SOMA"; exit 1
+          fi
+
+          # Módulo 9: o ciclo, a soma e a expiração são DECISÃO. A armadilha
+          # específica: um `validUntil < hoje` escrito na tela decide a
+          # expiração — e esquece que rascunho não expira e que sem validade
+          # não expira nunca. É isExpirable(), no pacote.
+          if grep -rInE 'function (validateNewProposal|canSend|canDecide|isExpirable|summarizeProposals|canEditContent)' \
+               apps --include='*.ts' --include='*.tsx'; then
+            echo "::error::o domínio de propostas foi redeclarado em apps/"; exit 1
+          fi
+          QT=$(grep -Ev '^\s*(\*|//|/\*)' apps/portal/src/app/quote-actions.ts)
+          for FN in validateNewProposal canSend canDecide canCancel canTransition isExpirable; do
+            echo "$QT" | grep -Eq "\b$FN\(" \
+              || { echo "::error::a ação de propostas deixou de chamar $FN() do pacote"; exit 1; }
+          done
+          QLISTA=$(grep -Ev '^\s*(\*|//|/\*)' apps/portal/src/components/proposal-list.tsx)
+          for FN in canSend canDecide canCancel isExpirable; do
+            echo "$QLISTA" | grep -Eq "\b$FN\(" \
+              || { echo "::error::a lista de propostas deixou de usar $FN() do pacote"; exit 1; }
+          done
+          VALIDADE=$(grep -rIn --include='*.ts' --include='*.tsx' -E 'validUntil\s*<\s*(hoje|today|now)' apps 2>/dev/null \
+                     | grep -Ev '^[^:]+:[0-9]+:\s*(\*|//|/\*)' || true)
+          if [ -n "$VALIDADE" ]; then
+            echo "::error::a expiração foi decidida em apps/ — ela é isExpirable(), no pacote"
+            echo "$VALIDADE"; exit 1
+          fi
+
+          # Módulo 10: o quadro e o forecast são DECISÃO. As armadilhas: montar
+          # coluna à mão (a guarda de currentStageId === já cobre, herdada do
+          # ops) e ponderar valor por probabilidade num componente.
+          if grep -rInE 'function (buildFunnelBoard|weightedCents|validateNewOpportunity|validateFunnelStages|whyCannotLose|summarizeFunnel|isPastExpectedClose|activeFunnels)' \
+               apps --include='*.ts' --include='*.tsx'; then
+            echo "::error::o domínio do funil foi redeclarado em apps/"; exit 1
+          fi
+          DL=$(grep -Ev '^\s*(\*|//|/\*)' apps/portal/src/app/deal-actions.ts)
+          for FN in validateNewOpportunity validateFunnelStages whyCannotLose canClose; do
+            echo "$DL" | grep -Eq "\b$FN\(" \
+              || { echo "::error::a ação do funil deixou de chamar $FN() do pacote"; exit 1; }
+          done
+          DBOARD=$(grep -Ev '^\s*(\*|//|/\*)' apps/portal/src/components/funnel-board.tsx)
+          echo "$DBOARD" | grep -Eq '\bbuildFunnelBoard\(' \
+            || { echo "::error::o quadro do funil deixou de usar buildFunnelBoard()"; exit 1; }
+          # ⚠️ `[a-zA-Z_.]*` antes de `prob`: a primeira versão exigia a
+          # palavra logo após o `*`, e a sabotagem `o.valueCents *
+          # o.probability` passou verde — o prefixo do objeto cegava a
+          # guarda. Sabotada antes de entrar, corrigida antes de valer.
+          PONDERA=$(grep -rIn --include='*.ts' --include='*.tsx' -E 'valueCents\s*\*\s*[a-zA-Z_.]*prob' apps 2>/dev/null \
+                    | grep -Ev '^[^:]+:[0-9]+:\s*(\*|//|/\*)' || true)
+          if [ -n "$PONDERA" ]; then
+            echo "::error::o forecast foi ponderado em apps/ — ele é weightedCents(), no pacote"
+            echo "$PONDERA"; exit 1
+          fi
+
+          # Módulo 11: a lotação e o calendário são DECISÃO. A armadilha: uma
+          # conta de vagas escrita na tela (capacity - inscritos) esquece que
+          # cancelada não ocupa vaga — e que sem teto NÃO HÁ conta.
+          if grep -rInE 'function (remainingCapacity|isFull|canHold|canRegister|canAttend|validateNewEvent|validateNewRegistration|summarizeEvents|activeRegistrations)' \
+               apps --include='*.ts' --include='*.tsx'; then
+            echo "::error::o domínio de eventos foi redeclarado em apps/"; exit 1
+          fi
+          EV=$(grep -Ev '^\s*(\*|//|/\*)' apps/portal/src/app/evt-actions.ts)
+          for FN in validateNewEvent validateNewRegistration canTransitionEvent canHold canRegister isFull; do
+            echo "$EV" | grep -Eq "\b$FN\(" \
+              || { echo "::error::a ação de eventos deixou de chamar $FN() do pacote"; exit 1; }
+          done
+          ELISTA=$(grep -Ev '^\s*(\*|//|/\*)' apps/portal/src/components/event-list.tsx)
+          for FN in remainingCapacity isFull canHold canPublish canAttend; do
+            echo "$ELISTA" | grep -Eq "\b$FN\(" \
+              || { echo "::error::a lista de eventos deixou de usar $FN() do pacote"; exit 1; }
+          done
+          VAGAS=$(grep -rIn --include='*.ts' --include='*.tsx' -E 'capacity\s*-\s*[a-zA-Z_.]*(regist|inscri)' apps 2>/dev/null \
+                  | grep -Ev '^[^:]+:[0-9]+:\s*(\*|//|/\*)' || true)
+          if [ -n "$VAGAS" ]; then
+            echo "::error::as vagas foram contadas em apps/ — é remainingCapacity(), no pacote"
+            echo "$VAGAS"; exit 1
+          fi
+
+          # Módulo 12: a fila, o atraso e o PRÓXIMO PASSO são DECISÃO. A
+          # armadilha: um `dueDate < hoje` na tela decide quem está vencido —
+          # a mesma do ap, agora na régua (a guarda de dueDate acima já cobre
+          # o literal; esta confere as chamadas).
+          if grep -rInE 'function (isInQueue|daysOverdue|dueSteps|nextStep|positionOf|validateRulerSteps|outstandingCentsOf|summarizeQueue)' \
+               apps --include='*.ts' --include='*.tsx'; then
+            echo "::error::o domínio da régua foi redeclarado em apps/"; exit 1
+          fi
+          DN=$(grep -Ev '^\s*(\*|//|/\*)' apps/portal/src/app/dun-actions.ts)
+          for FN in validateRulerSteps isInQueue nextStep; do
+            echo "$DN" | grep -Eq "\b$FN\(" \
+              || { echo "::error::a ação da régua deixou de chamar $FN() do pacote"; exit 1; }
+          done
+          DFILA=$(grep -Ev '^\s*(\*|//|/\*)' apps/portal/src/components/dun-queue.tsx)
+          for FN in isInQueue daysOverdue nextStep positionOf outstandingCentsOf; do
+            echo "$DFILA" | grep -Eq "\b$FN\(" \
+              || { echo "::error::a fila da régua deixou de usar $FN() do pacote"; exit 1; }
+          done
+
           # ⭐ E a Lei das Etapas na PELE: nenhum nome de etapa escrito em apps/.
           # A tela desenha o que o tenant desenhou; ela não conhece "briefing".
           #
@@ -1057,7 +1463,7 @@ jobs:
       - name: módulo não conhece módulo
         run: |
           FALHOU=0
-          MODULOS="finance-reconciliation marketing accounts-payable crm accounts-receivable purchase-orders ops"
+          MODULOS="finance-reconciliation marketing accounts-payable crm accounts-receivable purchase-orders ops inventory quotes deals event-management dunning"
 
           # 1. Nenhum módulo importa outro módulo, em nenhuma forma.
           for MOD in $MODULOS; do
@@ -1075,7 +1481,7 @@ jobs:
           #    `devDependencies` de teste também não vale — se o teste precisa
           #    do outro módulo, o acoplamento é real.
           for MOD in $MODULOS; do
-            if grep -qE '"@alsham/(finance-reconciliation|marketing|accounts-payable|crm|accounts-receivable|purchase-orders|ops)"' \
+            if grep -qE '"@alsham/(finance-reconciliation|marketing|accounts-payable|crm|accounts-receivable|purchase-orders|ops|inventory|quotes|deals|event-management|dunning)"' \
                  <(grep -v "\"@alsham/$MOD\"" "packages/$MOD/package.json"); then
               echo "::error::packages/$MOD declara outro módulo como dependência"
               FALHOU=1
@@ -1109,6 +1515,11 @@ jobs:
             [0017_po.sql]=po
             [0018_ops.sql]=ops
             [0020_ops_machine_draft.sql]=ops
+            [0023_inv.sql]=inv
+            [0024_quote.sql]=quote
+            [0025_deal.sql]=deal
+            [0026_evt.sql]=evt
+            [0027_dun.sql]=dun
           )
           for ARQUIVO in "${!SCHEMA_DE[@]}"; do
             DONO="${SCHEMA_DE[$ARQUIVO]}"
@@ -1127,7 +1538,7 @@ jobs:
           #    produz o evento. Ela recebe TUDO por argumento, do payload — que
           #    o produtor monta autossuficiente exatamente por isso.
           PROJ=$(sed 's/--.*//' supabase/migrations/0008_recon_ap_projection.sql)
-          if echo "$PROJ" | grep -qE "\b(ap|marketing|crm|ar|ops)\."; then
+          if echo "$PROJ" | grep -qE "\b(ap|marketing|crm|ar|ops|inv|quote|deal|evt|dun)\."; then
             echo "::error::a projeção lê o schema de outro módulo — ela só pode ler o payload"
             FALHOU=1
           fi
@@ -1145,6 +1556,22 @@ jobs:
           fi
           echo "$CONS" | grep -qE 'envelope\.producedBy' \
             || { echo "::error::o consumidor deixou de ler a procedência do envelope"; FALHOU=1; }
+
+          # ⭐ E o QUARTO consumidor (a régua) obedece às mesmas três leis: a
+          #    projeção dele não lê schema de produtor, não chumba a origem, e
+          #    o handler lê envelope.producedBy.
+          PROJD=$(sed 's/--.*//' supabase/migrations/0027_dun.sql)
+          if echo "$PROJD" | grep -qE "'(ar|accounts-receivable)'"; then
+            echo "::error::a projeção da régua cita o nome do módulo produtor — a origem vem de producedBy"
+            FALHOU=1
+          fi
+          DUNC=$(grep -Ev '^\s*(\*|//|/\*)' packages/dunning/src/dun-title.ts)
+          if echo "$DUNC" | grep -qE "sourceModuleId:\s*'"; then
+            echo "::error::o consumidor da régua chumbou a origem — ela tem de vir de envelope.producedBy"
+            FALHOU=1
+          fi
+          echo "$DUNC" | grep -qE 'envelope\.producedBy' \
+            || { echo "::error::o consumidor da régua deixou de ler a procedência do envelope"; FALHOU=1; }
 
           [ "$FALHOU" = "0" ] || exit 1
           # ⚠️ O número sai da própria lista, não de uma constante escrita à
@@ -1213,7 +1640,7 @@ jobs:
           # porque o nome original continuava contido no novo. A sabotagem da
           # Etapa 10 pegou exatamente isso, e a fraqueza valia para as quatro
           # verificações antigas também — foram corrigidas junto.
-          for FN in deliverDue eventUsageHook handleSpendDecision auditSubscription handleExternalPayable; do
+          for FN in deliverDue eventUsageHook handleSpendDecision auditSubscription handleExternalPayable handleDunTitle; do
             echo "$COMP" | grep -Eq "\b$FN\(" \
               || { echo "::error::a composição deixou de chamar $FN() do pacote"; exit 1; }
           done

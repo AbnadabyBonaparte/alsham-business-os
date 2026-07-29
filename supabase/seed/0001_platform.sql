@@ -660,6 +660,340 @@ on conflict (module_id) do update set
 -- ⛔ Sete módulos no catálogo, zero permissão concedida pelo seed.
 
 -- =============================================================================
+-- 4.6 O MÓDULO `inv` NO CATÁLOGO DA STORE — o 8º cartão
+-- Transcrito de packages/inventory/src/manifest.ts.
+-- -----------------------------------------------------------------------------
+-- ⚠️ Mesma regra dos outros sete: este bloco e o `MANIFEST` do pacote andam
+-- juntos, e há teste no CI que compara os dois campo a campo.
+--
+-- ⭐ **Domain `operations`, capacidade *Estoque*** — a nona da lista do
+-- Domain na Taxonomia §5. *Almoxarifado* e *Inventário* NÃO são declaradas:
+-- multi-depósito estruturado e contagem periódica com fechamento são
+-- capacidades futuras, e listá-las seria vender o que não existe.
+--
+-- ⭐ **`events_consumes` é VAZIO**, e é Lei 7: o recebimento do `po` virar
+-- entrada exigiria um fato com DELTA por linha e um vínculo linha↔item que o
+-- `po` não tem (sem catálogo, por decisão de canon dele). Ver a spec §6.
+-- =============================================================================
+
+insert into core.module_registry (
+  module_id, name, version, summary,
+  layer, domain_key,
+  capabilities, permissions, events_emits, events_consumes, agents,
+  requires_core, status
+)
+values (
+  'inv',
+  'Estoque',
+  '0.1.0',
+  'O estoque como livro de movimentos imutável: entrada, saída e ajuste com razão. O saldo é a soma do livro — calculado, nunca editado.',
+  'domain', 'operations',
+  '[
+     {"key":"stock","canonicalName":"Estoque"}
+   ]'::jsonb,
+  '[
+     {"key":"inv.item.manage","moduleId":"inv","description":"Cadastrar e editar itens, arquivá-los e reativá-los. Nunca apagar."},
+     {"key":"inv.movement.register","moduleId":"inv","description":"Lançar entradas e saídas no livro de movimentos."},
+     {"key":"inv.movement.adjust","moduleId":"inv","description":"Lançar AJUSTES — o movimento que reescreve a contagem, sempre com razão obrigatória."}
+   ]'::jsonb,
+  '[
+     {"type":"inv.item.registered","version":1,"description":"Um item entrou no catálogo do tenant, com descrição, unidade e SKU opcional."},
+     {"type":"inv.item.updated","version":1,"description":"Mudou fato do item: descrição, unidade, SKU — ou ele voltou do arquivo (reativar não tem fato próprio)."},
+     {"type":"inv.item.archived","version":1,"description":"O item foi arquivado — a ação destrutiva deste módulo. O livro dele continua inteiro; item arquivado não movimenta."},
+     {"type":"inv.movement.registered","version":1,"description":"Uma linha entrou no livro: entrada, saída ou ajuste com razão, com o item pelo nome e o saldo resultante."}
+   ]'::jsonb,
+  -- Vazio, e é Lei 7. Ver o comentário acima e a spec do módulo.
+  '[]'::jsonb,
+  '[]'::jsonb,
+  '0.0.x',
+  'published'
+)
+on conflict (module_id) do update set
+  name            = excluded.name,
+  version         = excluded.version,
+  summary         = excluded.summary,
+  layer           = excluded.layer,
+  domain_key      = excluded.domain_key,
+  vertical_key    = excluded.vertical_key,
+  capabilities    = excluded.capabilities,
+  permissions     = excluded.permissions,
+  events_emits    = excluded.events_emits,
+  events_consumes = excluded.events_consumes,
+  agents          = excluded.agents,
+  requires_core   = excluded.requires_core,
+  status          = excluded.status,
+  updated_at      = now();
+
+-- ⛔ Oito módulos no catálogo, zero permissão concedida pelo seed.
+
+-- =============================================================================
+-- 4.7 O MÓDULO `quote` NO CATÁLOGO DA STORE — o 9º cartão
+-- Transcrito de packages/quotes/src/manifest.ts.
+-- -----------------------------------------------------------------------------
+-- ⭐ **Domain `crm`, capacidades *Propostas* E *Orçamentos*** — o MESMO
+-- artefato com os dois nomes do mercado (a agência propõe, a oficina orça).
+-- *Pipeline* NÃO é declarada: é o Módulo 10.
+--
+-- ⭐ **`events_consumes` é VAZIO**, e é Lei 7: aceite não é fato financeiro —
+-- virar título no `ar` exigiria decisão de FATURAMENTO (vencimento, parcelas)
+-- que a proposta não carrega. Ver a spec §5.
+-- =============================================================================
+
+insert into core.module_registry (
+  module_id, name, version, summary,
+  layer, domain_key,
+  capabilities, permissions, events_emits, events_consumes, agents,
+  requires_core, status
+)
+values (
+  'quote',
+  'Propostas',
+  '0.1.0',
+  'Propostas e orçamentos com itens em texto livre e validade opcional. Aceite e recusa são atos registrados — quem e quando — e renegociar é documento novo.',
+  'domain', 'crm',
+  '[
+     {"key":"proposals","canonicalName":"Propostas"},
+     {"key":"quotes","canonicalName":"Orçamentos"}
+   ]'::jsonb,
+  '[
+     {"key":"quote.proposal.manage","moduleId":"quote","description":"Montar rascunhos, editar itens, enviar a proposta e registrar expiração."},
+     {"key":"quote.proposal.decide","moduleId":"quote","description":"Registrar o aceite ou a recusa da contraparte — o ato fica carimbado com quem e quando."},
+     {"key":"quote.proposal.cancel","moduleId":"quote","description":"Retirar a proposta da mesa — a ação destrutiva deste módulo."}
+   ]'::jsonb,
+  '[
+     {"type":"quote.proposal.registered","version":1,"description":"Uma proposta nasceu (rascunho), com itens em texto livre e contraparte neutra."},
+     {"type":"quote.proposal.updated","version":1,"description":"Mudou fato do rascunho: itens, total, moeda, validade ou contraparte."},
+     {"type":"quote.proposal.sent","version":1,"description":"A proposta foi posta na mesa. Daqui em diante o conteúdo não muda mais."},
+     {"type":"quote.proposal.accepted","version":1,"description":"A contraparte aceitou — registrado por quem tem fé pública do ato, com quem e quando."},
+     {"type":"quote.proposal.declined","version":1,"description":"A contraparte recusou. Terminal: renegociar é documento novo."},
+     {"type":"quote.proposal.expired","version":1,"description":"A validade venceu e alguém registrou o calendário. Só existe com validade vencida."},
+     {"type":"quote.proposal.cancelled","version":1,"description":"A proposta foi retirada da mesa — a ação destrutiva deste módulo. Nunca DELETE."}
+   ]'::jsonb,
+  -- Vazio, e é Lei 7. Ver o comentário acima e a spec do módulo.
+  '[]'::jsonb,
+  '[]'::jsonb,
+  '0.0.x',
+  'published'
+)
+on conflict (module_id) do update set
+  name            = excluded.name,
+  version         = excluded.version,
+  summary         = excluded.summary,
+  layer           = excluded.layer,
+  domain_key      = excluded.domain_key,
+  vertical_key    = excluded.vertical_key,
+  capabilities    = excluded.capabilities,
+  permissions     = excluded.permissions,
+  events_emits    = excluded.events_emits,
+  events_consumes = excluded.events_consumes,
+  agents          = excluded.agents,
+  requires_core   = excluded.requires_core,
+  status          = excluded.status,
+  updated_at      = now();
+
+-- ⛔ Nove módulos no catálogo, zero permissão concedida pelo seed.
+
+-- =============================================================================
+-- 4.8 O MÓDULO `deal` NO CATÁLOGO DA STORE — o 10º cartão
+-- Transcrito de packages/deals/src/manifest.ts.
+-- -----------------------------------------------------------------------------
+-- ⭐ **Domain `crm`, capacidade *Pipeline*** — "funil" e "oportunidade" não
+-- existem na Taxonomia; a tela fala funil, o mapa fala Pipeline.
+--
+-- ⭐ A Lei das Etapas, segunda aplicação: os estágios são dado do tenant, o
+-- movimento é LIVRE com trilha imutável, e `won`/`lost` são atos terminais
+-- com razão. O vínculo com o crm é ID SOLTO + nome carimbado — nunca FK.
+--
+-- ⭐ **`events_consumes` é VAZIO** (Lei 7): fechar negociação pelo aceite da
+-- proposta exigiria o vínculo proposta↔negociação, que não existe. Spec §5.
+-- =============================================================================
+
+insert into core.module_registry (
+  module_id, name, version, summary,
+  layer, domain_key,
+  capabilities, permissions, events_emits, events_consumes, agents,
+  requires_core, status
+)
+values (
+  'deal',
+  'Funil Comercial',
+  '0.1.0',
+  'O funil que o tenant desenha: estágios livres, movimento livre com trilha imutável, e ganho e perda como atos com razão registrada.',
+  'domain', 'crm',
+  '[
+     {"key":"pipeline","canonicalName":"Pipeline"}
+   ]'::jsonb,
+  '[
+     {"key":"deal.funnel.design","moduleId":"deal","description":"Desenhar funis: criar estágios, nomeá-los e ordená-los."},
+     {"key":"deal.opportunity.manage","moduleId":"deal","description":"Abrir negociações e movê-las livremente pelos estágios — toda mudança vira trilha."},
+     {"key":"deal.opportunity.decide","moduleId":"deal","description":"Decidir o desfecho: ganhar ou perder. Perder exige a razão."}
+   ]'::jsonb,
+  '[
+     {"type":"deal.opportunity.opened","version":1,"description":"Uma negociação nasceu num funil do tenant, no estágio inicial — pelo nome."},
+     {"type":"deal.opportunity.moved","version":1,"description":"A negociação mudou de estágio — em qualquer direção, com de-onde e para-onde pelo nome."},
+     {"type":"deal.opportunity.updated","version":1,"description":"Mudou fato da negociação: valor, moeda, probabilidade, expectativa ou vínculo."},
+     {"type":"deal.opportunity.won","version":1,"description":"A negociação foi GANHA — ato de quem decide, com nota opcional."},
+     {"type":"deal.opportunity.lost","version":1,"description":"A negociação foi PERDIDA — ato de quem decide, com a razão OBRIGATÓRIA. Terminal."}
+   ]'::jsonb,
+  -- Vazio, e é Lei 7. Ver o comentário acima e a spec do módulo.
+  '[]'::jsonb,
+  '[]'::jsonb,
+  '0.0.x',
+  'published'
+)
+on conflict (module_id) do update set
+  name            = excluded.name,
+  version         = excluded.version,
+  summary         = excluded.summary,
+  layer           = excluded.layer,
+  domain_key      = excluded.domain_key,
+  vertical_key    = excluded.vertical_key,
+  capabilities    = excluded.capabilities,
+  permissions     = excluded.permissions,
+  events_emits    = excluded.events_emits,
+  events_consumes = excluded.events_consumes,
+  agents          = excluded.agents,
+  requires_core   = excluded.requires_core,
+  status          = excluded.status,
+  updated_at      = now();
+
+-- ⛔ Dez módulos no catálogo, zero permissão concedida pelo seed.
+
+-- =============================================================================
+-- 4.9 O MÓDULO `evt` NO CATÁLOGO DA STORE — o 11º cartão
+-- Transcrito de packages/event-management/src/manifest.ts.
+-- -----------------------------------------------------------------------------
+-- ⭐ **`module_id` é `evt`, e NÃO `event`/`events`**: "evento" já é o
+-- vocabulário do coração da plataforma (core.event_outbox, emit_event,
+-- EventEnvelope). Sol Único — o argumento que derrubou `os` no Módulo 7.
+--
+-- ⭐ **Domain `marketing`, capacidade *Eventos*** — o evento UNIVERSAL. O
+-- vertical 🎪 Eventos (Events OS™) é o OFÍCIO (ingresso, credenciamento,
+-- line-up) e NÃO entrou: o perigo da pedreira events-os é importar promessa.
+--
+-- ⭐ **`events_consumes` é VAZIO** (Lei 7).
+-- =============================================================================
+
+insert into core.module_registry (
+  module_id, name, version, summary,
+  layer, domain_key,
+  capabilities, permissions, events_emits, events_consumes, agents,
+  requires_core, status
+)
+values (
+  'evt',
+  'Eventos',
+  '0.1.0',
+  'O evento universal do tenant: nome, quando, onde em texto livre, inscrições com contato neutro, presença como ato registrado e lotação honesta.',
+  'domain', 'marketing',
+  '[
+     {"key":"events","canonicalName":"Eventos"}
+   ]'::jsonb,
+  '[
+     {"key":"evt.event.manage","moduleId":"evt","description":"Criar e editar eventos — nome, quando, onde, capacidade."},
+     {"key":"evt.event.decide","moduleId":"evt","description":"Decidir sobre o evento: publicar (abrir a lista), registrar como realizado e cancelar."},
+     {"key":"evt.registration.manage","moduleId":"evt","description":"Inscrever, confirmar, cancelar inscrições e registrar presença — a presença carimba quem e quando."}
+   ]'::jsonb,
+  '[
+     {"type":"evt.event.registered","version":1,"description":"Um evento nasceu (rascunho), com nome, quando e onde em texto livre."},
+     {"type":"evt.event.updated","version":1,"description":"Mudou fato do evento: nome, datas, local ou capacidade."},
+     {"type":"evt.event.published","version":1,"description":"O evento foi publicado — a lista de inscrições abriu. Não volta a rascunho."},
+     {"type":"evt.event.held","version":1,"description":"O evento foi registrado como REALIZADO — só depois de ter começado."},
+     {"type":"evt.event.cancelled","version":1,"description":"O evento foi cancelado — o fato que todo inscrito pode escutar. Nunca DELETE."},
+     {"type":"evt.registration.registered","version":1,"description":"Alguém se inscreveu — só em evento publicado, e a lotação recusa além do teto."},
+     {"type":"evt.registration.confirmed","version":1,"description":"A inscrição foi confirmada."},
+     {"type":"evt.registration.cancelled","version":1,"description":"A inscrição foi cancelada — a linha fica: a desistência é história do evento."},
+     {"type":"evt.registration.attended","version":1,"description":"A presença foi registrada — ATO carimbado com quem e quando, pelo servidor."}
+   ]'::jsonb,
+  -- Vazio, e é Lei 7. Ver o comentário acima e a spec do módulo.
+  '[]'::jsonb,
+  '[]'::jsonb,
+  '0.0.x',
+  'published'
+)
+on conflict (module_id) do update set
+  name            = excluded.name,
+  version         = excluded.version,
+  summary         = excluded.summary,
+  layer           = excluded.layer,
+  domain_key      = excluded.domain_key,
+  vertical_key    = excluded.vertical_key,
+  capabilities    = excluded.capabilities,
+  permissions     = excluded.permissions,
+  events_emits    = excluded.events_emits,
+  events_consumes = excluded.events_consumes,
+  agents          = excluded.agents,
+  requires_core   = excluded.requires_core,
+  status          = excluded.status,
+  updated_at      = now();
+
+-- ⛔ Onze módulos no catálogo, zero permissão concedida pelo seed.
+
+-- =============================================================================
+-- 4.10 O MÓDULO `dun` NO CATÁLOGO DA STORE — o 12º cartão
+-- Transcrito de packages/dunning/src/manifest.ts.
+-- -----------------------------------------------------------------------------
+-- ⭐ **Domain `finance`, capacidade *Cobrança*** — a régua cobra O CLIENTE DO
+-- TENANT; `billing` cobra o tenant. Duas "cobranças", donos diferentes.
+--
+-- ⭐⭐ **`events_consumes` NÃO É VAZIO — e o handler EXISTE** (Lei 7 do jeito
+-- certo): `dun-title.ts` + `dun.record_external_receivable()` + inscrição na
+-- composição + teste triangular. A régua só faz sentido escutando.
+-- =============================================================================
+
+insert into core.module_registry (
+  module_id, name, version, summary,
+  layer, domain_key,
+  capabilities, permissions, events_emits, events_consumes, agents,
+  requires_core, status
+)
+values (
+  'dun',
+  'Régua de Cobrança',
+  '0.1.0',
+  'A régua que o tenant desenha para os títulos vencidos: diz o que fazer, registra que foi feito — quem, quando, por qual canal. Não envia nada; a baixa na origem tira o título sozinho.',
+  'domain', 'finance',
+  '[
+     {"key":"collections","canonicalName":"Cobrança"}
+   ]'::jsonb,
+  '[
+     {"key":"dun.ruler.design","moduleId":"dun","description":"Desenhar a régua: passos ordenados, dias após o vencimento, canal em texto livre."},
+     {"key":"dun.step.execute","moduleId":"dun","description":"Executar um passo da régua sobre um título vencido — o ato fica registrado com quem, quando e por qual canal."}
+   ]'::jsonb,
+  '[
+     {"type":"dun.title.entered","version":1,"description":"Um título vencido e em aberto entrou na régua — decidido pelo mesmo fato que o trouxe, ou pelo primeiro passo executado."},
+     {"type":"dun.title.left","version":1,"description":"O título saiu da régua — baixa, cancelamento ou vencimento renegociado NA ORIGEM. A régua não segura ninguém."},
+     {"type":"dun.step.executed","version":1,"description":"Um passo foi executado: título, passo pelo nome, canal, dias de atraso e anotação. É o fato que uma integração de envio escutaria."}
+   ]'::jsonb,
+  -- ⭐ NÃO vazio — os três têm handler construído. Ver a spec §3.
+  '[
+     {"type":"ar.receivable.registered","version":1,"description":"Um título a receber nasceu — se vencido e em aberto, entra na régua."},
+     {"type":"ar.receivable.updated","version":1,"description":"O título mudou (recebimento, vencimento, valor) — a régua reprojetará e decide entrada/saída."},
+     {"type":"ar.receivable.cancelled","version":1,"description":"O título foi cancelado na origem — sai da régua sozinho."}
+   ]'::jsonb,
+  '[]'::jsonb,
+  '0.0.x',
+  'published'
+)
+on conflict (module_id) do update set
+  name            = excluded.name,
+  version         = excluded.version,
+  summary         = excluded.summary,
+  layer           = excluded.layer,
+  domain_key      = excluded.domain_key,
+  vertical_key    = excluded.vertical_key,
+  capabilities    = excluded.capabilities,
+  permissions     = excluded.permissions,
+  events_emits    = excluded.events_emits,
+  events_consumes = excluded.events_consumes,
+  agents          = excluded.agents,
+  requires_core   = excluded.requires_core,
+  status          = excluded.status,
+  updated_at      = now();
+
+-- ⛔ Doze módulos no catálogo, zero permissão concedida pelo seed.
+
+-- =============================================================================
 -- 5. PLANOS-BASE
 -- Minerado de: `plan_limits` (5 planos) do kraken-v2 (PROVADO em produção).
 -- -----------------------------------------------------------------------------

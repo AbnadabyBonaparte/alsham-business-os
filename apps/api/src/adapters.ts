@@ -19,6 +19,10 @@ import type {
   ReconMatchSettlement as ApSettlement,
   ReconMatchSettlementPort as ApSettlementPort,
 } from '@alsham/accounts-payable';
+import type {
+  DunTitlePort,
+  ExternalTitle as DunExternalTitle,
+} from '@alsham/dunning';
 
 /**
  * Os adaptadores reais dos consumidores.
@@ -277,6 +281,42 @@ export function createApReconMatchSettlementPort(pool: Pool): ApSettlementPort {
       const efeito = rows[0]?.efeito;
       if (efeito === undefined) {
         throw new Error('ap.apply_recon_match não devolveu desfecho');
+      }
+      return efeito;
+    },
+  };
+}
+
+/**
+ * Projeção da régua a partir dos fatos de títulos a receber.
+ * Chama `dun.record_external_receivable()`; origem por parâmetro (envelope).
+ * Zero decisão aqui — entrada/saída da régua é a função do banco quem decide.
+ */
+export function createDunTitleProjectionPort(pool: Pool): DunTitlePort {
+  return {
+    async recordExternalReceivable(title: DunExternalTitle) {
+      const { rows } = await pool.query<{ efeito: 'created' | 'updated' | 'unchanged' }>(
+        `select dun.record_external_receivable(
+                  $1::uuid, $2::text, $3::text, $4::date, $5::bigint,
+                  $6::char(3), $7::text, $8::bigint, $9::text, $10::text, $11::text) as efeito`,
+        [
+          title.tenantId,
+          title.sourceModuleId,
+          title.externalRef,
+          title.dueDate,
+          title.amountCents,
+          title.currency,
+          title.status,
+          title.receivedAmountCents,
+          title.payerName,
+          title.counterpartyTaxId,
+          title.description,
+        ],
+      );
+
+      const efeito = rows[0]?.efeito;
+      if (efeito === undefined) {
+        throw new Error('dun.record_external_receivable não devolveu desfecho');
       }
       return efeito;
     },

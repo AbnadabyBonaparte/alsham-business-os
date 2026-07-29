@@ -257,6 +257,68 @@ export const PECAS = [
     padrao: /(m[óo]dulo 7|packages\/ops\b|@alsham\/ops|0018_ops)/i,
     onde: 'packages/ops/',
   },
+  // ⚠️ MISSÃO TRINA: cada módulo novo entra num OBJETO LITERAL PRÓPRIO — a
+  // lição do rebase da Etapa 13 (duas peças na mesma chave: a segunda
+  // sobrescreve a primeira em silêncio). Conte as linhas ✅ da saída.
+  {
+    nome: 'Módulo 8 — Estoque',
+    detector: [
+      'packages/inventory/src/manifest.ts',
+      'packages/inventory/src/inventory.ts',
+      'supabase/migrations/0023_inv.sql',
+    ],
+    // "estoque" solto aparece em prosa sobre a capacidade; o padrão exige o
+    // NOME DA PEÇA — mesma lição dos Módulos 5, 6 e 7.
+    padrao: /(m[óo]dulo 8|packages\/inventory|@alsham\/inventory|0023_inv)/i,
+    onde: 'packages/inventory/',
+  },
+  {
+    nome: 'Módulo 9 — Propostas',
+    detector: [
+      'packages/quotes/src/manifest.ts',
+      'packages/quotes/src/quote.ts',
+      'supabase/migrations/0024_quote.sql',
+    ],
+    padrao: /(m[óo]dulo 9|packages\/quotes|@alsham\/quotes|0024_quote)/i,
+    onde: 'packages/quotes/',
+  },
+  {
+    nome: 'Módulo 10 — Funil Comercial',
+    detector: [
+      'packages/deals/src/manifest.ts',
+      'packages/deals/src/deal.ts',
+      'supabase/migrations/0025_deal.sql',
+    ],
+    // "funil" e "pipeline" soltos aparecem em prosa legítima (a capacidade
+    // Pipeline do Domain, o pipeline do ops). O padrão exige o NOME DA PEÇA.
+    padrao: /(m[óo]dulo 10|packages\/deals|@alsham\/deals|0025_deal)/i,
+    onde: 'packages/deals/',
+  },
+  {
+    nome: 'Módulo 11 — Eventos',
+    detector: [
+      'packages/event-management/src/manifest.ts',
+      'packages/event-management/src/event.ts',
+      'supabase/migrations/0026_evt.sql',
+    ],
+    // "evento" é a palavra mais sobrecarregada do repositório (EventEnvelope,
+    // event_outbox, o vertical). O padrão exige o NOME DA PEÇA.
+    padrao: /(m[óo]dulo 11|packages\/event-management|@alsham\/event-management|0026_evt)/i,
+    onde: 'packages/event-management/',
+  },
+  {
+    nome: 'Módulo 12 — Régua de Cobrança',
+    detector: [
+      'packages/dunning/src/manifest.ts',
+      'packages/dunning/src/dun-title.ts',
+      'supabase/migrations/0027_dun.sql',
+    ],
+    // ⚠️ NUNCA a palavra "cobrança" solta: ela tem duas donas (a régua e o
+    // billing), e o padrão do billing já usa "cobrança (billing)". O padrão
+    // exige o NOME DA PEÇA.
+    padrao: /(m[óo]dulo 12|packages\/dunning|@alsham\/dunning|0027_dun)/i,
+    onde: 'packages/dunning/',
+  },
   {
     nome: 'Menu filtrado por permissão',
     detector: ['packages/permissions/src/menu.ts'],
@@ -358,6 +420,15 @@ const SECOES = [
   { arquivo: 'docs/canon/MODULO-CRM-SPEC.md', titulo: '## 6. ESTADO DA OBRA' },
   { arquivo: 'docs/canon/MODULO-AR-SPEC.md', titulo: '## 5. ESTADO DA OBRA' },
   { arquivo: 'docs/canon/MODULO-PO-SPEC.md', titulo: '## 4. ESTADO DA CONSTRUÇÃO' },
+  // ⚠️ A entrada do OPS FALTAVA aqui desde a Etapa 13 — o CLAUDE.md §5.6 o
+  // cita como fonte de estado e o CI não conferia a seção. Regularizada na
+  // Missão Trina, junto com as cinco specs novas.
+  { arquivo: 'docs/canon/MODULO-OPS-SPEC.md', titulo: '## 5. ESTADO DA OBRA' },
+  { arquivo: 'docs/canon/MODULO-INV-SPEC.md', titulo: '## 7. ESTADO DA OBRA' },
+  { arquivo: 'docs/canon/MODULO-QUOTE-SPEC.md', titulo: '## 6. ESTADO DA OBRA' },
+  { arquivo: 'docs/canon/MODULO-DEAL-SPEC.md', titulo: '## 6. ESTADO DA OBRA' },
+  { arquivo: 'docs/canon/MODULO-EVT-SPEC.md', titulo: '## 6. ESTADO DA OBRA' },
+  { arquivo: 'docs/canon/MODULO-DUN-SPEC.md', titulo: '## 7. ESTADO DA OBRA' },
 ];
 
 /**

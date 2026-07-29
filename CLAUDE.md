@@ -151,13 +151,19 @@ Onde vai cada coisa:
 - **O PAINEL EXECUTIVO** (`apps/portal/src/app/page.tsx` + `0021_tenant_panel.sql`) é a home do tenant. **Core, não módulo:** sem manifesto, fora do catálogo. **Zero número decorativo** — cada um sai de um `count()` ou de `core.plan_limits`.
   ⛔ **`core.courier_status()` continua FECHADA.** Ela conta a fila inteira da plataforma; concedê-la ao tenant contaria o volume de negócio do vizinho. O Painel lê `core.tenant_courier_summary()`: o veredito em texto, os números só deste tenant.
   ⚠️ **Nunca inventa "OK".** Leitura que falha diz que falhou — veredito falso é pior do que veredito nenhum, porque faz quem opera parar de olhar.
+- ⭐ **A MISSÃO TRINA entregou os Módulos 8–12 num PR só, um commit por módulo** (migrations `0023`–`0027`, ARQUIVO — apply do dono, runbook §16):
+  - `packages/inventory` é o **Módulo 8 — Estoque** (`inv`, Domain `operations`): o estoque é LIVRO de movimentos imutável; o saldo é view com `security_invoker`, nunca coluna. ⭐ **Saldo NEGATIVO é permitido** (o overpay do `ar` re-perguntado para o físico); o AJUSTE exige razão E permissão própria. Ver `MODULO-INV-SPEC`.
+  - `packages/quotes` é o **Módulo 9 — Propostas** (`quote`, Domain `crm`, capacidades *Propostas* e *Orçamentos*): identidade por DOCUMENTO — a mesa congela o conteúdo após o envio, aceite/recusa carimbam quem/quando pelo servidor, e os quatro fins são terminais. Expirar só com validade vencida. Ver `MODULO-QUOTE-SPEC`.
+  - `packages/deals` é o **Módulo 10 — Funil Comercial** (`deal`, Domain `crm`, capacidade *Pipeline*): a Lei das Etapas, SEGUNDA aplicação — estágios do tenant, movimento LIVRE com trilha imutável, `won`/`lost` terminais com razão obrigatória na perda. ⭐ O vínculo com o crm é ID SOLTO + nome carimbado — nunca FK (a guarda da matriz reprovaria). Ver `MODULO-DEAL-SPEC`.
+  - `packages/event-management` é o **Módulo 11 — Eventos** (`evt`, Domain `marketing`, capacidade *Eventos*): o evento UNIVERSAL, não o vertical. ⚠️ **`module_id` é `evt`, nunca `event`/`events`** — "evento" já é vocabulário do Core (Sol Único). Lotação recusa claro; presença é ato carimbado; publicado não volta a rascunho. Ver `MODULO-EVT-SPEC`.
+  - `packages/dunning` é o **Módulo 12 — Régua de Cobrança** (`dun`, Domain `finance`, capacidade *Cobrança*): ⭐⭐ **o quarto consumidor** — projeta `ar.receivable.*` (padrão E10, `envelope.producedBy`), a baixa na origem tira o título da régua SOZINHA, e executar passo é ato carimbado. A régua é desenho do tenant (Lei das Etapas, terceira aplicação), UMA ativa por tenant. ⚠️ **O módulo NÃO ENVIA nada** — e `dun` cobra o cliente do tenant; `billing` cobra o tenant. Ver `MODULO-DUN-SPEC`. ⚠️ Exige REDEPLOY do `apps/api` no apply.
 - ⛔ **Função nasce ABERTA a `PUBLIC` no PostgreSQL** — diferente de tabela. Toda função criada depois do `revoke ... on all functions` do seu schema herda esse privilégio, e o `grant` escrito logo abaixo vira decoração. Oito funções `security definer` eram chamáveis por `anon` até o `0022_revoke_public_execute.sql`. **Escreveu `create function` em schema já revogado? Revogue de novo antes de conceder.**
 - ⭐ **Copiar sem pensar e divergir sem escrever são o mesmo erro.** Módulo novo que espelha um existente: re-pergunte cada decisão e escreva a resposta — inclusive as que se mantêm.
 - ⭐ **A origem de um fato vem SEMPRE do envelope** (`producedBy`), nunca de constante no consumidor. Com ela chumbada, um segundo produtor do mesmo formato entraria disfarçado do primeiro e a trilha mentiria sem nunca dar erro. Há guarda no CI que reprova as três formas de chumbar.
 - `apps/store` e `apps/admin` e os demais 12 pacotes continuam **só com `README.md`** — status NÃO INICIADO. (`packages/finance` segue NÃO INICIADO: os módulos financeiros nascem em pastas próprias, como manda §6.)
 - ⚠️ **O seed é a FONTE do catálogo, não só a semente dele.** Desde a Etapa 10 os blocos de `core.module_registry` são `on conflict do update`, não `do nothing`: uma linha existente precisou mudar (o `recon` passou a escutar `ap.*`) e `do nothing` deixaria a Store exibindo o catálogo antigo para sempre, sem erro nenhum. Consequência: reaplicar o seed **desfaz edição feita à mão** no catálogo. Depreciar um módulo se faz mudando o arquivo.
 - ⚠️ **Schema novo precisa ser EXPOSTO na Data API do Supabase pelo dono** (Project Settings → API → Exposed schemas). Lição paga na Etapa 9 e repetida nas 10, 11 e 12: sem isso as telas carregam vazias, sem erro que diga o motivo. Está no runbook §10.0. ⭐ **A Forja e o Painel não pedem schema novo** — os dois são Core e escrevem/leem em `core`, que já está exposto.
-- **As migrations são provadas no CI:** `0001` → … → `0014` + `0017` → `0022` + seed (duas vezes) aplicam de verdade num Postgres 17 limpo e passam nos **doze** testes de isolamento com usuário real (`supabase/tests/`), a cada mudança.
+- **As migrations são provadas no CI:** `0001` → … → `0014` + `0017` → `0022` + seed (duas vezes) aplicam de verdade num Postgres 17 limpo e passam nos **dezessete** testes de isolamento com usuário real (`supabase/tests/`), a cada mudança.
 
 #### ⛔ 5.4.1 O apply de produção já aconteceu — `0001` a `0014` estão CONGELADAS
 
@@ -174,7 +180,8 @@ A consequência é operacional e não é opinião:
   - `0019_forge.sql` + `0020_ops_machine_draft.sql` — a Forja, IA Base do Core (runbook §13). **Nenhum schema novo** — a forja escreve em `core`.
   - `0021_tenant_panel.sql` — o Painel Executivo (runbook §14). **Nenhuma tabela nova:** o Painel lê.
   - `0022_revoke_public_execute.sql` — ⛔ **segurança; aplicar junto com o `0021`** (runbook §15).
-- ⚠️ **A lacuna `0015`/`0016` é proposital** e vem da main. A próxima numeração livre é **`0023`**.
+  - `0023_inv.sql` · `0024_quote.sql` · `0025_deal.sql` · `0026_evt.sql` · `0027_dun.sql` — os cinco da Missão Trina (runbook §16). ⚠️ **Expor os schemas `inv`, `quote`, `deal`, `evt`, `dun` na Data API** ao aplicar — e **redeployar o `apps/api`** (a inscrição da régua só existe no build novo).
+- ⚠️ **A lacuna `0015`/`0016` é proposital** e vem da main. A próxima numeração livre é **`0028`**.
 - ⛔ **A limpeza do runbook §7.3 FOI EXECUTADA** em 28/07/2026: a concessão global de permissão de módulo **não existe mais em produção**. O tenant piloto tem papel próprio, com as permissões concedidas por `core.install_module()` — pela Store, com o clique do dono. Nunca volte a conceder permissão de módulo no seed.
 - `packages/workflow` é **o correio do Core** — o entregador da caixa de saída: idempotência por consumidor, backoff exponencial, `dead` sem apagar. **ENGINE, não módulo** (Taxonomia §4): não aparece na Store.
 - `apps/api` é **a COMPOSIÇÃO** — o único lugar do repositório onde os módulos se conhecem. Ele importa `workflow`, `marketing`, `finance-reconciliation`, `accounts-payable`, `accounts-receivable` e `billing`; **nenhum deles importa nenhum outro**. ⭐ Desde a Etapa 10 o mesmo pacote (`finance-reconciliation`) é PRODUTOR numa inscrição e CONSUMIDOR em outra — e continua sem conhecer ninguém. Traz a persistência real do correio (contra Postgres, com arrendamento e `skip locked`), os adaptadores dos consumidores, o endpoint protegido e a saúde da fila.
@@ -210,7 +217,7 @@ O Módulo 1 é o padrão. Os Módulos 2 a 7 obedeceram ao mesmo; o próximo tamb
 - **A Regra de Ouro (§5.3) é verificada no CI**, não só recomendada: se o motor de domínio for redeclarado em `apps/`, ou se a tela deixar de chamá-lo, o build falha.
 - **O instalador existe** (`0006_install.sql`): quem concede permissão de módulo é `core.install_module()`, num papel **DO TENANT**. Papel de sistema é recusado — ele vale em todos os tenants e faria o módulo vazar para quem não o instalou. **Nunca volte a conceder permissão de módulo no seed.**
 - **Desinstalar não apaga dado.** Corta acesso e revoga permissão; o que o módulo gravou continua no banco. Há teste no CI.
-- **Entregou peça? Atualize a linha dela** em `CORE-SPEC §5` e na spec do módulo — `MODULO-RECON-SPEC §7`, `MODULO-MARKETING-SPEC §6`, `MODULO-AP-SPEC §6`, `MODULO-CRM-SPEC §6`, `MODULO-AR-SPEC §5`, `MODULO-PO-SPEC §4` e `MODULO-OPS-SPEC §5`. São a fonte de estado, e o CI (`pnpm verificar:docs`) falha se um documento declarar **NÃO CONSTRUÍDO** algo que já existe no disco. Negar o que existe é a Lei 7 com o sinal trocado, e é o erro mais fácil de cometer: não exige escrever nada, basta não apagar.
+- **Entregou peça? Atualize a linha dela** em `CORE-SPEC §5` e na spec do módulo — `MODULO-RECON-SPEC §7`, `MODULO-MARKETING-SPEC §6`, `MODULO-AP-SPEC §6`, `MODULO-CRM-SPEC §6`, `MODULO-AR-SPEC §5`, `MODULO-PO-SPEC §4`, `MODULO-OPS-SPEC §5`, `MODULO-INV-SPEC §7`, `MODULO-QUOTE-SPEC §6`, `MODULO-DEAL-SPEC §6`, `MODULO-EVT-SPEC §6` e `MODULO-DUN-SPEC §7`. São a fonte de estado, e o CI (`pnpm verificar:docs`) falha se um documento declarar **NÃO CONSTRUÍDO** algo que já existe no disco. Negar o que existe é a Lei 7 com o sinal trocado, e é o erro mais fácil de cometer: não exige escrever nada, basta não apagar.
   ⚠️ **E conte as linhas ✅ da saída.** Na Etapa 15 descobriu-se que o rebase juntara a entrada do Módulo 6 com a do Módulo 7 no mesmo objeto literal do verificador: em JavaScript a segunda chave sobrescreve a primeira, o script seguiu verde e **deixou de conferir uma peça sem falhar nem acusar**.
 
 ---
@@ -221,7 +228,9 @@ O Módulo 1 é o padrão. Os Módulos 2 a 7 obedeceram ao mesmo; o próximo tamb
 docs/canon/            taxonomia · roadmap · core-spec · identidade-visual
                        · modulo-recon-spec · modulo-marketing-spec
                        · modulo-ap-spec · modulo-crm-spec · modulo-ar-spec
-                       · modulo-po-spec · modulo-ops-spec
+                       · modulo-po-spec · modulo-ops-spec · modulo-inv-spec
+                       · modulo-quote-spec · modulo-deal-spec
+                       · modulo-evt-spec · modulo-dun-spec
                                                         — leitura obrigatória
 docs/comercial/        VERTICAL-SHOPPING.md             — dossiê de venda
 docs/balancos/         tecnologia + supabase            — de onde minerar
@@ -232,12 +241,16 @@ supabase/migrations/   0001_core … 0014_ap_apply_recon_match
                        · 0020_ops_machine_draft
                        · 0021_tenant_panel
                        · 0022_revoke_public_execute      — arquivo; apply do dono
-                       (lacuna 0015–0016 proposital; próxima livre: 0023)
+                       0023_inv · 0024_quote · 0025_deal · 0026_evt
+                       · 0027_dun                        — Missão Trina; apply do dono
+                       (lacuna 0015–0016 proposital; próxima livre: 0028)
 supabase/seed/         0001_platform.sql                — catálogo, idempotente; zero tenant
 supabase/tests/        shim · isolamento · uso · consumo entre módulos
                        · instalador · triângulo · relacionamentos · a receber
                        · triângulo crédito ar→recon · ciclo fechado recon→ar
                        · ciclo fechado recon→ap · pedidos (po) · esteira (ops)
+                       · estoque (inv) · propostas (quote) · funil (deal)
+                       · eventos (evt) · triângulo da régua (dun)
                                                         — só CI; NUNCA no Supabase real
 docs/runbook/          APLICAR.md                       — o passo a passo do dono
 .github/scripts/       guarda de defasagem de documento — encanamento de CI
@@ -261,6 +274,11 @@ packages/              core auth organizations workflow billing
                        accounts-receivable              — Módulo 5 (espelho consciente)
                        purchase-orders                  — Módulo 6 (pedidos)
                        ops                              — Módulo 7 (a esteira do tenant)
+                       inventory                        — Módulo 8 (o livro do estoque)
+                       quotes                           — Módulo 9 (a promessa por documento)
+                       deals                            — Módulo 10 (o mapa do comercial)
+                       event-management                 — Módulo 11 (o evento universal)
+                       dunning                          — Módulo 12 (a régua que escuta)
                        workflow (o correio) · billing (uso) · ai (a forja)
                                                         — Engines/capacidades do Core
 ```
