@@ -751,6 +751,22 @@ jobs:
           $PSQL -q -f supabase/migrations/0013_ar_apply_recon_match.sql
           $PSQL -q -f supabase/migrations/0014_ap_apply_recon_match.sql
           $PSQL -q -f supabase/migrations/0017_po.sql
+          # ⚠️ **ESTA LISTA É A SEGUNDA, e foi ela que quebrou na Etapa 15.**
+          #
+          # O job de schema aplica a cadeia inteira; este monta o banco com
+          # uma lista PRÓPRIA, porque só precisa do que os testes de `apps/api`
+          # tocam. O problema é que "o que os testes tocam" cresce sem avisar:
+          # a Etapa 14 acrescentou `forge-service.test.ts`, que grava em
+          # `core.ai_generations` — e a tabela nasce no `0019`, que não estava
+          # aqui. O CI reprovou com `relation "core.ai_generations" does not
+          # exist`, repetido em cada teste.
+          #
+          # Migration nova que crie objeto do Core entra NAS DUAS listas.
+          $PSQL -q -f supabase/migrations/0018_ops.sql
+          $PSQL -q -f supabase/migrations/0019_forge.sql
+          $PSQL -q -f supabase/migrations/0020_ops_machine_draft.sql
+          $PSQL -q -f supabase/migrations/0021_tenant_panel.sql
+          $PSQL -q -f supabase/migrations/0022_revoke_public_execute.sql
           $PSQL -q -f supabase/seed/0001_platform.sql
 
       # ⚠️ Sem `DATABASE_URL` os testes do store se PULAM — de propósito, para
@@ -768,7 +784,9 @@ jobs:
           # O piso sobe quando a suíte cresce. Na Etapa 10 o bloco do triângulo
           # acrescentou 9 testes; deixar o piso em 15 faria o job ficar verde
           # com o arquivo do triângulo inteiro fora da coleta.
-          [ "${PASSOU:-0}" -gt 30 ] || { echo "::error::só $PASSOU teste(s) rodaram; o arquivo não foi coletado"; exit 1; }
+          # A Etapa 14 acrescentou os 21 testes da forja; o piso sobe junto,
+          # senão um arquivo inteiro pode sair da coleta sem o job notar.
+          [ "${PASSOU:-0}" -gt 45 ] || { echo "::error::só $PASSOU teste(s) rodaram; o arquivo não foi coletado"; exit 1; }
 
   contract:
     name: manifesto, tipos e domínio
@@ -1350,13 +1368,30 @@ jobs:
 
           # ⭐ E o TIPO continua sem onde guardá-lo — a defesa principal.
           #
-          # ⚠️ O escopo aqui era `forge.ts` só, e a sabotagem "acrescentar
-          # `readonly provider: string` a `EngineLabel`" passou verde: o tipo
-          # vive em `types.ts`. Guarda que olha o arquivo errado é guarda que
-          # não existe.
-          for A in $ALVOS; do
-            if grep -InE 'provider|vendor|fornecedor' "$A" | grep -vE '^\s*[0-9]+:\s*(\*|//)' | grep -q .; then
+          # ⚠️ **DUAS correções aqui, e a segunda foi o CI que deu.**
+          #
+          # 1. O escopo era `forge.ts` só, e a sabotagem "acrescentar
+          #    `readonly provider: string` a `EngineLabel`" passou verde: o
+          #    tipo vive em `types.ts`. Guarda que olha o arquivo errado é
+          #    guarda que não existe.
+          # 2. Ao corrigir, alarguei o escopo para `$ALVOS` — que inclui
+          #    `apps/portal/src`. **O CI reprovou cinco arquivos legítimos**,
+          #    e com razão: em português, *fornecedor* é **quem fornece
+          #    mercadoria** — a etiqueta do CRM, o nome no Contas a Pagar, o
+          #    do pedido de Compras. Não tem nada a ver com fornecedor de
+          #    motor de IA. Confundir as duas palavras proibiria o produto de
+          #    falar o idioma do negócio dele.
+          #
+          # O escopo certo é `packages/ai/src`: é lá que o rótulo do motor
+          # mora, e é lá que um campo com esse nome seria o defeito.
+          #
+          # ⚠️ E o filtro de comentário precisa de `/\*` junto: um bloco JSDoc
+          # abre com `/**`, que não casa `\*` nem `//` — a linha 3 de
+          # `forge-port.ts` foi reprovada por ser um comentário.
+          for A in $(find packages/ai/src -type f -name '*.ts' ! -name '*.test.ts'); do
+            if grep -InE 'provider|vendor|fornecedor' "$A" | grep -vE '^[0-9]+:[[:space:]]*(\*|//|/\*)' | grep -q .; then
               echo "::error file=$A::campo de fornecedor em @alsham/ai — o rótulo do motor não tem esse campo"
+              grep -InE 'provider|vendor|fornecedor' "$A" | grep -vE '^[0-9]+:[[:space:]]*(\*|//|/\*)'
               FALHOU=1
             fi
           done
