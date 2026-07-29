@@ -1,8 +1,9 @@
 -- =============================================================================
 -- CICLO FECHADO (DÉBITO) — recon confirma match → AP liquida o título
 -- =============================================================================
--- Autossuficiente: NÃO reusa DOC-TRI-0001 do 05 (esse título é cancelado no
--- cenário 6). Cria título, projeção, extrato, match e liquida.
+-- Autossuficiente. NÃO reusa DOC-TRI-0001 (cancelado no 05 §6).
+-- Montagem como superuser (como as projeções do 05 depois do reset role):
+-- o que se prova com authenticated é só a ausência de EXECUTE na RPC.
 -- =============================================================================
 
 \set ON_ERROR_STOP on
@@ -17,7 +18,21 @@ end;
 $$;
 
 \echo ''
-\echo '=== MONTAGEM: título AP fresco + projeção + extrato ==='
+\echo '=== MONTAGEM: permissões AP (idempotente) ==='
+
+insert into core.tenant_modules (tenant_id, module_id, version, status) values
+  ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', 'ap', '0.1.0', 'active')
+on conflict (tenant_id, module_id) do nothing;
+
+insert into core.role_permissions (role_id, role_key, permission_key, module_id)
+select r.id, r.key, 'ap.payable.manage', 'ap'
+  from core.memberships m
+  join core.roles r on r.tenant_id = m.tenant_id and r.key = m.role_key
+ where m.user_id = '11111111-1111-4111-8111-111111111111'
+on conflict (role_id, permission_key) do nothing;
+
+\echo ''
+\echo '=== CENÁRIO 1: match confirmado emite e AP liquida ==='
 
 do $$
 declare
@@ -31,26 +46,25 @@ declare
   v_status   text;
   v_settled  bigint;
 begin
-  set local role authenticated;
-  set local request.jwt.claim.sub = '11111111-1111-4111-8111-111111111111';
-
+  -- Superuser: evita depender de RLS só para montar o cenário.
   insert into ap.payables
     (tenant_id, external_ref, due_date, amount_cents, currency, supplier_name, description)
   values
     ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', 'DOC-AP-SETTLE-0001', '2026-10-15',
      88000, 'BRL', 'Fornecedor Settle', 'ciclo débito');
 
-  reset role;
-
   select recon.record_external_payable(
     'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', 'ap', 'DOC-AP-SETTLE-0001',
     '2026-10-15', 88000, 'BRL', 'open', 0, 'Fornecedor Settle', null, 'ciclo débito'
   ) into v_efeito;
-  perform pg_temp.assert10(v_efeito = 'created', 'projeção criada');
+  perform pg_temp.assert10(
+    v_efeito = 'created',
+    'projeção criada (efeito=' || coalesce(v_efeito, 'null') || ')');
 
   select id into v_pay_id from recon.payables
    where tenant_id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
      and external_ref = 'DOC-AP-SETTLE-0001';
+  perform pg_temp.assert10(v_pay_id is not null, 'projeção tem id');
 
   insert into recon.bank_statements (
     id, tenant_id, account_ref, source_format, content_hash,
@@ -68,13 +82,19 @@ begin
     1, '2026-10-15', -88000, 'BRL', 'PAG DOC-AP-SETTLE-0001', 'unmatched'
   ) returning id into v_line_id;
 
+  -- Igual ao 09: suggested → confirmed (UPDATE), não INSERT já decidido.
   insert into recon.reconciliation_matches (
     tenant_id, statement_line_id, payable_id, matched_amount_cents,
-    score, origin, strategy, status, decided_at
+    score, origin, strategy, status
   ) values (
     'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', v_line_id, v_pay_id, 88000,
-    0.9500, 'auto', 'amount+date+reference', 'confirmed', now()
+    0.9500, 'auto', 'amount+date+reference', 'suggested'
   ) returning id into v_match_id;
+
+  update recon.reconciliation_matches
+     set status = 'confirmed',
+         decided_at = now()
+   where id = v_match_id;
 
   select payload, produced_by into v_payload, v_produtor
     from core.event_outbox
@@ -86,6 +106,7 @@ begin
 
   perform pg_temp.assert10(v_payload is not null, 'evento recon.match.decided saiu');
   perform pg_temp.assert10((v_payload->>'targetKind') = 'payable', 'alvo payable');
+  perform pg_temp.assert10((v_payload->>'decision') = 'confirmed', 'decision confirmed');
   perform pg_temp.assert10(v_produtor = 'recon', 'produced_by é recon');
 
   select ap.apply_recon_match(
@@ -99,14 +120,18 @@ begin
     v_payload->>'targetKind'
   ) into v_efeito;
 
-  perform pg_temp.assert10(v_efeito = 'applied', 'liquidação AP aplicada');
+  perform pg_temp.assert10(
+    v_efeito = 'applied',
+    'liquidação AP aplicada (efeito=' || coalesce(v_efeito, 'null') || ')');
 
   select status, settled_amount_cents into v_status, v_settled
     from ap.payables
    where tenant_id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
      and external_ref = 'DOC-AP-SETTLE-0001';
 
-  perform pg_temp.assert10(v_status = 'settled', 'título AP ficou settled');
+  perform pg_temp.assert10(
+    v_status = 'settled',
+    'título AP ficou settled (status=' || coalesce(v_status, 'null') || ')');
   perform pg_temp.assert10(v_settled = 88000, 'settled_amount = 88000');
 end;
 $$;
@@ -125,14 +150,18 @@ begin
       order by created_at desc limit 1),
     'DOC-AP-SETTLE-0001', 88000, 'BRL', 'confirmed', 'payable'
   ) into v_efeito;
-  perform pg_temp.assert10(v_efeito = 'unchanged', 'reentrega = unchanged');
+  perform pg_temp.assert10(
+    v_efeito = 'unchanged',
+    'reentrega = unchanged (efeito=' || coalesce(v_efeito, 'null') || ')');
 
   select ap.apply_recon_match(
     'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', 'recon',
     '77777777-7777-4777-8777-777777777777',
     'DOC-AP-SETTLE-0001', 1, 'BRL', 'confirmed', 'payable'
   ) into v_efeito;
-  perform pg_temp.assert10(v_efeito = 'ignored-overpay', 'overpay recusado');
+  perform pg_temp.assert10(
+    v_efeito = 'ignored-overpay',
+    'overpay recusado (efeito=' || coalesce(v_efeito, 'null') || ')');
 
   select settled_amount_cents into v_settled from ap.payables
    where tenant_id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
