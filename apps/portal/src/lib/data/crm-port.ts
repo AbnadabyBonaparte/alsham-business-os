@@ -52,6 +52,20 @@ export interface CrmPort {
   /** O histórico de contato de UMA contraparte, do mais recente ao mais antigo. */
   loadInteractions(partyId: string): Promise<InteractionRow[]>;
 
+  /**
+   * ⭐ **O histórico de VÁRIAS contrapartes numa consulta só.**
+   *
+   * Nasceu para pagar a dívida que a Etapa 11 registrou no código da tela: a
+   * página carregava o histórico com um `loadInteractions()` por contraparte,
+   * e a própria nota dizia que o conserto seria "uma consulta só — agrupada —
+   * na porta, e não um `fetch` no cliente". É esta.
+   *
+   * Devolve um mapa `partyId → histórico`. Contraparte sem contato nenhum
+   * aparece com lista vazia, e não some do mapa: a tela precisa distinguir
+   * "não tem contato" de "não perguntei".
+   */
+  loadInteractionsFor(partyIds: readonly string[]): Promise<Record<string, InteractionRow[]>>;
+
   /** Cadastra uma contraparte **já validada** por `validateNewParty()`. */
   createParty(party: Party): Promise<{ partyId: string }>;
 

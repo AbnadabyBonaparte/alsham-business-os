@@ -193,7 +193,7 @@ reembolso).
 | Peça | Estado |
 |---|---|
 | Manifesto, tipos, validação, ciclo de vida, saldo e excedente | ✅ construído, com testes |
-| Schema `ar` (`0010_ar.sql`) | ✅ **ARQUIVO, não aplicado.** Aplicar é ato do dono (runbook §10) |
+| Schema `ar` (`0010_ar.sql`) | ✅ **APLICADO em produção** em 29/07/2026, informado pelo dono — ⚠️ **NÃO VERIFICADO** por este repositório |
 | Telas: listar, registrar, cancelar | ✅ construídas, com os selos por moeda |
 | Consumo de eventos de outros módulos | ✅ **CONSTRUÍDO** — `recon.match.decided` via `recon-settlement.ts` + `ar.apply_recon_match` (`0013`) |
 | Conciliação de recebimentos (crédito × título) | ✅ **obra do Módulo 1 CONSTRUÍDA** — `0011_recon_receivables.sql` + consumidor `ar.receivable.*` no recon. Este módulo **emite**; o recon projeta e casa |
@@ -214,16 +214,18 @@ buraco conhecido, não como esquecimento.
 
 ## 6. O QUE A PRÓXIMA ETAPA HERDA
 
-- **O módulo está pronto e provado, mas em ARQUIVO:** `0010`–`0013` não foram
-  aplicados (apply é ato do dono). Ordem: `0010` → `0011` → `0012` → `0013`,
-  Data API do schema `ar`, redeploy do `apps/api`.
-- ⚠️ **O schema `ar` precisará ser EXPOSTO na Data API do Supabase pelo dono** —
-  quarta vez que este aviso aparece. Runbook §10.0.
-- **Ciclo do crédito fechado em arquivo:** confirmar casamento emite
-  `recon.match.decided`; o AR liquida. O AP também consome o mesmo evento
+- **O módulo está NO AR:** `0010`–`0014` foram **aplicadas em produção** em
+  29/07/2026, o schema `ar` está **exposto na Data API** e o `apps/api` foi
+  redeployado — tudo informado pelo dono, ⚠️ **NÃO VERIFICADO** por este
+  repositório. As três pendências que esta seção listava não existem mais.
+- **Ciclo do crédito fechado e vivo:** confirmar casamento emite
+  `recon.match.decided`; o AR liquida sozinho. O AP consome o mesmo evento
   (`0014`).
-- **Ainda NÃO CONSTRUÍDO neste módulo:** botões de recebimento/estorno na tela;
-  baixa por perda.
+- **Recebimento avulso e estorno JÁ EXISTEM na tela** (Etapa 15):
+  `applyReceivableReceipt` e a mudança de estado. A baixa vinda do EXTRATO já
+  vinha do `0012`–`0013`; o que faltava era o dinheiro que **não** passa por
+  extrato importado.
+- **Ainda NÃO CONSTRUÍDO neste módulo:** baixa por perda.
 - **O par `ap`/`ar` agora tem três guardas de espelho** (teste de pacote, teste
   SQL com os dois lados no mesmo banco, guarda de CI contra as constraints
   aplicadas). Quem mexer num dos dois ciclos de vida sem mexer no outro descobre

@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 
-import { canTransition, validateNewPayable } from '@alsham/accounts-payable';
+import { canTransition, statusForSettlement, validateNewPayable } from '@alsham/accounts-payable';
 import type { NewPayableInput, PayableStatus } from '@alsham/accounts-payable';
 
 import { getApPort, DataPortError } from '@/lib/data';
@@ -124,6 +124,61 @@ export async function changePayableStatus(input: {
     }
 
     await port.updateStatus({ payableId: input.payableId, status: input.to });
+    revalidatePath('/contas-a-pagar');
+    return { ok: true };
+  } catch (err) {
+    return toResult(err);
+  }
+}
+
+/**
+ * ⭐ **REGISTRAR LIQUIDAÇÃO ou ESTORNAR — o botão que faltava.**
+ *
+ * ⚠️ **Por que ele ainda faz falta depois dos PRs #16/#17.** A liquidação
+ * automática existe e está provada: confirmar um casamento na mesa emite
+ * `recon.match.decided`, e `ap.apply_recon_match()` baixa o título sozinho.
+ * Mas ela cobre **o pagamento que apareceu no extrato**. Este botão cobre o
+ * resto do mundo real: o pagamento em dinheiro, o acerto por compensação, a
+ * baixa parcial combinada por telefone — e o **estorno**, que nenhum extrato
+ * traz.
+ *
+ * ⭐ Quem decide o estado resultante é `statusForSettlement()`, no pacote. E o
+ * `delta` pode ser NEGATIVO: **estorno é lançamento**, não apagamento.
+ */
+export async function applyPayableSettlement(input: {
+  payableId: string;
+  deltaCents: number;
+  method: string;
+}): Promise<ActionResult> {
+  if (!Number.isInteger(input.deltaCents) || input.deltaCents === 0) {
+    return { ok: false, message: 'Informe um valor diferente de zero.' };
+  }
+
+  try {
+    const port = await getApPort();
+    const titulos = await port.loadPayables();
+    const titulo = titulos.find((t) => t.id === input.payableId);
+    if (!titulo) return { ok: false, message: 'Título não encontrado.' };
+
+    const total = titulo.settledAmountCents + input.deltaCents;
+    if (total < 0) {
+      return {
+        ok: false,
+        message: 'O estorno é maior do que o valor já liquidado neste título.',
+      };
+    }
+
+    const novo = statusForSettlement(titulo.amountCents, total, titulo.status);
+    if (novo !== titulo.status && !canTransition(titulo.status, novo)) {
+      return { ok: false, message: 'Esta mudança de estado não existe no ciclo de vida.' };
+    }
+
+    await port.applySettlement({
+      payableId: input.payableId,
+      settledAmountCents: total,
+      status: novo,
+      settlementMethod: input.method.trim().length > 0 ? input.method.trim() : null,
+    });
     revalidatePath('/contas-a-pagar');
     return { ok: true };
   } catch (err) {

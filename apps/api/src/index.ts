@@ -13,4 +13,7 @@ export { createAuditWriter, createUsageRecorder, createSpendProjectionPort } fro
 export { readQueueHealth, judgeHealth } from './health.ts';
 export type { QueueHealth } from './health.ts';
 export { handleRequest } from './handler.ts';
+export { generate, readEngineState, isDemoMode } from './forge-service.ts';
+export type { ForgeDeps, ForgeInput, ForgeOutcome } from './forge-service.ts';
+export { adapterFor, hasKeyFor, safeFailureReason } from './forge-adapters.ts';
 export type { HandlerDeps, HandlerResult } from './handler.ts';

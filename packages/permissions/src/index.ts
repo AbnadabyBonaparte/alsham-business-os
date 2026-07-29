@@ -9,3 +9,6 @@
  */
 export { buildShelf, isLive, producerOf, summarizeShelf } from './catalog.ts';
 export type { CatalogEntry, ShelfItem, ShelfState, TenantModuleRow } from './catalog.ts';
+
+export { ALL_MENU_ITEMS, accessibleModules, hasModuleAccess, visibleMenu } from './menu.ts';
+export type { MenuItem } from './menu.ts';

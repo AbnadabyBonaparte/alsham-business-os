@@ -13,7 +13,9 @@
 
 export {
   METRICS,
+  USAGE_WARNING_RATIO,
   checkLimit,
+  usageBand,
   periodOf,
   findLimit,
   usedInPeriod,
@@ -24,6 +26,7 @@ export type {
   LimitVerdict,
   Metric,
   PlanLimit,
+  UsageBand,
   UsageEntry,
   UsageRecorder,
 } from './usage.ts';

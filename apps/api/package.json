@@ -12,6 +12,7 @@
   "dependencies": {
     "@alsham/accounts-payable": "workspace:*",
     "@alsham/accounts-receivable": "workspace:*",
+    "@alsham/ai": "workspace:*",
     "@alsham/billing": "workspace:*",
     "@alsham/core": "workspace:*",
     "@alsham/finance-reconciliation": "workspace:*",

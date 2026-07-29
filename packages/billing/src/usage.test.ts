@@ -3,10 +3,12 @@ import assert from 'node:assert/strict';
 
 import {
   METRICS,
+  USAGE_WARNING_RATIO,
   checkLimit,
   eventUsageHook,
   findLimit,
   periodOf,
+  usageBand,
   usedInPeriod,
 } from './index.ts';
 import type { PlanLimit, UsageEntry, UsageRecorder } from './index.ts';
@@ -126,5 +128,37 @@ describe('o gancho que liga o correio à cobrança', () => {
         sourceRef: 'evt-1',
       },
     ]);
+  });
+});
+
+describe('usageBand — a faixa que o Painel pinta', () => {
+  test('sem teto declarado no plano, a faixa é "ilimitado" — não "ok"', () => {
+    // ⚠️ São coisas diferentes na tela: "ilimitado" não desenha barra, porque
+    // barra sem fim é barra que mente.
+    assert.equal(usageBand(9_999_999, null), 'unlimited');
+  });
+
+  test('abaixo do limiar é ok', () => {
+    assert.equal(usageBand(0, 100), 'ok');
+    assert.equal(usageBand(79, 100), 'ok');
+  });
+
+  test('⭐ o aviso acende a 80% — o limiar minerado do kraken-v2', () => {
+    assert.equal(USAGE_WARNING_RATIO, 0.8);
+    assert.equal(usageBand(80, 100), 'warning');
+    assert.equal(usageBand(99, 100), 'warning');
+  });
+
+  test('no teto já é estouro — 100 de 100 não sobrou nenhum', () => {
+    assert.equal(usageBand(100, 100), 'exceeded');
+    assert.equal(usageBand(101, 100), 'exceeded');
+  });
+
+  test('teto zero não vira Infinity nem NaN', () => {
+    // Sem a guarda, `0/0` daria NaN e `1/0` daria Infinity — e a comparação
+    // com NaN é sempre falsa, o que pintaria "ok" um plano que não permite
+    // nada. O erro seria silencioso: a tela ficaria verde.
+    assert.equal(usageBand(0, 0), 'ok');
+    assert.equal(usageBand(1, 0), 'exceeded');
   });
 });

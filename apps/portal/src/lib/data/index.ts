@@ -9,6 +9,14 @@ import { createApSupabasePort } from './ap-supabase';
 import { createCrmMockPort } from './crm-mock';
 import { createCrmSupabasePort } from './crm-supabase';
 import { createArMockPort } from './ar-mock';
+import { createOpsMockPort } from './ops-mock';
+import { createForgeMockPort } from './forge-mock';
+import { createBrandMockPort } from './brand-mock';
+import { createPanelMockPort } from './panel-mock';
+import { createPanelSupabasePort } from './panel-supabase';
+import { createBrandSupabasePort } from './brand-supabase';
+import { createForgeHttpPort } from './forge-http';
+import { createOpsSupabasePort } from './ops-supabase';
 import { createArSupabasePort } from './ar-supabase';
 import { createPoMockPort } from './po-mock';
 import { createPoSupabasePort } from './po-supabase';
@@ -21,8 +29,13 @@ import type { ApPort } from './ap-port';
 import type { CrmPort } from './crm-port';
 import type { ArPort } from './ar-port';
 import type { PoPort } from './po-port';
+import type { OpsPort } from './ops-port';
+import type { ForgePort } from './forge-port';
+import type { BrandPort } from './brand-port';
+import type { PanelPort } from './panel-port';
 
 export { DataPortError } from './port';
+export { loadAllPermissions } from './menu-port';
 export type { DataPort } from './port';
 export type { MarketingPort } from './marketing-port';
 export type { StorePort } from './store-port';
@@ -30,6 +43,10 @@ export type { ApPort, PayableRow } from './ap-port';
 export type { CrmPort, PartyRow, InteractionRow } from './crm-port';
 export type { ArPort, ReceivableRow } from './ar-port';
 export type { PoPort, OrderRow } from './po-port';
+export type { OpsPort, PipelineWithStages } from './ops-port';
+export type { ForgePort, GenerationResponse } from './forge-port';
+export type { BrandPort } from './brand-port';
+export type { PanelPort, CourierSummary, PlanUsageRow, AuditRow } from './panel-port';
 
 /**
  * Escolhe o adapter — e é só isto que muda entre demonstração e produção.
@@ -171,4 +188,86 @@ export async function getPoPort(): Promise<PoPort> {
   if (!db) return createPoMockPort();
 
   return createPoSupabasePort(db, session.activeTenant.id);
+}
+
+/**
+ * A porta do Módulo 7 — **sétima porta, mesmo encanamento**.
+ *
+ * A repetição destas oito linhas continua deliberada e continua registrada,
+ * pelo mesmo motivo de sempre: um `getPort(factory)` genérico economizaria
+ * linhas e custaria a fronteira. Ver a nota em `getMarketingPort()` sobre a
+ * dívida do `@alsham/sdk`, que segue pendente e segue sendo decisão do dono.
+ */
+export async function getOpsPort(): Promise<OpsPort> {
+  const session = await resolveSession();
+  if (session.mode !== 'authenticated') return createOpsMockPort();
+
+  const db = await createSupabaseServerClient();
+  if (!db) return createOpsMockPort();
+
+  return createOpsSupabasePort(db, session.activeTenant.id);
+}
+
+/**
+ * A porta da FORJA — **a única que não fala com o banco.**
+ *
+ * ⛔ Ela fala com `apps/api` por HTTP, porque é lá que a chave do motor vive. O
+ * portal pede; o servidor executa. Nenhuma chave de motor atravessa esta
+ * fronteira, em nenhum sentido.
+ *
+ * ⚠️ **Sem `ALSHAM_API_URL` ou sem `FORGE_SECRET`, cai no mock ROTULADO** — e
+ * o mock devolve o estado `demo`, que a tela é obrigada a mostrar. Nunca um
+ * mock silencioso: a tela diria "gerado" sobre um texto de exemplo.
+ */
+export async function getForgePort(): Promise<ForgePort> {
+  const session = await resolveSession();
+  if (session.mode !== 'authenticated') return createForgeMockPort();
+
+  const baseUrl = process.env.ALSHAM_API_URL;
+  const secret = process.env.FORGE_SECRET;
+  if (!baseUrl || !secret) return createForgeMockPort();
+
+  return createForgeHttpPort({
+    baseUrl,
+    secret,
+    tenantId: session.activeTenant.id,
+    userId: session.userId ?? null,
+  });
+}
+
+/**
+ * A porta do CÉREBRO DA MARCA — Core, não módulo.
+ *
+ * `core.ai_brand_context` serve a qualquer módulo que peça geração, e por isso
+ * não é porta de módulo: não some quando um módulo é desinstalado.
+ */
+export async function getBrandPort(): Promise<BrandPort> {
+  const session = await resolveSession();
+  if (session.mode !== 'authenticated') return createBrandMockPort();
+
+  const db = await createSupabaseServerClient();
+  if (!db) return createBrandMockPort();
+
+  return createBrandSupabasePort(db, session.activeTenant.id);
+}
+
+/**
+ * A porta do PAINEL EXECUTIVO — **Core, não módulo.**
+ *
+ * O Painel é a home da plataforma: ele não some quando um módulo é
+ * desinstalado, e por isso não segue a regra de "porta própria por módulo".
+ */
+export async function getPanelPort(): Promise<PanelPort> {
+  const session = await resolveSession();
+  if (session.mode !== 'authenticated') return createPanelMockPort();
+
+  const db = await createSupabaseServerClient();
+  if (!db) return createPanelMockPort();
+
+  // ⚠️ O plano NÃO vem da sessão de propósito: `TenantRef` é o que o
+  // seletor de tenant precisa, e acrescentar campo ali faria toda tela pagar
+  // por um dado que só o Painel usa. Quem lê o plano é a função do banco
+  // (`core.tenant_plan_usage`), que já cruza `core.tenants` com
+  // `core.plan_limits` — e assim há uma fonte só.
+  return createPanelSupabasePort(db, session.activeTenant.id, '');
 }

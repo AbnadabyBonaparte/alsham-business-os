@@ -54,25 +54,23 @@ async function Conteudo() {
     const canRecord = permissions.has(PERMISSIONS.interactionRecord);
 
     /**
-     * ⚠️ O histórico é carregado no SERVIDOR, uma consulta por contraparte, e
-     * não pelo componente quando o usuário abre o card.
+     * ⭐ **A DÍVIDA DO N+1, PAGA.**
      *
-     * É uma escolha com custo declarado: a página faz N+1 consultas. Vale
-     * enquanto a carteira é pequena, e o teto de 500 contrapartes da porta é o
-     * que a mantém pequena. Quando isso doer, o conserto é uma consulta só —
-     * agrupada — na porta, e não um `fetch` no cliente, que exigiria expor
-     * outra rota e outra checagem de permissão.
+     * A Etapa 11 carregava o histórico com uma consulta POR contraparte e
+     * registrou a escolha em voz alta, dizendo qual seria o conserto: *"uma
+     * consulta só — agrupada — na porta, e não um `fetch` no cliente, que
+     * exigiria expor outra rota e outra checagem de permissão"*. É exatamente
+     * isto: `loadInteractionsFor()` traz o histórico de todas as contrapartes
+     * de uma vez, com `in`.
      *
-     * Fica registrado para ser decisão, não descuido.
+     * O histórico continua sendo carregado no SERVIDOR, e continua sob RLS —
+     * o que mudou foi o número de idas ao banco, de N+1 para 2.
      */
-    const historicos = await Promise.all(
-      parties.map(async (p) => [p.id, await port.loadInteractions(p.id)] as const),
-    );
     const interactionsByParty: Record<string, readonly InteractionRow[]> =
-      Object.fromEntries(historicos);
+      await port.loadInteractionsFor(parties.map((p) => p.id));
 
     const resumo = summarizeParties(parties);
-    const contatos = historicos.reduce((n, [, lista]) => n + lista.length, 0);
+    const contatos = Object.values(interactionsByParty).reduce((n, lista) => n + lista.length, 0);
 
     return (
       <>

@@ -1,0 +1,105 @@
+/**
+ * **O MENU — quais rotas existem para quem.**
+ *
+ * ⭐ Regra de Ouro (CLAUDE.md §5.3): isto vive em `packages/` porque é DECISÃO
+ * — cruzar as permissões que o usuário tem no tenant com o que cada tela exige.
+ * O layout recebe a lista pronta e desenha `<Link>`.
+ *
+ * ⚠️ **Esconder o item é CORTESIA, não segurança.** Quem impede de verdade é a
+ * RLS: sem permissão do módulo, `<modulo>.can_access()` devolve falso e a tela
+ * não carrega linha nenhuma, mesmo com a URL digitada à mão. O menu existe para
+ * não prometer o que não foi contratado.
+ *
+ * ⭐ **Uma leitura só, para o menu inteiro.** A Etapa 10 registrou a dívida com
+ * o nome dela: *"uniformizá-los é mudança própria, com uma leitura de permissões
+ * só para o menu inteiro em vez de uma por módulo"*. É esta função: ela recebe o
+ * conjunto COMPLETO de permissões do usuário — uma consulta — e responde por
+ * todos os itens. A versão anterior fazia uma ida ao banco por módulo, e cada
+ * módulo novo acrescentava mais uma.
+ */
+
+/** Uma entrada do menu, já decidida. */
+export interface MenuItem {
+  readonly href: string;
+  readonly label: string;
+  /**
+   * O módulo a que a rota pertence, ou `null` quando ela é do Core.
+   *
+   * Rota de Core (o painel, a Store) não some por falta de permissão de
+   * módulo: ela é a plataforma, não um item de catálogo.
+   */
+  readonly moduleId: string | null;
+}
+
+/**
+ * O menu completo, na ordem em que se lê.
+ *
+ * ⚠️ **`requires` guarda PREFIXO de módulo, não uma lista de chaves.** Listar
+ * as permissões uma a uma faria este arquivo precisar mudar toda vez que um
+ * módulo ganhasse uma permissão nova — e o dia em que alguém esquecesse seria o
+ * dia em que o item sumiria do menu de quem tem acesso, sem erro nenhum. O
+ * prefixo é o mesmo contrato que `core.install_module()` usa para conceder e
+ * revogar em bloco.
+ */
+const MENU: readonly MenuItem[] = [
+  { href: '/', label: 'Painel', moduleId: null },
+  { href: '/importar', label: 'Importar', moduleId: 'recon' },
+  { href: '/conciliacao', label: 'Conciliação', moduleId: 'recon' },
+  { href: '/aprovacoes', label: 'Aprovações', moduleId: 'recon' },
+  { href: '/fechamento', label: 'Fechamento', moduleId: 'recon' },
+  { href: '/campanhas', label: 'Campanhas', moduleId: 'marketing' },
+  { href: '/contas-a-pagar', label: 'Contas a pagar', moduleId: 'ap' },
+  { href: '/contas-a-receber', label: 'Contas a receber', moduleId: 'ar' },
+  { href: '/relacionamentos', label: 'Relacionamentos', moduleId: 'crm' },
+  { href: '/compras', label: 'Compras', moduleId: 'po' },
+  { href: '/esteira', label: 'Esteira', moduleId: 'ops' },
+  { href: '/esteiras', label: 'Esteiras', moduleId: 'ops' },
+  { href: '/store', label: 'Store', moduleId: null },
+  { href: '/ajustes', label: 'Ajustes', moduleId: null },
+];
+
+/**
+ * Os itens de menu visíveis para quem tem estas permissões.
+ *
+ * @param permissions todas as permissões do usuário NO TENANT ATUAL, de todos
+ *   os módulos. Uma consulta a `core.role_permissions`, sob RLS.
+ */
+export function visibleMenu(permissions: ReadonlySet<string>): readonly MenuItem[] {
+  return MENU.filter(
+    (item) => item.moduleId === null || hasModuleAccess(permissions, item.moduleId),
+  );
+}
+
+/**
+ * O usuário tem QUALQUER permissão deste módulo?
+ *
+ * É a mesma pergunta que `<modulo>.can_access()` faz no banco: qualquer uma das
+ * permissões do módulo dá acesso de leitura às telas dele. Perguntar por uma
+ * chave específica esconderia o módulo de quem só tem a permissão de decidir —
+ * justamente quem mais precisa entrar.
+ */
+export function hasModuleAccess(
+  permissions: ReadonlySet<string>,
+  moduleId: string,
+): boolean {
+  const prefixo = `${moduleId}.`;
+  for (const p of permissions) {
+    if (p.startsWith(prefixo)) return true;
+  }
+  return false;
+}
+
+/** Os módulos a que o usuário tem acesso, deduzidos do conjunto. */
+export function accessibleModules(permissions: ReadonlySet<string>): readonly string[] {
+  const modulos = new Set<string>();
+  for (const p of permissions) {
+    const ponto = p.indexOf('.');
+    if (ponto > 0) modulos.add(p.slice(0, ponto));
+  }
+  // `core.*` é a plataforma, não um módulo de catálogo.
+  modulos.delete('core');
+  return [...modulos].sort();
+}
+
+/** Só para teste e documentação: o menu inteiro, sem filtro. */
+export const ALL_MENU_ITEMS = MENU;

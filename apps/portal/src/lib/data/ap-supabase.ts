@@ -128,6 +128,47 @@ export function createApSupabasePort(db: SupabaseClient, tenantId: string): ApPo
       return { payableId: (data as { id: string }).id };
     },
 
+    async applySettlement(input) {
+      const { error } = await db
+        .schema(AP)
+        .from('payables')
+        .update({
+          settled_amount_cents: input.settledAmountCents,
+          status: input.status,
+          ...(input.settlementMethod !== null
+            ? { payment_method: input.settlementMethod }
+            : {}),
+        })
+        .eq('id', input.payableId)
+        .eq('tenant_id', tenantId);
+
+      if (error) {
+        const code = (error as { code?: string }).code;
+        if (code === '42501') {
+          throw new DataPortError(
+            'Você não tem permissão para alterar este título.',
+            { cause: error },
+          );
+        }
+        if (code === '22023') {
+          throw new DataPortError(
+            'Esta mudança de estado não existe no ciclo de vida do título.',
+            { cause: error },
+          );
+        }
+        // ⛔ `payables_no_overpay`: o `ap` RECUSA pagar a maior, e é a
+        // divergência declarada do par ap×ar. A frase tem de dizer isso, e não
+        // "erro ao salvar".
+        if (code === '23514') {
+          throw new DataPortError(
+            'O valor liquidado passaria do valor do título. Pagar a maior é recusado por este módulo — confira o valor.',
+            { cause: error },
+          );
+        }
+        fail('registrar a liquidação', error);
+      }
+    },
+
     async updateStatus(input) {
       const { error } = await db
         .schema(AP)

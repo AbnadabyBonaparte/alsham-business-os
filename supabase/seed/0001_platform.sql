@@ -582,6 +582,84 @@ on conflict (module_id) do update set
 -- ⛔ Seis módulos no catálogo, zero permissão concedida pelo seed.
 
 -- =============================================================================
+-- 4.5 O MÓDULO `ops` NO CATÁLOGO DA STORE — o 7º cartão
+-- Transcrito de packages/ops/src/manifest.ts.
+-- -----------------------------------------------------------------------------
+-- ⚠️ Mesma regra dos outros cinco: este bloco e o `MANIFEST` do pacote andam
+-- juntos, e há teste no CI que compara os dois campo a campo.
+--
+-- ⚠️ **`module_id` é `ops`, e NÃO `os`.** "OS" é uma CAMADA da Taxonomia (os 29
+-- verticais da §6) e, pior, `os.` é um prefixo que casa dentro de `tenants.`,
+-- `docs.` e de centenas de palavras — as guardas de CI deste repositório
+-- procuram `<modulo>.` por grep, e uma guarda que acusa tudo é uma guarda
+-- desligada. Ver o cabeçalho de `supabase/migrations/0018_ops.sql`.
+--
+-- ⭐ **O `domain_key` é `operations`, e este é o primeiro cartão fora de
+-- `finance`/`crm`/`marketing`.** A etapa nasceu como "Marketing Ops" e é
+-- justamente por isso que não pode ser do Domain Marketing: uma construtora,
+-- uma oficina e um escritório de advocacia usam este módulo sem uma linha
+-- diferente. A Taxonomia §5 põe *Ordens de serviço* como a primeira capacidade
+-- de **🏭 Operações**, e é de lá que ele vem. A esteira de uma agência é
+-- CONFIGURAÇÃO do tenant — linha em `ops.pipeline_stages` —, nunca schema.
+--
+-- ⭐ **`events_consumes` é VAZIO**, e é Lei 7. Ver a spec do módulo.
+-- =============================================================================
+
+insert into core.module_registry (
+  module_id, name, version, summary,
+  layer, domain_key,
+  capabilities, permissions, events_emits, events_consumes, agents,
+  requires_core, status
+)
+values (
+  'ops',
+  'Esteira de Produção',
+  '0.1.0',
+  'A empresa desenha a própria esteira de trabalho e move cada ordem de serviço por ela, com trilha do que foi feito, do que foi pulado e por quê.',
+  'domain', 'operations',
+  '[
+     {"key":"work-orders","canonicalName":"Ordens de serviço"}
+   ]'::jsonb,
+  '[
+     {"key":"ops.pipeline.design","moduleId":"ops","description":"Desenhar a esteira: criar etapas, ordená-las e dizer quais exigem aprovação ou podem ser puladas."},
+     {"key":"ops.order.manage","moduleId":"ops","description":"Abrir ordens de serviço, movê-las pelas etapas comuns e registrar entregáveis."},
+     {"key":"ops.order.decide","moduleId":"ops","description":"Decidir: passar de uma etapa que exige aprovação, pular uma etapa, devolver para refazer, concluir e cancelar."}
+   ]'::jsonb,
+  '[
+     {"type":"ops.order.opened","version":1,"description":"Uma ordem de serviço nasceu numa esteira do tenant, com título, prazo e a etapa em que começou — pelo NOME, não só pelo id."},
+     {"type":"ops.stage.advanced","version":1,"description":"A OS passou para a próxima etapa da esteira, com de onde para onde e o que ficou anotado."},
+     {"type":"ops.stage.skipped","version":1,"description":"Uma etapa foi PULADA, com quem pulou, quando e a razão. Pular nunca apaga a etapa da história da OS."},
+     {"type":"ops.order.sent-back","version":1,"description":"A OS foi devolvida para uma etapa anterior com a instrução do que refazer. Devolver uma OS concluída a reabre."},
+     {"type":"ops.order.completed","version":1,"description":"A OS saiu da esteira concluída."},
+     {"type":"ops.order.cancelled","version":1,"description":"A OS foi cancelada — a ação destrutiva deste módulo. Some da esteira, nunca da trilha, e nunca do banco."},
+     {"type":"ops.deliverable.registered","version":1,"description":"Um entregável foi registrado numa versão nova, com a instrução que a gerou. Refazer cria versão; nunca edita."}
+   ]'::jsonb,
+  -- Vazio, e é Lei 7. Ver o comentário acima e a spec do módulo.
+  '[]'::jsonb,
+  '[]'::jsonb,
+  '0.0.x',
+  'published'
+)
+on conflict (module_id) do update set
+  name            = excluded.name,
+  version         = excluded.version,
+  summary         = excluded.summary,
+  layer           = excluded.layer,
+  domain_key      = excluded.domain_key,
+  vertical_key    = excluded.vertical_key,
+  capabilities    = excluded.capabilities,
+  permissions     = excluded.permissions,
+  events_emits    = excluded.events_emits,
+  events_consumes = excluded.events_consumes,
+  agents          = excluded.agents,
+  requires_core   = excluded.requires_core,
+  status          = excluded.status,
+  updated_at      = now();
+
+
+-- ⛔ Sete módulos no catálogo, zero permissão concedida pelo seed.
+
+-- =============================================================================
 -- 5. PLANOS-BASE
 -- Minerado de: `plan_limits` (5 planos) do kraken-v2 (PROVADO em produção).
 -- -----------------------------------------------------------------------------
@@ -620,6 +698,39 @@ values
   ('pro',     'modules',          null,    'meter'),
   ('pro',     'storage-mb',       100000,  'meter'),
   ('pro',     'events-per-month', null,    'meter')
+on conflict (plan_code, metric) do nothing;
+
+-- =============================================================================
+-- 5.1 ⭐ A MÉTRICA DA FORJA — e por que ela existe em TODOS os planos
+-- -----------------------------------------------------------------------------
+-- `ai-generations-per-month` é a métrica que a IA Base consome (Etapa 14).
+--
+-- ⛔ **SEM MEDIÇÃO, SEM GERAÇÃO.** `checkLimit()` **nega por omissão**: um par
+-- plano/métrica que não existe aqui devolve `no-limit-configured`, e a forja
+-- responde com o estado `unmetered` — o botão de gerar nem aparece.
+--
+-- A consequência é que estas linhas **não são configuração opcional**: sem
+-- elas, a geração fica desligada para todo mundo, em silêncio. Por isso há
+-- teste de pacote que lê este arquivo e exige as três.
+--
+-- ⚠️ Lei 7: os números abaixo são ponto de partida técnico, **NÃO
+-- VERIFICADOS** contra custo real de operação. Nenhum deles vai a proposta,
+-- site ou tabela de preço antes de ser medido. O dossiê do kraken-v2 tem
+-- economia unitária medida (78 execuções por R$ 29,57, em 22/07/2026), mas é
+-- de OUTRO produto, com outro pipeline — herdar aquele número aqui seria
+-- exatamente o que a Lei 7 proíbe.
+--
+-- ⭐ `free` bloqueia; `starter` bloqueia; `pro` mede e deixa passar. É a mesma
+-- política suave do kraken (`lib/quota.ts`: enforcement duro só no gratuito),
+-- e a razão é comercial: cortar quem paga no meio de um trabalho é pior do que
+-- cobrar o excedente depois.
+-- =============================================================================
+
+insert into core.plan_limits (plan_code, metric, limit_value, on_exceed)
+values
+  ('free',    'ai-generations-per-month', 10,    'block'),
+  ('starter', 'ai-generations-per-month', 500,   'block'),
+  ('pro',     'ai-generations-per-month', null,  'meter')
 on conflict (plan_code, metric) do nothing;
 
 -- =============================================================================

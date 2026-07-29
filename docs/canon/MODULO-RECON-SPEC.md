@@ -200,7 +200,7 @@ A pergunta em cada coluna: *"outra empresa do mesmo setor usaria isso exatamente
 | Parser de OFX e CSV | ✅ construído em `packages/finance-reconciliation/src/parsing/`, com 35 testes. Ler extrato é regra de negócio, não tela |
 | Parser de CAMT.053 | **NÃO CONSTRUÍDO** — e o parser **diz isso** em vez de tentar adivinhar |
 | ⭐ Handler que consome o título de outro módulo | ✅ **CONSTRUÍDO na Etapa 10** (`src/external-payable.ts`) — e é ele que fecha o triângulo. `manifest.events.consumes` **deixou de ser vazio**, na ordem certa: primeiro o handler, depois a promessa |
-| ⭐ Conciliação de recebimentos (crédito × título) | ✅ **CONSTRUÍDO** — `src/external-receivable.ts` + `scoreReceivablePair` + `0011_recon_receivables.sql` (arquivo; apply é ato do dono). Matches polimórficos: `payable_id` XOR `receivable_id` |
+| ⭐ Conciliação de recebimentos (crédito × título) | ✅ **CONSTRUÍDO** — `src/external-receivable.ts` + `scoreReceivablePair` + `0011_recon_receivables.sql` (**APLICADA em produção** em 29/07/2026, informado pelo dono — ⚠️ NÃO VERIFICADO aqui). Matches polimórficos: `payable_id` XOR `receivable_id` |
 | Porta de projeção (`0008_recon_ap_projection.sql`) | ✅ **CONSTRUÍDA** e **APLICADO em produção** em 28/07/2026, informado pelo dono — ⚠️ **NÃO VERIFICADO** por este repositório. Não acrescentou coluna nenhuma: `recon.payables` já tinha `source='event'` e `source_module_id` desde a Etapa 2 |
 | Porta de projeção a receber (`0011`) | ✅ **ARQUIVO** — `recon.receivables` + `record_external_receivable` + matches XOR |
 | Rateio automático (N linhas ↔ M títulos) | **NÃO CONSTRUÍDO** — hoje a sugestão é 1:1 |

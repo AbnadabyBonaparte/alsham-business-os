@@ -18,7 +18,7 @@ O dono informou ter aplicado **`0001` a `0005` e o seed** num projeto Supabase d
 | `seed/0001_platform.sql` | **APLICADO** — idempotente, pode rodar de novo sem estragar |
 | `0007_ap.sql` · `0008_recon_ap_projection.sql` | **APLICADAS** em 28/07/2026 — não editar |
 | `0009_crm.sql` | **APLICADA** em 28/07/2026 — não editar |
-| `0010_ar.sql` | **ARQUIVO, ainda não aplicado** — o Módulo 5 (Contas a Receber) |
+| `0010_ar.sql` … `0014_ap_apply_recon_match.sql` | ✅ **APLICADAS em produção** em 29/07/2026, informado pelo dono — ⚠️ **NÃO VERIFICADO** por este repositório |
 
 **Se o seu projeto já existe**, o passo 1 não é para você: pule para o **Passo 10**, que é o roteiro só do `0010`.
 
@@ -894,6 +894,333 @@ Ordem (depois de `0010`–`0014` se ainda não aplicados):
 
 Nenhum agente aplica em produção. Integração pedido recebido → Contas a Pagar
 continua **NÃO CONSTRUÍDA** (`MODULO-PO-SPEC §2.3`).
+## PASSO 12 — `0018_ops.sql` (Etapa 13, Módulo 7: Esteira de Produção)
+
+⚠️ **Só depois do Passo 10.** A migration `0011` supõe `0001`→`0010` aplicadas.
+
+### 12.0 — ⛔ ANTES DE TUDO: EXPOR O SCHEMA `ops` NA DATA API
+
+**Quinta vez que este aviso aparece, e ele continua sendo a lição mais cara do
+repositório.** Sem isto a tela da esteira carrega **vazia, sem erro nenhum** — e
+você vai procurar o defeito no código.
+
+`Project Settings → API → Exposed schemas` → acrescente **`ops`** à lista.
+
+Faça **antes** de aplicar. Reaplicar o SQL não conserta a exposição.
+
+### 12.1 — Aplicar
+
+No **SQL Editor** do projeto, cole o conteúdo de
+`supabase/migrations/0018_ops.sql` inteiro e execute.
+
+**Esperado:** `Success. No rows returned.` — cinco tabelas, treze policies,
+quinze funções e dez gatilhos no schema `ops`. (Números contados no banco de
+prova em 28/07/2026.)
+
+### 12.2 — Reaplicar o seed
+
+O catálogo ganhou o **sexto cartão**. Cole `supabase/seed/0001_platform.sql` e
+execute de novo.
+
+⚠️ Lembrete permanente: os blocos de `core.module_registry` são
+`on conflict do update`. **Reaplicar o seed desfaz edição feita à mão no
+catálogo** — e é assim que se quer.
+
+```sql
+select module_id, name, status from core.module_registry order by module_id;
+```
+**Esperado:** seis linhas, todas `published`.
+
+### 12.3 — Conferência de segurança
+
+```sql
+select c.relname,
+       c.relrowsecurity  as rls_ligada,
+       c.relforcerowsecurity as rls_forcada
+  from pg_class c join pg_namespace n on n.oid = c.relnamespace
+ where n.nspname = 'ops' and c.relkind = 'r'
+ order by 1;
+```
+**Esperado:** cinco linhas, `true` nas duas colunas em todas.
+
+```sql
+-- Só a ETAPA tem porta de DELETE, e é decisão: redesenhar a esteira é
+-- tentativa e erro. As outras quatro tabelas não têm.
+select table_name, privilege_type
+  from information_schema.role_table_grants
+ where table_schema = 'ops' and privilege_type = 'DELETE'
+   and grantee in ('anon','authenticated','PUBLIC');
+```
+**Esperado:** **uma** linha — `pipeline_stages | DELETE`.
+
+### 12.4 — Instalar o módulo no tenant, **pela Store**
+
+Como nos anteriores: entre no portal como dono, abra **Store**, e instale
+**Esteira de Produção**. É `core.install_module()` que concede as três
+permissões, num papel **do tenant**.
+
+⛔ **Nunca conceda `ops.*` por SQL direto.** Permissão de módulo concedida à mão
+não é revogada ao desinstalar.
+
+### 12.5 — ⭐ O primeiro desenho é SEU
+
+Abra **Esteiras** e desenhe a primeira. **Não semeamos nenhuma de propósito** —
+sugerir uma seria opinar sobre como a sua empresa trabalha.
+
+Marque *exige aprovação* nas etapas em que alguém precisa decidir para o
+trabalho seguir, e *pode ser pulada* nas que nem sempre se aplicam. As duas
+marcas são mecânicas, não decorativas:
+
+- passar de uma etapa marcada como aprovação **exige `ops.order.decide`**;
+- pular uma etapa **exige a razão**, e ela fica na trilha para sempre.
+
+### 12.6 — Conferir o fato na caixa de saída
+
+Abra uma OS e avance uma etapa. Depois:
+
+```sql
+select event_type, produced_by, status, payload ->> 'stageName' as etapa
+  from core.event_outbox
+ where event_type like 'ops.%'
+ order by occurred_at desc limit 5;
+```
+**Esperado:** `ops.order.opened` e `ops.stage.advanced`, produzidos por `ops`, e
+o payload trazendo o **nome** da etapa — não só o id.
+
+⚠️ `delivered` aqui significa "a trilha registrou". Nenhum módulo escuta `ops.*`
+— é o esperado, e está declarado em `MODULO-OPS-SPEC §4.1`.
+
+### 12.7 — ⭐ O teste de mesa que vale a pena fazer uma vez
+
+Pule uma etapa pulável e escreva a razão. Depois:
+
+```sql
+select kind, from_stage_name, to_stage_name, note
+  from ops.order_events
+ where kind = 'skipped'
+ order by occurred_at desc limit 1;
+```
+
+**Esperado:** a linha existe, com o nome das duas etapas e a sua razão. Agora
+**apague a etapa pulada** em Esteiras e rode a consulta de novo: **a linha
+continua lá, com o nome**. É a decisão do `0011` sobre o nome carimbado
+funcionando — e vê-la funcionando uma vez vale mais do que lê-la.
+
+---
+
+## PASSO 13 — A FORJA (Etapa 14): `0019_forge.sql` + `0020_ops_machine_draft.sql`
+
+O motor plugado na esteira. O operador pede a geração numa etapa; o resultado
+entra como **versão de entregável marcada como rascunho de máquina**; e a
+pessoa decide.
+
+### 13.0 — ⛔ ANTES DE TUDO
+
+O `0019` cria objetos no schema **`core`**, que já está exposto na Data API.
+**Não há schema novo para expor nesta etapa** — a forja é Core, não módulo, e
+por isso também **não aparece na Store**: qualquer módulo pede geração sem
+precisar instalá-la.
+
+### 13.1 — Aplicar
+
+```
+supabase/migrations/0019_forge.sql
+supabase/migrations/0020_ops_machine_draft.sql
+```
+
+Nesta ordem. O `0020` é a migration **do módulo** `ops` (a coluna `origin` do
+entregável), separada da do Core pelo mesmo motivo que a projeção do recon
+viveu no `0008` e não no `0007`.
+
+### 13.2 — As variáveis novas, no host do `apps/api`
+
+⚖️ **LEI DO MOTOR:** o nome do fornecedor pode existir aqui e no
+`.env.example`. Ele **não pode existir** em nenhuma tela, rótulo, toast,
+e-mail ou resposta de API que o cliente leia — lá o que existe é o **motor
+ALSHAM**. Há guarda de CI sobre isso, e ela foi sabotada de três formas antes
+de entrar.
+
+| Variável | Onde | O que é |
+|---|---|---|
+| `FORGE_SECRET` | **`apps/api` e `apps/portal`** | o segredo do endpoint da forja. **Próprio**, separado do `COURIER_SECRET`: quem pede geração não precisa poder acionar o correio. Gere com `openssl rand -hex 32`. |
+| `ALSHAM_API_URL` | `apps/portal` | a URL do `apps/api` publicado. |
+| `ALSHAM_TEXT_API_KEY` | `apps/api` | a chave do motor de texto. |
+| `ALSHAM_TEXT_ENDPOINT` | `apps/api` | o endpoint do motor de texto. |
+| `ALSHAM_TEXT_MODEL` | `apps/api` | o modelo a executar. Configuração de engenharia. |
+| `ALSHAM_IMAGE_API_KEY` | `apps/api` | a chave do motor de arte. |
+| `ALSHAM_IMAGE_ENDPOINT` | `apps/api` | o endpoint do motor de arte. |
+| `ALSHAM_FORGE_DEMO` | `apps/api` | `true` liga o **modo demonstração**. |
+
+⛔ **Nenhuma delas tem prefixo `NEXT_PUBLIC_`, e nenhuma pode ganhar.** O
+prefixo é o que faz um segredo virar parte do bundle que o navegador baixa.
+
+⛔ **No Vault (Supabase → Settings → Vault) ou no cofre do host:** `FORGE_SECRET`,
+`ALSHAM_TEXT_API_KEY`, `ALSHAM_IMAGE_API_KEY`. As demais são configuração, não
+segredo — mas o endpoint do fornecedor revela quem ele é, então trate-o com o
+mesmo cuidado.
+
+### 13.3 — ⭐ SEM MEDIÇÃO, SEM GERAÇÃO
+
+O botão de gerar **não aparece** enquanto o plano do tenant não tiver teto
+declarado para a métrica `ai-generations-per-month`. Não é um botão desativado:
+é a seção inteira explicando o motivo.
+
+É de propósito, e é a regra que impede o produto de queimar dinheiro sem saber
+— uma geração que não vira linha no `usage_ledger` é custo invisível. A cadeia
+inteira depende de `checkLimit()` **negar por omissão**.
+
+O seed já traz a métrica nos planos do catálogo. Confira:
+
+```sql
+select plan_code, metric, limit_value, on_exceed
+  from core.plan_limits
+ where metric = 'ai-generations-per-month'
+ order by plan_code;
+```
+
+⚠️ **Os tetos do seed são NÃO VERIFICADOS** — nasceram como número de catálogo,
+não medido em operação. Ajuste-os quando tiver consumo real para olhar.
+
+### 13.4 — Sem chave, o estado é HONESTO
+
+Suba o `apps/api` **sem** as chaves e abra uma OS. A seção de geração diz, com
+todas as letras, que a geração não está configurada neste ambiente, e aponta
+para esta seção do runbook. **Ela nunca finge.**
+
+Com `ALSHAM_FORGE_DEMO=true`, ela gera um exemplo fixo, **com o selo de
+demonstração na tela**, e não desconta nada do plano — a linha nasce com
+`is_mock` e a medição é pulada. É o padrão minerado do `usage_ledger` do
+kraken-v2: consumo de laboratório não contamina o número que se cobra.
+
+### 13.5 — Conferir o fato
+
+```sql
+select event_type, payload->>'kind', payload->>'metric', payload->>'promptLength'
+  from core.event_outbox
+ where event_type like 'core.generation.%'
+ order by occurred_at desc limit 3;
+```
+
+**Esperado:** `core.generation.requested` e `core.generation.completed`, com o
+tamanho do prompt — **e nunca o prompt**. O que a marca proíbe, o que o
+operador pediu e qual adaptador respondeu **não saem no envelope**, e é decisão
+de canon escrita no cabeçalho do `0019`.
+
+---
+
+## PASSO 14 — O PAINEL EXECUTIVO (Etapa 15): `0021_tenant_panel.sql`
+
+A home do tenant logado. **Nenhum número decorativo:** cada um sai de um
+`count()` do banco ou de uma linha de `core.plan_limits`.
+
+### 14.1 — Aplicar
+
+```
+supabase/migrations/0021_tenant_panel.sql
+```
+
+Nenhuma tabela nova. O Painel **lê**; ele não guarda nada. Um painel com tabela
+própria é um painel que precisa ser mantido em dia com a verdade, e a verdade
+já está nas outras.
+
+### 14.2 — ⭐ A decisão que este arquivo carrega
+
+O Painel mostra a **saúde do correio ao vivo**. A função que a responde
+(`core.courier_status()`, da Etapa 8) está fechada de propósito — e **conceder
+aquela função ao tenant seria o erro**: ela conta a fila INTEIRA da plataforma.
+Um cliente saberia, pelo número de pendentes, quando o vizinho está importando
+um extrato grande.
+
+A resposta foi função **nova**: `core.tenant_courier_summary()`, que devolve o
+**veredito da plataforma em texto** ("entregando", "com atraso", "parado") e
+**só os números deste tenant**. O `detalhe` da função global é reescrito, porque
+ele cita a contagem global.
+
+```sql
+-- ⛔ Estas duas continuam fechadas, e a conferência abaixo tem de dar 0:
+select count(*) from pg_proc p
+  join pg_namespace n on n.oid = p.pronamespace
+ where n.nspname = 'core' and p.proname in ('courier_status','tenant_courier_view')
+   and has_function_privilege('authenticated', p.oid, 'execute');
+```
+
+### 14.3 — Conferir na tela
+
+Entre no portal. A home deve mostrar, **tudo com fonte**:
+
+- o veredito do correio e os números **da sua empresa** (fila, espera, esgotados);
+- o consumo do mês contra o teto, **por métrica**, com aviso a partir de 80%;
+- os módulos instalados, com a versão **que este tenant tem**;
+- as últimas linhas da trilha;
+- os atalhos — os mesmos itens do menu, filtrados pela sua permissão.
+
+⚠️ Se uma seção não carregar, ela diz que **não conseguiu ler** — nunca inventa
+"OK". Um veredito falso é pior do que veredito nenhum: ele faz quem opera parar
+de olhar.
+
+---
+
+## PASSO 15 — FECHAR O `EXECUTE` DE `PUBLIC`: `0022_revoke_public_execute.sql`
+
+⛔ **Segurança. Aplique junto com o `0021`, na mesma janela.**
+
+### 15.1 — O que aconteceu
+
+Uma sabotagem da Etapa 15 apagou o `grant execute` da leitura do plano para
+conferir se a guarda de CI reclamava. **Ela não reclamou** — o privilégio
+continuava lá.
+
+O motivo é uma regra do PostgreSQL: **toda função nasce com `EXECUTE`
+concedido a `PUBLIC`**. Diferente de tabela, que nasce fechada. Quer dizer que
+o `grant execute … to authenticated` que se escreve depois de um
+`create function` normalmente **não concede nada** — e que **`anon` também
+herdou** o privilégio.
+
+Contadas no banco (cadeia `0001`→`0021` + seed, Postgres 17 limpo), eram
+**oito** funções executáveis por quem não fez login:
+
+```
+core.can_generate       core.emit_event        core.install_module
+core.tenant_courier_summary   core.tenant_plan_usage   core.uninstall_module
+core.usage_in_period    recon.on_match_decided
+```
+
+⚠️ **Nenhuma delas vaza dado hoje** — todas checam `has_permission()` ou
+`is_tenant_member()`, que passam por `auth.uid()`; para `anon` o uid é nulo e a
+função levanta exceção. **A porta está trancada por dentro.** O defeito é que
+ela não devia estar no corredor. É a mesma lição paga P0 do Balanço §5: a RLS
+aberta do `suna-core` também "não vazava" enquanto o app fosse correto.
+
+### 15.2 — Aplicar
+
+```
+supabase/migrations/0022_revoke_public_execute.sql
+```
+
+⚠️ **Ele revoga de `public` e `anon`, nunca de `authenticated`** — tirar de
+`authenticated` derrubaria as concessões legítimas que as migrations
+anteriores fizeram uma a uma, e o portal inteiro pararia.
+
+⛔ **E ele CONCEDE `core.install_module` e `core.uninstall_module` a
+`authenticated`, explicitamente.** As duas nunca tiveram concessão própria: o
+clique de instalar na Store funcionava **por causa do buraco**. Sem essas duas
+linhas, o revoke quebraria a Store — e quebraria só no clique, não no apply.
+
+### 15.3 — Conferir
+
+```sql
+-- Tem de vir VAZIO.
+select n.nspname || '.' || p.proname
+  from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+ where n.nspname in ('core','recon','marketing','ap','crm','ar','po','ops')
+   and has_function_privilege('anon', p.oid, 'execute');
+```
+
+E, do outro lado, o que o portal chama de verdade tem de continuar chamável —
+`install_module`, `uninstall_module`, `advance_order`, `skip_stage`,
+`send_back_order`, `tenant_courier_summary`, `tenant_plan_usage`. Há guarda de
+CI conferindo os dois lados: a segurança não pode fechar a porta do cliente
+junto.
 
 ---
 
@@ -910,13 +1237,16 @@ Honestidade de escopo, para você não procurar o que não foi construído:
 | Consumidor do Módulo 2 (verba da campanha) | ✅ construído e inscrito na composição |
 | Módulo 3 — Contas a Pagar (`0007_ap.sql`) | ✅ **CONSTRUÍDO** e **APLICADO em produção** em 28/07/2026, informado pelo dono — ⚠️ **NÃO VERIFICADO** por este repositório |
 | Módulo 4 — Relacionamentos (`0009_crm.sql`) | ✅ **CONSTRUÍDO** e **APLICADO em produção** em 28/07/2026, informado pelo dono — ⚠️ **NÃO VERIFICADO** por este repositório |
-| Módulo 5 — Contas a Receber (`0010_ar.sql`) | ✅ **CONSTRUÍDO** — arquivo, ainda não aplicado (§10) |
-| Módulo 6 — Compras / Pedidos (`0017_po.sql`) | ✅ **CONSTRUÍDO** — arquivo, ainda não aplicado (§11). **Expor schema `po` na Data API** ao aplicar. |
+| Módulo 5 — Contas a Receber (`0010_ar.sql`) | ✅ **CONSTRUÍDO** e **APLICADO em produção** em 29/07/2026, informado pelo dono — ⚠️ **NÃO VERIFICADO** aqui |
+| Módulo 6 — Compras / Pedidos (`0017_po.sql`) | ✅ **CONSTRUÍDO** — arquivo, ainda não aplicado (§12). **Expor schema `po` na Data API** ao aplicar. |
 | Pedido recebido → título no Contas a Pagar | **NÃO CONSTRUÍDO** — ver `MODULO-PO-SPEC §2.3` |
 | Conciliação de RECEBIMENTOS (crédito × título a receber) | ✅ **CONSTRUÍDA** em arquivo (`0011`–`0013`) — apply do dono |
+| Módulo 7 — Esteira de Produção (`0018_ops.sql`) | ✅ **CONSTRUÍDO** — arquivo, ainda não aplicado (§12) |
+| Upload de arquivo no entregável | **NÃO CONSTRUÍDO**, e é decisão: *Storage & Arquivos* é capacidade do Core, ainda não construída. Ver `MODULO-OPS-SPEC §3.4` |
+| Reordenar/renomear etapa **pela tela** | **NÃO CONSTRUÍDO** — o schema aceita (a `position` é `deferrable` justamente para isso); o formulário de edição é etapa própria |
 | Baixa por perda de título a receber | **NÃO CONSTRUÍDA** — ver `MODULO-AR-SPEC §5` |
 | Consumidor do Módulo 1 (título vindo de outro módulo) | ✅ construído e inscrito na composição — fecha o triângulo |
-| Registro de liquidação e estorno **pela tela** | **NÃO CONSTRUÍDO** — o ciclo de vida aceita os dois e é provado; o botão é etapa própria |
+| Registro de liquidação/recebimento **avulso** e estorno **pela tela** | ✅ **CONSTRUÍDO** — `applyPayableSettlement` / `applyReceivableReceipt` e a mudança de estado. A baixa vinda do EXTRATO já existia (`0012`–`0014`): confirmar o casamento emite `recon.match.decided` e o título se liquida sozinho. O que faltava — e agora existe — é o dinheiro que **não** passa por extrato importado |
 | Pagamento de verdade (remessa, integração bancária) | **NÃO CONSTRUÍDO**, e é Lei 3: integra-se, não se constrói |
 | Telas (`apps/portal`) | ✅ construídas — login, quatro telas do Módulo 1 e a carteira de campanhas |
 | Parser de OFX/CSV | ✅ construído em `@alsham/finance-reconciliation` |
@@ -926,6 +1256,13 @@ Honestidade de escopo, para você não procurar o que não foi construído:
 | Instalação automática de CONSUMIDOR de evento | **NÃO CONSTRUÍDA** — instalar dá acesso e permissões; o handler é código, inscrito à mão na composição. Não há plugin dinâmico |
 | Alarme automático de fila parada | **NÃO CONSTRUÍDO** — a §6.5 é consulta, não notificação. Quem olha é você |
 | Publicação real em canal (rede social, e-mail) | **NÃO CONSTRUÍDO** — "publicar" muda o estado e conta o fato |
+| Forja / IA Base (`0019`+`0020`) | ✅ **CONSTRUÍDA** — arquivo, ainda não aplicada (§13). É **Core**: não aparece na Store |
+| Geração ASSÍNCRONA (fila de jobs) | **NÃO CONSTRUÍDA**, e é decisão: a geração desta etapa é **síncrona**. Se um dia for assíncrona, a fila é o correio do Core — **nunca uma segunda** |
+| Upload/armazenamento da ARTE gerada | **NÃO CONSTRUÍDO** — o entregável guarda a referência em texto. *Storage & Arquivos* é capacidade do Core, ainda não construída |
+| Política de repetição de geração que FALHOU | **NÃO CONSTRUÍDA** — repetir chamada paga sem política é pagar duas vezes por um erro. Declarado no cabeçalho do `0019` |
+| Painel Executivo (`0021`) | ✅ **CONSTRUÍDO** — arquivo, ainda não aplicado (§14). É **Core**: não entra no catálogo |
+| Fechar o `EXECUTE` de `PUBLIC` (`0022`) | ✅ **CONSTRUÍDO** — arquivo, ainda não aplicado (§15). ⛔ Aplique junto com o `0021` |
+| Preço da geração / repasse de custo | **NÃO CONSTRUÍDO** — `usage_ledger` conta uso, não dinheiro. Lei 7 |
 | Deploy configurado neste repositório | **NÃO EXISTE** — não há `vercel.json`; publicar é ato do dono |
 
 Aplicar este banco **não** põe o produto no ar. Põe a fundação no ar, provada e trancada — e, com o Passo 6, o Lego passa a conversar de verdade.

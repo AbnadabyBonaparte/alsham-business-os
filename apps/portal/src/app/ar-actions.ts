@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 
-import { canTransition, validateNewReceivable } from '@alsham/accounts-receivable';
+import { canTransition, statusForReceipt, validateNewReceivable } from '@alsham/accounts-receivable';
 import type { NewReceivableInput, ReceivableStatus } from '@alsham/accounts-receivable';
 
 import { getArPort, DataPortError } from '@/lib/data';
@@ -105,6 +105,58 @@ export async function changeReceivableStatus(input: {
     }
 
     await port.updateStatus({ receivableId: input.receivableId, status: input.to });
+    revalidatePath('/contas-a-receber');
+    return { ok: true };
+  } catch (err) {
+    return toResult(err);
+  }
+}
+
+/**
+ * ⭐ **REGISTRAR RECEBIMENTO ou ESTORNAR — o botão que faltava.**
+ *
+ * Espelho do `applyPayableSettlement`, com a divergência do módulo intacta:
+ * aqui o total **pode passar** do devido, porque receber a maior é permitido e
+ * o dinheiro já entrou na conta.
+ *
+ * ⚠️ Como no `ap`, isto NÃO substitui a baixa automática dos PRs #16/#17 — ela
+ * cobre o crédito que apareceu no extrato. Este botão cobre o dinheiro que
+ * entrou por fora dele, e o estorno (devolução, chargeback, cheque devolvido).
+ */
+export async function applyReceivableReceipt(input: {
+  receivableId: string;
+  deltaCents: number;
+  method: string;
+}): Promise<ActionResult> {
+  if (!Number.isInteger(input.deltaCents) || input.deltaCents === 0) {
+    return { ok: false, message: 'Informe um valor diferente de zero.' };
+  }
+
+  try {
+    const port = await getArPort();
+    const titulos = await port.loadReceivables();
+    const titulo = titulos.find((t) => t.id === input.receivableId);
+    if (!titulo) return { ok: false, message: 'Título não encontrado.' };
+
+    const total = titulo.receivedAmountCents + input.deltaCents;
+    if (total < 0) {
+      return {
+        ok: false,
+        message: 'O estorno é maior do que o valor já recebido neste título.',
+      };
+    }
+
+    const novo = statusForReceipt(titulo.amountCents, total, titulo.status);
+    if (novo !== titulo.status && !canTransition(titulo.status, novo)) {
+      return { ok: false, message: 'Esta mudança de estado não existe no ciclo de vida.' };
+    }
+
+    await port.applyReceipt({
+      receivableId: input.receivableId,
+      receivedAmountCents: total,
+      status: novo,
+      settlementMethod: input.method.trim().length > 0 ? input.method.trim() : null,
+    });
     revalidatePath('/contas-a-receber');
     return { ok: true };
   } catch (err) {

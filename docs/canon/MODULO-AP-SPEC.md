@@ -203,7 +203,7 @@ duas listas divergirem, o teste quebra antes de o CI chegar no banco.
 | Schema `ap` (`0007_ap.sql`) | ✅ **APLICADO em produção** em 28/07/2026, informado pelo dono — ⚠️ **NÃO VERIFICADO** por este repositório |
 | Porta de projeção do `recon` (`0008_recon_ap_projection.sql`) | ✅ **APLICADO em produção** em 28/07/2026, informado pelo dono — ⚠️ **NÃO VERIFICADO** por este repositório |
 | Consumidor no Módulo 1 (`external-payable.ts`) | ✅ construído — a prova da etapa |
-| Fechamento do ciclo (AP escuta `recon.match.decided`) | ✅ **CONSTRUÍDO em arquivo** — `recon-settlement.ts` + `0014_ap_apply_recon_match.sql`; teste `10` |
+| Fechamento do ciclo (AP escuta `recon.match.decided`) | ✅ **CONSTRUÍDO** — `recon-settlement.ts` + `0014_ap_apply_recon_match.sql`; teste `10`. **APLICADO em produção** em 29/07/2026, informado pelo dono — ⚠️ NÃO VERIFICADO aqui |
 | Inscrição na composição (`apps/api`) | ✅ construída, com teste de ponta contra Postgres |
 | Telas: listar, registrar, cancelar | ✅ construídas — com confirmação em dois passos |
 | Registro de liquidação pela tela | ⚠️ **schema e domínio prontos, sem tela.** O ciclo de vida aceita liquidação parcial e total; a UI é etapa própria |
