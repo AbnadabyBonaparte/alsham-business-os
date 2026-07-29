@@ -56,6 +56,7 @@ const MENU: readonly MenuItem[] = [
   { href: '/esteiras', label: 'Esteiras', moduleId: 'ops' },
   { href: '/estoque', label: 'Estoque', moduleId: 'inv' },
   { href: '/propostas', label: 'Propostas', moduleId: 'quote' },
+  { href: '/funil', label: 'Funil', moduleId: 'deal' },
   { href: '/store', label: 'Store', moduleId: null },
   { href: '/ajustes', label: 'Ajustes', moduleId: null },
 ];

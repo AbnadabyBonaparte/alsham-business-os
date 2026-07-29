@@ -794,6 +794,72 @@ on conflict (module_id) do update set
 -- ⛔ Nove módulos no catálogo, zero permissão concedida pelo seed.
 
 -- =============================================================================
+-- 4.8 O MÓDULO `deal` NO CATÁLOGO DA STORE — o 10º cartão
+-- Transcrito de packages/deals/src/manifest.ts.
+-- -----------------------------------------------------------------------------
+-- ⭐ **Domain `crm`, capacidade *Pipeline*** — "funil" e "oportunidade" não
+-- existem na Taxonomia; a tela fala funil, o mapa fala Pipeline.
+--
+-- ⭐ A Lei das Etapas, segunda aplicação: os estágios são dado do tenant, o
+-- movimento é LIVRE com trilha imutável, e `won`/`lost` são atos terminais
+-- com razão. O vínculo com o crm é ID SOLTO + nome carimbado — nunca FK.
+--
+-- ⭐ **`events_consumes` é VAZIO** (Lei 7): fechar negociação pelo aceite da
+-- proposta exigiria o vínculo proposta↔negociação, que não existe. Spec §5.
+-- =============================================================================
+
+insert into core.module_registry (
+  module_id, name, version, summary,
+  layer, domain_key,
+  capabilities, permissions, events_emits, events_consumes, agents,
+  requires_core, status
+)
+values (
+  'deal',
+  'Funil Comercial',
+  '0.1.0',
+  'O funil que o tenant desenha: estágios livres, movimento livre com trilha imutável, e ganho e perda como atos com razão registrada.',
+  'domain', 'crm',
+  '[
+     {"key":"pipeline","canonicalName":"Pipeline"}
+   ]'::jsonb,
+  '[
+     {"key":"deal.funnel.design","moduleId":"deal","description":"Desenhar funis: criar estágios, nomeá-los e ordená-los."},
+     {"key":"deal.opportunity.manage","moduleId":"deal","description":"Abrir negociações e movê-las livremente pelos estágios — toda mudança vira trilha."},
+     {"key":"deal.opportunity.decide","moduleId":"deal","description":"Decidir o desfecho: ganhar ou perder. Perder exige a razão."}
+   ]'::jsonb,
+  '[
+     {"type":"deal.opportunity.opened","version":1,"description":"Uma negociação nasceu num funil do tenant, no estágio inicial — pelo nome."},
+     {"type":"deal.opportunity.moved","version":1,"description":"A negociação mudou de estágio — em qualquer direção, com de-onde e para-onde pelo nome."},
+     {"type":"deal.opportunity.updated","version":1,"description":"Mudou fato da negociação: valor, moeda, probabilidade, expectativa ou vínculo."},
+     {"type":"deal.opportunity.won","version":1,"description":"A negociação foi GANHA — ato de quem decide, com nota opcional."},
+     {"type":"deal.opportunity.lost","version":1,"description":"A negociação foi PERDIDA — ato de quem decide, com a razão OBRIGATÓRIA. Terminal."}
+   ]'::jsonb,
+  -- Vazio, e é Lei 7. Ver o comentário acima e a spec do módulo.
+  '[]'::jsonb,
+  '[]'::jsonb,
+  '0.0.x',
+  'published'
+)
+on conflict (module_id) do update set
+  name            = excluded.name,
+  version         = excluded.version,
+  summary         = excluded.summary,
+  layer           = excluded.layer,
+  domain_key      = excluded.domain_key,
+  vertical_key    = excluded.vertical_key,
+  capabilities    = excluded.capabilities,
+  permissions     = excluded.permissions,
+  events_emits    = excluded.events_emits,
+  events_consumes = excluded.events_consumes,
+  agents          = excluded.agents,
+  requires_core   = excluded.requires_core,
+  status          = excluded.status,
+  updated_at      = now();
+
+-- ⛔ Dez módulos no catálogo, zero permissão concedida pelo seed.
+
+-- =============================================================================
 -- 5. PLANOS-BASE
 -- Minerado de: `plan_limits` (5 planos) do kraken-v2 (PROVADO em produção).
 -- -----------------------------------------------------------------------------

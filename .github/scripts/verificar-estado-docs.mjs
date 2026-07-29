@@ -283,6 +283,18 @@ export const PECAS = [
     onde: 'packages/quotes/',
   },
   {
+    nome: 'Módulo 10 — Funil Comercial',
+    detector: [
+      'packages/deals/src/manifest.ts',
+      'packages/deals/src/deal.ts',
+      'supabase/migrations/0025_deal.sql',
+    ],
+    // "funil" e "pipeline" soltos aparecem em prosa legítima (a capacidade
+    // Pipeline do Domain, o pipeline do ops). O padrão exige o NOME DA PEÇA.
+    padrao: /(m[óo]dulo 10|packages\/deals|@alsham\/deals|0025_deal)/i,
+    onde: 'packages/deals/',
+  },
+  {
     nome: 'Menu filtrado por permissão',
     detector: ['packages/permissions/src/menu.ts'],
     // A dívida da Etapa 10 foi paga: os itens de menu não são mais escritos à
@@ -389,6 +401,7 @@ const SECOES = [
   { arquivo: 'docs/canon/MODULO-OPS-SPEC.md', titulo: '## 5. ESTADO DA OBRA' },
   { arquivo: 'docs/canon/MODULO-INV-SPEC.md', titulo: '## 7. ESTADO DA OBRA' },
   { arquivo: 'docs/canon/MODULO-QUOTE-SPEC.md', titulo: '## 6. ESTADO DA OBRA' },
+  { arquivo: 'docs/canon/MODULO-DEAL-SPEC.md', titulo: '## 6. ESTADO DA OBRA' },
 ];
 
 /**
