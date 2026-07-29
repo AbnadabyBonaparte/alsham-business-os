@@ -98,7 +98,24 @@ export interface DataPort {
   /** Descarta o extrato. Ação destrutiva: some da operação, nunca da trilha. */
   discardStatement(statementId: string): Promise<void>;
 
-  decideMatch(input: { matchId: string; decision: 'confirmed' | 'rejected' }): Promise<void>;
+  /**
+   * Confirma ou rejeita uma sugestão do motor.
+   *
+   * Grava (ou atualiza) a linha em `reconciliation_matches` e aplica a
+   * decisão — é o UPDATE/INSERT que dispara `recon.match.decided`.
+   */
+  decideMatch(input: {
+    decision: 'confirmed' | 'rejected';
+    suggestion: {
+      readonly kind: 'payable' | 'receivable';
+      readonly statementLineId: string;
+      readonly payableId?: string;
+      readonly receivableId?: string;
+      readonly matchedAmountCents: number;
+      readonly score: number;
+      readonly strategy: string;
+    };
+  }): Promise<void>;
 
   decideApproval(input: {
     approvalId: string;

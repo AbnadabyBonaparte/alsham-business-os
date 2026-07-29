@@ -88,17 +88,10 @@ describe('o manifesto obedece ao contrato do Core', () => {
   });
 
   /**
-   * ⭐⭐ **A DECISÃO DE CANON, ATUALIZADA COM A CONCILIAÇÃO DE RECEBIMENTOS.**
-   *
-   * Enquanto o Módulo 1 recusava crédito, `consumes` do AR ficava vazio e este
-   * teste mordia quem declarasse consumo cedo demais.
-   *
-   * Agora o motor casa crédito e a projeção existe — mas o consumo do
-   * **fechamento** (AR escutar a baixa do recon) continua NÃO CONSTRUÍDO.
-   * Por isso `consumes` do AR permanece `[]`. O que passou a ser obrigatório
-   * é o **recon** declarar `ar.receivable.*` no próprio manifesto.
+   * ⭐⭐ **O CICLO FECHOU.** Handler + porta SQL existem; `consumes` declara
+   * `recon.match.decided`. Continua proibido declarar consumo sem handler.
    */
-  test('⛔ AR não declara consumo de baixa; recon deve escutar ar.receivable.*', () => {
+  test('AR declara consumo de recon.match.decided e o handler existe', () => {
     const motor = readFileSync(MATCHING, 'utf8');
     const reconMig = (() => {
       try {
@@ -110,32 +103,37 @@ describe('o manifesto obedece ao contrato do Core', () => {
         return '';
       }
     })();
+    const emitMig = (() => {
+      try {
+        return readFileSync(
+          resolve(HERE, '../../../supabase/migrations/0012_recon_match_decided.sql'),
+          'utf8',
+        );
+      } catch {
+        return '';
+      }
+    })();
+    const applyMig = (() => {
+      try {
+        return readFileSync(
+          resolve(HERE, '../../../supabase/migrations/0013_ar_apply_recon_match.sql'),
+          'utf8',
+        );
+      } catch {
+        return '';
+      }
+    })();
+    const handler = readFileSync(resolve(HERE, './recon-settlement.ts'), 'utf8');
 
-    const motorAindaRecusaCredito =
-      /if \(line\.amountCents >= 0\) return null;/.test(motor) &&
-      !/scoreReceivablePair/.test(motor);
-    const semTabelaReceivables = !/create table recon\.receivables/i.test(reconMig);
+    assert.ok(/scoreReceivablePair/.test(motor), 'motor de crédito ausente');
+    assert.ok(/create table recon\.receivables/i.test(reconMig), '0011 ausente');
+    assert.ok(/recon\.match\.decided/.test(emitMig), '0012 não emite match.decided');
+    assert.ok(/ar\.apply_recon_match/.test(applyMig), '0013 sem porta de liquidação');
+    assert.ok(/recon\.match\.decided/.test(handler), 'handler sem o tipo de evento');
 
     assert.deepEqual(
-      MANIFEST.events.consumes,
-      [],
-      'AR ainda não escuta a baixa do recon — consumes deve continuar vazio até o handler existir',
-    );
-
-    if (motorAindaRecusaCredito || semTabelaReceivables) {
-      assert.fail(
-        'pré-condições antigas ainda valem: o motor ou a migration 0011 não fecharam o crédito',
-      );
-    }
-
-    const reconManifest = readFileSync(
-      resolve(HERE, '../../finance-reconciliation/src/manifest.ts'),
-      'utf8',
-    );
-    assert.match(
-      reconManifest,
-      /ar\.receivable\.registered/,
-      'com o motor de crédito pronto, o recon deve declarar o consumo ar.receivable.*',
+      MANIFEST.events.consumes.map((c) => c.type),
+      ['recon.match.decided'],
     );
   });
 
@@ -191,6 +189,17 @@ describe('o seed transcreve o manifesto fielmente', () => {
     for (const ev of MANIFEST.events.emits) {
       assert.equal(seeded.find((e) => e.type === ev.type)?.version, ev.version);
     }
+  });
+
+  test('os eventos consumidos do seed são exatamente os do manifesto', () => {
+    const seeded = jsonBlockContaining('recon.match.decided') as {
+      type: string;
+      version: number;
+    }[];
+    assert.deepEqual(
+      seeded.map((e) => e.type).sort(),
+      MANIFEST.events.consumes.map((e) => e.type).sort(),
+    );
   });
 
   test('⛔ o seed NÃO concede permissão de módulo — quem concede é o instalador', () => {

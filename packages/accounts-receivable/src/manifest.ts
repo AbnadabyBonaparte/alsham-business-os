@@ -92,18 +92,22 @@ export const MANIFEST = {
     ],
 
     /**
-     * ⭐ **VAZIO — e continua sendo decisão de canon.**
+     * ⭐ **DEIXOU DE SER VAZIO** — o fechamento do ciclo do crédito.
      *
-     * A conciliação de recebimentos (crédito × título) **já é obra do Módulo 1**:
-     * `0011_recon_receivables.sql`, `external-receivable.ts`, motor direcional.
-     * O `recon` escuta `ar.receivable.*` e projeta — este módulo **emite**.
+     * Handler em `recon-settlement.ts` + porta SQL `ar.apply_recon_match`
+     * (`0013_ar_apply_recon_match.sql`). Lei 7 na ordem certa: primeiro o
+     * handler, depois a promessa.
      *
-     * O que **ainda** não existe aqui é o fechamento do ciclo: este módulo
-     * escutar a confirmação da baixa no recon e liquidar o título sozinho.
-     * Sem handler, `consumes` permanece `[]` (Lei 7). Quando o handler nascer,
-     * a lista muda.
+     * Consumir não é depender: este pacote **não** importa o recon.
      */
-    consumes: [],
+    consumes: [
+      {
+        type: 'recon.match.decided',
+        version: 1,
+        description:
+          'Um casamento de crédito foi confirmado ou rejeitado na conciliação. Confirmar liquida o título a receber pelo externalRef do payload; rejeitar só registra o fato.',
+      },
+    ],
   },
 
   /**

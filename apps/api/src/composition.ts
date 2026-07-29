@@ -12,12 +12,18 @@ import {
   RECEIVABLE_CONSUMER_ID as RECON_AR_CONSUMER_ID,
   handleExternalReceivable,
 } from '@alsham/finance-reconciliation';
+import {
+  RECON_MATCH_EVENT_TYPE,
+  RECON_MATCH_CONSUMER_ID,
+  handleReconMatchSettlement,
+} from '@alsham/accounts-receivable';
 
 import { createPgOutboxStore } from './outbox-store.ts';
 import {
   createAuditWriter,
   createExternalPayablePort,
   createExternalReceivablePort,
+  createReconMatchSettlementPort,
   createSpendProjectionPort,
   createUsageRecorder,
 } from './adapters.ts';
@@ -133,6 +139,18 @@ export function buildSubscriptions(pool: Pool): Subscription[] {
       eventType: AR_EVENT_PATTERN,
       handle: async (envelope) => {
         await handleExternalReceivable(createExternalReceivablePort(pool))(envelope);
+      },
+    },
+
+    // 5. ⭐ O MÓDULO 5 ESCUTANDO O MÓDULO 1 — fecha o ciclo do crédito.
+    //
+    //    Confirmar casamento emite `recon.match.decided`; o AR liquida o
+    //    título. Sem importar o finance-reconciliation no pacote AR.
+    {
+      consumer: RECON_MATCH_CONSUMER_ID,
+      eventType: RECON_MATCH_EVENT_TYPE,
+      handle: async (envelope) => {
+        await handleReconMatchSettlement(createReconMatchSettlementPort(pool))(envelope);
       },
     },
   ];

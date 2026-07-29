@@ -95,6 +95,12 @@ export const MANIFEST = {
         description:
           'Um extrato foi descartado — a ação destrutiva deste módulo. Some da operação, nunca da trilha.',
       },
+      {
+        type: 'recon.match.decided',
+        version: 1,
+        description:
+          'Um casamento (débito×payable ou crédito×receivable) foi confirmado ou rejeitado. Payload autossuficiente para o módulo de origem liquidar o título.',
+      },
     ],
 
     /**
@@ -193,4 +199,5 @@ export const EVENTS = {
   reconciliationCompleted: 'recon.reconciliation.completed',
   approvalDecided: 'recon.approval.decided',
   statementDiscarded: 'recon.statement.discarded',
+  matchDecided: 'recon.match.decided',
 } as const;

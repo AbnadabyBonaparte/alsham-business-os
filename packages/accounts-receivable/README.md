@@ -8,7 +8,8 @@
 
 | Onde | O quê |
 |---|---|
-| `src/manifest.ts` | o `ModuleManifest` — e a decisão de `consumes` vazio, com a evidência |
+| `src/manifest.ts` | o `ModuleManifest` — agora com `consumes: recon.match.decided` |
+| `src/recon-settlement.ts` | traduz e aplica a baixa confirmada no recon |
 | `src/receivable.ts` | validação, ciclo de vida, saldo, excedente, resumo |
 | `src/types.ts` | os tipos, com nomes **neutros de país** |
 
@@ -51,12 +52,13 @@ O espelho vive em **três testes**, nunca num import:
 
 ---
 
-## ⚠️ `consumes` é vazio, e é decisão de canon
+## ⚠️ O ciclo do crédito
 
-A conciliação de recebimentos exigiria reescrever o motor do Módulo 1 —
-`scorePair()` recusa linha de crédito na primeira linha — e derrubar um
-`NOT NULL` de tabela aplicada em produção. Há teste que confere as duas
-pré-condições no código real e **exige o contrário** no dia em que caírem.
+O recon **projeta** `ar.receivable.*` e casa crédito. Este módulo **liquida**
+ao escutar `recon.match.decided` (`recon-settlement.ts`). Consumir não é
+depender: o pacote não importa o recon.
+
+Botões de recebimento/estorno na tela e baixa por perda seguem NÃO CONSTRUÍDOS.
 
 ---
 

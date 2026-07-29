@@ -89,7 +89,7 @@ export function ReconciliationTable({
                     matchedAmountCents={s.matchedAmountCents}
                     score={s.score}
                     strategy={s.strategy}
-                    matchKey={`${s.statementLineId}:${s.payableId}`}
+                    suggestion={s}
                     canManage={canManage}
                   />
                 );
@@ -111,7 +111,7 @@ export function ReconciliationTable({
                   matchedAmountCents={s.matchedAmountCents}
                   score={s.score}
                   strategy={s.strategy}
-                  matchKey={`${s.statementLineId}:r:${s.receivableId}`}
+                  suggestion={s}
                   canManage={canManage}
                 />
               );
@@ -135,7 +135,7 @@ function MatchRow({
   matchedAmountCents,
   score,
   strategy,
-  matchKey,
+  suggestion,
   canManage,
 }: {
   line: StatementLine;
@@ -149,7 +149,7 @@ function MatchRow({
   matchedAmountCents: number;
   score: number;
   strategy: string;
-  matchKey: string;
+  suggestion: MatchSuggestion;
   canManage: boolean;
 }) {
   return (
@@ -201,7 +201,7 @@ function MatchRow({
               : `Rejeitar esta sugestão? O lançamento volta para as divergências.`
           }
           onDecide={(choice) =>
-            decideMatchAction(matchKey, choice === 'confirm' ? 'confirmed' : 'rejected')
+            decideMatchAction(suggestion, choice === 'confirm' ? 'confirmed' : 'rejected')
           }
         />
       </td>
