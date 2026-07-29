@@ -25,9 +25,10 @@
 
 import { readFileSync, existsSync, readdirSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 /** Vive em `.github/scripts/` — é encanamento de CI, não pasta nova no topo (CLAUDE.md §6). */
-const RAIZ = new URL('../..', import.meta.url).pathname.replace(/\/$/, '');
+const RAIZ = fileURLToPath(new URL('../..', import.meta.url));
 
 /** Marcadores de "não existe" que um documento usa. */
 const AUSENTE = /N[ÃA]O\s+(CONSTRU[ÍI]D[OA]|INICIAD[OA]|EXISTE|H[ÁA])/i;
@@ -223,6 +224,16 @@ export const PECAS = [
     padrao: /(m[óo]dulo 5|packages\/accounts-receivable|@alsham\/accounts-receivable|0010_ar)/i,
     onde: 'packages/accounts-receivable/',
   },
+  {
+    nome: 'Módulo 6 — Compras (Pedidos)',
+    detector: [
+      'packages/purchase-orders/src/manifest.ts',
+      'packages/purchase-orders/src/order.ts',
+      'supabase/migrations/0017_po.sql',
+    ],
+    padrao: /(m[óo]dulo 6|packages\/purchase-orders|@alsham\/purchase-orders|0017_po|compras \(pedidos\))/i,
+    onde: 'packages/purchase-orders/',
+  },
 ];
 
 /**
@@ -282,6 +293,7 @@ const SECOES = [
   { arquivo: 'docs/canon/MODULO-AP-SPEC.md', titulo: '## 6. ESTADO DA OBRA' },
   { arquivo: 'docs/canon/MODULO-CRM-SPEC.md', titulo: '## 6. ESTADO DA OBRA' },
   { arquivo: 'docs/canon/MODULO-AR-SPEC.md', titulo: '## 5. ESTADO DA OBRA' },
+  { arquivo: 'docs/canon/MODULO-PO-SPEC.md', titulo: '## 4. ESTADO DA CONSTRUÇÃO' },
 ];
 
 /**

@@ -524,6 +524,62 @@ on conflict (module_id) do update set
   updated_at      = now();
 
 -- ⛔ Cinco módulos no catálogo, zero permissão concedida pelo seed.
+-- (O sexto cartão — `po` — é appended abaixo.)
+
+-- =============================================================================
+-- 4b. MÓDULO 6 — COMPRAS (PEDIDOS) · module_id = po
+-- -----------------------------------------------------------------------------
+-- Domain `procurement` (Taxonomia — Compras). Pedidos + Recebimento.
+-- consumes VAZIO — integração com AP declarada NÃO CONSTRUÍDA no MODULO-PO-SPEC.
+-- =============================================================================
+
+insert into core.module_registry (
+  module_id, name, version, summary, layer, domain_key,
+  capabilities, permissions, events_emits, events_consumes, agents,
+  requires_core, status
+)
+values (
+  'po',
+  'Compras (Pedidos)',
+  '0.1.0',
+  'Registra pedidos de compra com itens em texto livre, envia ao fornecedor e confere o recebimento — sem catálogo, sem cotação e sem inventar organograma.',
+  'domain', 'procurement',
+  '[
+     {"key":"purchase-orders","canonicalName":"Pedidos"},
+     {"key":"purchase-receipt","canonicalName":"Recebimento"}
+   ]'::jsonb,
+  '[
+     {"key":"po.order.manage","moduleId":"po","description":"Criar e editar rascunhos e enviar o pedido ao fornecedor."},
+     {"key":"po.order.cancel","moduleId":"po","description":"Cancelar um pedido — a ação destrutiva deste módulo."},
+     {"key":"po.order.receive","moduleId":"po","description":"Registrar quantidades recebidas. Comprador ≠ quem confere."}
+   ]'::jsonb,
+  '[
+     {"type":"po.order.registered","version":1,"description":"Um pedido nasceu (pode ser rascunho). Payload autossuficiente com itens."},
+     {"type":"po.order.updated","version":1,"description":"Mudou fato do pedido: status, totais, itens ou quantidades recebidas."},
+     {"type":"po.order.cancelled","version":1,"description":"O pedido foi cancelado. Continua no banco; nunca DELETE."}
+   ]'::jsonb,
+  '[]'::jsonb,
+  '[]'::jsonb,
+  '0.0.x',
+  'published'
+)
+on conflict (module_id) do update set
+  name            = excluded.name,
+  version         = excluded.version,
+  summary         = excluded.summary,
+  layer           = excluded.layer,
+  domain_key      = excluded.domain_key,
+  vertical_key    = excluded.vertical_key,
+  capabilities    = excluded.capabilities,
+  permissions     = excluded.permissions,
+  events_emits    = excluded.events_emits,
+  events_consumes = excluded.events_consumes,
+  agents          = excluded.agents,
+  requires_core   = excluded.requires_core,
+  status          = excluded.status,
+  updated_at      = now();
+
+-- ⛔ Seis módulos no catálogo, zero permissão concedida pelo seed.
 
 -- =============================================================================
 -- 5. PLANOS-BASE

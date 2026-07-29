@@ -882,6 +882,21 @@ divergência do módulo, e vê-la funcionando uma vez vale mais do que lê-la.
 
 ---
 
+## 11. Aplicar o Módulo 6 — Compras (`0017_po.sql`)
+
+Ordem (depois de `0010`–`0014` se ainda não aplicados):
+
+1. `0017_po.sql`
+2. Reaplicar `seed/0001_platform.sql` (idempotente — atualiza o 6º cartão)
+3. **Expor o schema `po` na Data API** (Project Settings → API → Exposed schemas)
+4. Instalar **Compras (Pedidos)** pela Store no tenant
+5. Conferir menu `/compras` e permissões `po.order.*`
+
+Nenhum agente aplica em produção. Integração pedido recebido → Contas a Pagar
+continua **NÃO CONSTRUÍDA** (`MODULO-PO-SPEC §2.3`).
+
+---
+
 ## O QUE AINDA NÃO EXISTE
 
 Honestidade de escopo, para você não procurar o que não foi construído:
@@ -896,7 +911,9 @@ Honestidade de escopo, para você não procurar o que não foi construído:
 | Módulo 3 — Contas a Pagar (`0007_ap.sql`) | ✅ **CONSTRUÍDO** e **APLICADO em produção** em 28/07/2026, informado pelo dono — ⚠️ **NÃO VERIFICADO** por este repositório |
 | Módulo 4 — Relacionamentos (`0009_crm.sql`) | ✅ **CONSTRUÍDO** e **APLICADO em produção** em 28/07/2026, informado pelo dono — ⚠️ **NÃO VERIFICADO** por este repositório |
 | Módulo 5 — Contas a Receber (`0010_ar.sql`) | ✅ **CONSTRUÍDO** — arquivo, ainda não aplicado (§10) |
-| Conciliação de RECEBIMENTOS (crédito × título a receber) | **NÃO CONSTRUÍDA** — o motor do Módulo 1 recusa linha de crédito; ver `MODULO-AR-SPEC §2.3` |
+| Módulo 6 — Compras / Pedidos (`0017_po.sql`) | ✅ **CONSTRUÍDO** — arquivo, ainda não aplicado (§11). **Expor schema `po` na Data API** ao aplicar. |
+| Pedido recebido → título no Contas a Pagar | **NÃO CONSTRUÍDO** — ver `MODULO-PO-SPEC §2.3` |
+| Conciliação de RECEBIMENTOS (crédito × título a receber) | ✅ **CONSTRUÍDA** em arquivo (`0011`–`0013`) — apply do dono |
 | Baixa por perda de título a receber | **NÃO CONSTRUÍDA** — ver `MODULO-AR-SPEC §5` |
 | Consumidor do Módulo 1 (título vindo de outro módulo) | ✅ construído e inscrito na composição — fecha o triângulo |
 | Registro de liquidação e estorno **pela tela** | **NÃO CONSTRUÍDO** — o ciclo de vida aceita os dois e é provado; o botão é etapa própria |
