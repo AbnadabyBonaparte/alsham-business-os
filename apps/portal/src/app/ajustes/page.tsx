@@ -31,6 +31,7 @@ async function Conteudo() {
       <>
         {port.kind === 'mock' ? <DemoNotice /> : null}
         <SectionHeader
+          eyebrow="O Core · a sua empresa"
           title="Ajustes"
           subtitle="O que a plataforma precisa saber sobre a sua empresa."
         />

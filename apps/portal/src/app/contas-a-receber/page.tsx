@@ -61,6 +61,7 @@ async function Conteudo() {
         {port.kind === 'mock' ? <DemoNotice /> : null}
 
         <SectionHeader
+          eyebrow="Contas a Receber · finanças"
           title="Contas a receber"
           subtitle="Registre o que a empresa tem a receber. Cada título é contado ao resto da plataforma."
           aside={

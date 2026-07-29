@@ -48,6 +48,7 @@ async function Conteudo() {
       <>
         {port.kind === 'mock' ? <DemoNotice /> : null}
         <SectionHeader
+          eyebrow="Estoque · operações"
           title="Estoque"
           subtitle="O livro de movimentos imutável. O saldo é a soma do livro — corrigir é lançar ajuste com razão."
           aside={

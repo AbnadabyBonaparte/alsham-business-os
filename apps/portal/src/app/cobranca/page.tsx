@@ -48,6 +48,7 @@ async function Conteudo() {
       <>
         {port.kind === 'mock' ? <DemoNotice /> : null}
         <SectionHeader
+          eyebrow="Régua de Cobrança · finanças"
           title="Cobrança"
           subtitle="A régua diz o que fazer e registra que foi feito. Ela não envia nada — e a baixa na origem tira o título sozinha."
           aside={

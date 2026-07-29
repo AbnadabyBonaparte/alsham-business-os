@@ -77,6 +77,7 @@ async function Conteudo() {
         {port.kind === 'mock' ? <DemoNotice /> : null}
 
         <SectionHeader
+          eyebrow="Relacionamentos · CRM"
           title="Relacionamentos"
           subtitle="Quem a empresa conhece, e o que já foi conversado com cada um."
           aside={

@@ -107,6 +107,7 @@ async function Conteudo({ orderId }: { orderId: string }) {
         </div>
 
         <SectionHeader
+          eyebrow="Esteira de Produção · ordem de serviço"
           title={os.title}
           subtitle={esteira ? `Esteira: ${esteira.pipeline.name}` : undefined}
           aside={

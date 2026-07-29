@@ -39,6 +39,7 @@ async function Conteudo() {
         {port.kind === 'mock' ? <DemoNotice /> : null}
 
         <SectionHeader
+          eyebrow="Conciliação &amp; Aprovações · finanças"
           title="Importar extrato"
           subtitle="OFX ou CSV. O arquivo é lido, você confere o que vai entrar, e só então grava."
         />

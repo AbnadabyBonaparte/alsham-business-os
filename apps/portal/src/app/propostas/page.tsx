@@ -46,6 +46,7 @@ async function Conteudo() {
       <>
         {port.kind === 'mock' ? <DemoNotice /> : null}
         <SectionHeader
+          eyebrow="Propostas · CRM"
           title="Propostas"
           subtitle="Propostas e orçamentos com itens em texto livre. Aceite e recusa ficam carimbados — e renegociar é documento novo."
           aside={

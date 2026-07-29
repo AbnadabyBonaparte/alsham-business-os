@@ -8,6 +8,7 @@ import {
   DemoNotice,
   EmptyState,
   ErrorState,
+  PageHero,
   SectionHeader,
   TableSkeleton,
 } from '@/components/states';
@@ -61,9 +62,11 @@ async function Conteudo() {
       <>
         {port.kind === 'mock' ? <DemoNotice /> : null}
 
-        <SectionHeader
-          title="Esteira de produção"
-          subtitle="Cada ordem de serviço anda pelas etapas que a sua empresa desenhou. Todo movimento fica na trilha."
+        <PageHero
+          eyebrow="Esteira de Produção · operações"
+          title="O trabalho anda à vista."
+          accent="Pelas etapas que a sua empresa desenhou."
+          subtitle="Cada ordem de serviço percorre a esteira do tenant — e todo movimento fica na trilha, inclusive o pulo, com razão."
           aside={
             <div className="flex flex-wrap items-center gap-2">
               <Badge tone={resumo.onTheLine > 0 ? 'info' : 'neutral'}>

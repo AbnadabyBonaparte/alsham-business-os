@@ -1,4 +1,4 @@
-import { PRODUCT, COMPANY } from '@alsham/config';
+import { PRODUCT } from '@alsham/config';
 
 import { hasSupabase } from '@/lib/supabase/env';
 import { LoginForm } from '@/components/login-form';
@@ -14,22 +14,19 @@ export const dynamic = 'force-dynamic';
  */
 export default function LoginPage() {
   return (
-    <div className="mx-auto flex w-full max-w-md flex-col items-center py-12">
-      {/* O Sol Único. */}
-      <span aria-hidden className="mb-6 block size-10 rounded-full border border-bos-accent" />
-
-      <h1 className="font-display text-2xl tracking-tight text-bos-text">
+    <div className="mx-auto flex w-full max-w-md flex-col items-center py-14">
+      {/* O sol desta cena é o arco de horizonte da atmosfera (atmosphere.tsx)
+          — um só por peça (IDENTIDADE-VISUAL §5.1); a marca do header não conta
+          dois: é a marca. */}
+      <p className="bos-eyebrow bos-eyebrow-center mt-16 mb-3">A porta de entrada</p>
+      <h1 className="font-display text-3xl tracking-tight text-bos-text">
         {PRODUCT.displayName}
       </h1>
-      <p className="mt-2 mb-8 text-center text-sm text-bos-muted">
-        Entre para acessar o painel da sua empresa.
+      <p className="mt-3 mb-9 max-w-xs text-center font-display text-base italic text-bos-muted">
+        A empresa não compra um sistema — ela monta o dela.
       </p>
 
       <LoginForm demo={!hasSupabase()} />
-
-      <p className="mt-10 text-center text-xs text-bos-muted">
-        {COMPANY.legalName} · Powered by ALSHAM
-      </p>
     </div>
   );
 }

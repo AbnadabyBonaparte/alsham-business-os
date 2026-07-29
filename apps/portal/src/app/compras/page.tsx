@@ -52,6 +52,7 @@ async function Conteudo() {
         {port.kind === 'mock' ? <DemoNotice /> : null}
 
         <SectionHeader
+          eyebrow="Compras (Pedidos) · suprimentos"
           title="Compras"
           subtitle="Pedidos de compra com itens em texto livre. Enviar e receber são atos separados."
           aside={

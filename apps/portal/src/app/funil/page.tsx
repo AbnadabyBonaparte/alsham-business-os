@@ -48,6 +48,7 @@ async function Conteudo() {
       <>
         {port.kind === 'mock' ? <DemoNotice /> : null}
         <SectionHeader
+          eyebrow="Funil Comercial · CRM"
           title="Funil"
           subtitle="Os estágios são seus. O movimento é livre — e cada movimento vira trilha. Perder exige a razão."
           aside={

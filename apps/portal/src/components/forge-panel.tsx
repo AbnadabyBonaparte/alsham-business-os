@@ -62,7 +62,8 @@ export function ForgePanel({
   if (estadoTexto.status === 'unmetered' && estadoImagem.status === 'unmetered') {
     return (
       <Panel className="px-6 py-5">
-        <h2 className="font-display text-lg text-bos-text">Geração pelo motor ALSHAM</h2>
+        <p className="bos-eyebrow">A Forja</p>
+        <h2 className="mt-2 font-display text-lg text-bos-text">Geração pelo motor ALSHAM</h2>
         <p className="mt-2 max-w-3xl text-sm text-bos-muted">
           {whyCannotGenerate(estadoTexto)}
         </p>
@@ -72,8 +73,24 @@ export function ForgePanel({
 
   return (
     <Panel className="px-6 py-5">
-      <div className="flex flex-wrap items-baseline justify-between gap-3">
-        <h2 className="font-display text-lg text-bos-text">Geração pelo motor ALSHAM</h2>
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <p className="bos-eyebrow">A Forja</p>
+          <h2 className="mt-2 flex items-center gap-2.5 font-display text-xl text-bos-text">
+            {/* A fagulha — traço, não emoji (IDENTIDADE-VISUAL §6). */}
+            <svg
+              aria-hidden
+              viewBox="0 0 20 20"
+              className="size-4 text-bos-accent"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1"
+            >
+              <path d="M10 1.5 L11.8 8.2 L18.5 10 L11.8 11.8 L10 18.5 L8.2 11.8 L1.5 10 L8.2 8.2 Z" />
+            </svg>
+            Geração pelo motor ALSHAM
+          </h2>
+        </div>
         <div className="flex flex-wrap items-center gap-2">
           <Badge tone="info">{rotulo.step}</Badge>
           {estado.status === 'demo' ? <Badge tone="warning">demonstração</Badge> : null}

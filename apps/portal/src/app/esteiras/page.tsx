@@ -56,6 +56,7 @@ async function Conteudo() {
         {port.kind === 'mock' ? <DemoNotice /> : null}
 
         <SectionHeader
+          eyebrow="Esteira de Produção · operações"
           title="Esteiras"
           subtitle="O desenho do trabalho na sua empresa. As etapas são suas — nome, ordem e regras."
           aside={
