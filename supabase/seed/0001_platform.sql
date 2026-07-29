@@ -120,7 +120,8 @@ values (
   '[
      {"type":"recon.reconciliation.completed","version":1,"description":"Um extrato foi fechado. Traz o total de linhas, quantas casaram e — o que interessa — quantas sobraram."},
      {"type":"recon.approval.decided","version":1,"description":"Um humano visou um item da fila: aprovado ou rejeitado, com quem, quando e por quê."},
-     {"type":"recon.statement.discarded","version":1,"description":"Um extrato foi descartado — a ação destrutiva deste módulo. Some da operação, nunca da trilha."}
+     {"type":"recon.statement.discarded","version":1,"description":"Um extrato foi descartado — a ação destrutiva deste módulo. Some da operação, nunca da trilha."},
+     {"type":"recon.match.decided","version":1,"description":"Um casamento (débito×payable ou crédito×receivable) foi confirmado ou rejeitado. Payload autossuficiente para o módulo de origem liquidar o título."}
    ]'::jsonb,
   -- ⭐ DEIXOU DE SER VAZIO NA ETAPA 10 — e a ordem importa.
   --
@@ -475,14 +476,10 @@ on conflict (module_id) do update set
 -- Domain é classificação da Taxonomia, não fronteira de módulo. A Store mostra
 -- três cartões do mesmo Domain, cada um instalável sozinho.
 --
--- ⭐ **E `events_consumes` é VAZIO**, apesar de a integração óbvia existir: o
--- Módulo 1 deveria casar os créditos do extrato contra o que há a receber, como
--- já casa os débitos contra o que há a pagar. Não entra porque o motor de
--- casamento recusa linha de crédito na primeira linha
--- (`matching.ts`: `if (line.amountCents >= 0) return null;`) e porque
--- `recon.reconciliation_matches` tem `payable_id NOT NULL`, sem polimorfismo.
--- Declarar aqui faria a Store anunciar uma conciliação de recebimentos que não
--- acontece. Ver `docs/canon/MODULO-AR-SPEC.md` §2.3.
+-- ⭐ **E `events_consumes` DEIXOU DE SER VAZIO** — o fechamento do ciclo.
+-- Handler em `recon-settlement.ts` + `ar.apply_recon_match` (0013). A
+-- conciliação de crédito (recon escuta ar.*) já existia na 0011; agora o AR
+-- escuta a confirmação da baixa.
 -- =============================================================================
 
 insert into core.module_registry (
@@ -509,8 +506,9 @@ values (
      {"type":"ar.receivable.updated","version":1,"description":"Mudou algo que interessa a quem escuta: valor, vencimento, quanto já entrou ou o estado."},
      {"type":"ar.receivable.cancelled","version":1,"description":"Um título a receber foi cancelado — a ação destrutiva deste módulo. Some da operação, nunca da trilha, e nunca do banco."}
    ]'::jsonb,
-  -- Vazio, e é Lei 7. Ver o comentário acima e a spec do módulo.
-  '[]'::jsonb,
+  '[
+     {"type":"recon.match.decided","version":1,"description":"Um casamento de crédito foi confirmado ou rejeitado na conciliação. Confirmar liquida o título a receber pelo externalRef do payload; rejeitar só registra o fato."}
+   ]'::jsonb,
   '[]'::jsonb,
   '0.0.x',
   'published'

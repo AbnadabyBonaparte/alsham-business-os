@@ -286,12 +286,63 @@ export function createSupabasePort(db: SupabaseClient, tenantId: string): DataPo
       await mudarStatus(db, statementId, 'discarded', 'descartar o extrato');
     },
 
-    async decideMatch({ matchId, decision }) {
+    async decideMatch({ decision, suggestion }) {
+      const now = new Date().toISOString();
+      const row = {
+        statement_line_id: suggestion.statementLineId,
+        payable_id: suggestion.kind === 'payable' ? suggestion.payableId : null,
+        receivable_id: suggestion.kind === 'receivable' ? suggestion.receivableId : null,
+        matched_amount_cents: suggestion.matchedAmountCents,
+        score: suggestion.score,
+        origin: 'auto',
+        strategy: suggestion.strategy,
+        status: decision,
+        decided_at: now,
+      };
+
+      // Tenta achar um casamento suggested já persistido para o mesmo par.
+      let query = db.schema(RECON).from('reconciliation_matches').select('id');
+      query = query.eq('statement_line_id', suggestion.statementLineId);
+      if (suggestion.kind === 'payable') {
+        query = query.eq('payable_id', suggestion.payableId!);
+      } else {
+        query = query.eq('receivable_id', suggestion.receivableId!);
+      }
+      const { data: existing, error: findErr } = await query.maybeSingle();
+      if (findErr) fail('localizar o casamento sugerido', findErr);
+
+      if (existing?.id) {
+        const { data, error } = await db
+          .schema(RECON)
+          .from('reconciliation_matches')
+          .update({ status: decision, decided_at: now })
+          .eq('id', existing.id)
+          .select('id');
+        if (error) fail('registrar sua decisão sobre o casamento', error);
+        if (!data || data.length === 0) {
+          throw new DataPortError(
+            'A decisão não foi gravada: você não tem permissão para gerir casamentos neste tenant.',
+          );
+        }
+        return;
+      }
+
+      // Sugestão só em memória: grava já decidida — o trigger emite no INSERT.
+      const { data: line, error: lineErr } = await db
+        .schema(RECON)
+        .from('statement_lines')
+        .select('tenant_id')
+        .eq('id', suggestion.statementLineId)
+        .maybeSingle();
+      if (lineErr) fail('ler a linha do extrato', lineErr);
+      if (!line?.tenant_id) {
+        throw new DataPortError('Linha do extrato não encontrada neste tenant.');
+      }
+
       const { data, error } = await db
         .schema(RECON)
         .from('reconciliation_matches')
-        .update({ status: decision, decided_at: new Date().toISOString() })
-        .eq('id', matchId)
+        .insert({ ...row, tenant_id: line.tenant_id })
         .select('id');
       if (error) fail('registrar sua decisão sobre o casamento', error);
       if (!data || data.length === 0) {

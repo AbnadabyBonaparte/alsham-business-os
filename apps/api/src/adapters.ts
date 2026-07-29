@@ -9,6 +9,11 @@ import type {
   ExternalReceivable,
   ExternalReceivablePort,
 } from '@alsham/finance-reconciliation';
+import type {
+  ApplyReconMatchEffect,
+  ReconMatchSettlement,
+  ReconMatchSettlementPort,
+} from '@alsham/accounts-receivable';
 
 /**
  * Os adaptadores reais dos consumidores.
@@ -203,6 +208,38 @@ export function createExternalReceivablePort(pool: Pool): ExternalReceivablePort
       const efeito = rows[0]?.efeito;
       if (efeito === undefined) {
         throw new Error('recon.record_external_receivable não devolveu desfecho');
+      }
+      return efeito;
+    },
+  };
+}
+
+/**
+ * Liquidação AR a partir de `recon.match.decided`.
+ * Chama `ar.apply_recon_match()`; origem por parâmetro (envelope).
+ */
+export function createReconMatchSettlementPort(pool: Pool): ReconMatchSettlementPort {
+  return {
+    async applyReconMatch(settlement: ReconMatchSettlement) {
+      const { rows } = await pool.query<{ efeito: ApplyReconMatchEffect }>(
+        `select ar.apply_recon_match(
+                  $1::uuid, $2::text, $3::uuid, $4::text,
+                  $5::bigint, $6::char(3), $7::text, $8::text) as efeito`,
+        [
+          settlement.tenantId,
+          settlement.sourceModuleId,
+          settlement.matchId,
+          settlement.externalRef,
+          settlement.matchedAmountCents,
+          settlement.currency,
+          settlement.decision,
+          settlement.targetKind,
+        ],
+      );
+
+      const efeito = rows[0]?.efeito;
+      if (efeito === undefined) {
+        throw new Error('ar.apply_recon_match não devolveu desfecho');
       }
       return efeito;
     },

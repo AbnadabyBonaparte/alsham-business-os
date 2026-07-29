@@ -77,29 +77,32 @@ dois registros.
 **Corrigir a descrição não emite nada.** O payload é **autossuficiente**: quem
 escuta não pode fazer join.
 
-### 2.2 O módulo CONSOME: **nada**
+### 2.2 O módulo CONSOME: `recon.match.decided`
 
-### 2.3 ⭐⭐ POR QUE `consumes` É VAZIO — e o que o Módulo 1 já fechou
+Handler em `recon-settlement.ts` + porta `ar.apply_recon_match` (`0013`).
+Confirmar casamento de crédito liquida o título pelo `externalRef` do payload.
+Rejeitar só registra o fato. Alvo `payable` é ignorado neste módulo.
+
+### 2.3 ⭐⭐ O CICLO DO CRÉDITO — o que o Módulo 1 e este fecharam
 
 A integração óbvia é o espelho do triângulo da Etapa 10: assim como o Módulo 1
 projeta o título a **pagar** e casa contra os **débitos** do extrato, ele
 projeta o título a **receber** e casa contra os **créditos**.
 
-**Isso passou a existir no Módulo 1** (`0011_recon_receivables.sql`,
-`external-receivable.ts`, `scoreReceivablePair`). O `recon` declara
-`ar.receivable.*` em `consumes`.
+**Projeção e casamento** existem no Módulo 1 (`0011_recon_receivables.sql`,
+`external-receivable.ts`, `scoreReceivablePair`).
 
-**Este módulo (`ar`) continua com `consumes` vazio** porque a outra metade —
-escutar a confirmação da baixa no recon e liquidar o título aqui — **ainda não
-tem handler**. Declarar consumo sem consumidor seria Lei 7 quebrada. Quando o
-handler existir, a lista muda.
+**Fechamento** (este módulo escutar a confirmação e liquidar) existe em
+`0012` (emit) + `0013` (apply) + `recon-settlement.ts`. `consumes` deixou de
+ser `[]` na ordem da Lei 7: primeiro o handler, depois a promessa.
 
 O que o §2.3 pedia ao Módulo 1 (e já está em arquivo):
 
 1. `recon.receivables` — criado;
 2. matches polimórficos (`payable_id` XOR `receivable_id`) — migration `0011`;
 3. motor direcional — `scoreReceivablePair` + `MatchSuggestion` união;
-4. teste triangular — `08_ar_recon_triangle.sql`.
+4. teste triangular — `08_ar_recon_triangle.sql`;
+5. emit da decisão — `0012_recon_match_decided.sql` + teste `09`.
 
 ---
 
@@ -192,8 +195,9 @@ reembolso).
 | Manifesto, tipos, validação, ciclo de vida, saldo e excedente | ✅ construído, com testes |
 | Schema `ar` (`0010_ar.sql`) | ✅ **ARQUIVO, não aplicado.** Aplicar é ato do dono (runbook §10) |
 | Telas: listar, registrar, cancelar | ✅ construídas, com os selos por moeda |
-| Consumo de eventos de outros módulos | **NÃO CONSTRUÍDO** — AR ainda não escuta a baixa do recon (fechamento do ciclo); ver §2.3 |
+| Consumo de eventos de outros módulos | ✅ **CONSTRUÍDO** — `recon.match.decided` via `recon-settlement.ts` + `ar.apply_recon_match` (`0013`) |
 | Conciliação de recebimentos (crédito × título) | ✅ **obra do Módulo 1 CONSTRUÍDA** — `0011_recon_receivables.sql` + consumidor `ar.receivable.*` no recon. Este módulo **emite**; o recon projeta e casa |
+| Fechamento do ciclo (confirmação → liquidação) | ✅ **CONSTRUÍDO em arquivo** — `0012` emite, `0013` aplica; teste `09_ar_recon_settlement.sql` |
 | Registro de recebimento **pela tela** | ⚠️ **schema e domínio prontos, sem tela.** O ciclo aceita recebimento parcial e total, e é provado; o botão é etapa própria |
 | Estorno pela tela | ⚠️ mesma coisa — a transição existe e é provada; o botão não |
 | Baixa por perda (`written_off`) | **NÃO CONSTRUÍDA**, e foi considerada. Distinguir *"cancelei porque o documento estava errado"* de *"era devido e não vamos receber"* é um controle real em financeiro. Ficou de fora porque o estado não existe no schema, e uma permissão a mais guardaria uma porta que não existe. Quando entrar, entra como estado + permissão + evento, numa etapa própria |
@@ -210,14 +214,16 @@ buraco conhecido, não como esquecimento.
 
 ## 6. O QUE A PRÓXIMA ETAPA HERDA
 
-- **O módulo está pronto e provado, mas em ARQUIVO:** `0010` não foi aplicado.
+- **O módulo está pronto e provado, mas em ARQUIVO:** `0010`–`0013` não foram
+  aplicados (apply é ato do dono). Ordem: `0010` → `0011` → `0012` → `0013`,
+  Data API do schema `ar`, redeploy do `apps/api`.
 - ⚠️ **O schema `ar` precisará ser EXPOSTO na Data API do Supabase pelo dono** —
   quarta vez que este aviso aparece. Runbook §10.0.
-- **A conciliação de recebimentos do Módulo 1 está CONSTRUÍDA em arquivo**
-  (`0011_recon_receivables.sql`). Apply: `0010` depois `0011`, redeploy do
-  `apps/api`.
+- **Ciclo do crédito fechado em arquivo:** confirmar casamento emite
+  `recon.match.decided`; o AR liquida. AP ainda **não** consome o mesmo evento
+  (espelho a construir).
 - **Ainda NÃO CONSTRUÍDO neste módulo:** botões de recebimento/estorno na tela;
-  baixa por perda; AR escutar confirmação do recon (`consumes` continua `[]`).
+  baixa por perda.
 - **O par `ap`/`ar` agora tem três guardas de espelho** (teste de pacote, teste
   SQL com os dois lados no mesmo banco, guarda de CI contra as constraints
   aplicadas). Quem mexer num dos dois ciclos de vida sem mexer no outro descobre

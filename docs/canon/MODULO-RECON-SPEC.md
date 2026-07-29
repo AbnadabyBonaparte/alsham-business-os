@@ -205,7 +205,8 @@ A pergunta em cada coluna: *"outra empresa do mesmo setor usaria isso exatamente
 | Porta de projeção a receber (`0011`) | ✅ **ARQUIVO** — `recon.receivables` + `record_external_receivable` + matches XOR |
 | Rateio automático (N linhas ↔ M títulos) | **NÃO CONSTRUÍDO** — hoje a sugestão é 1:1 |
 | IA que aprende padrões e explica divergência | **NÃO CONSTRUÍDO** — Fase 8 |
-| Baixa de volta no `ap`/`ar` (módulos escutarem a confirmação) | **NÃO CONSTRUÍDO** — `consumes` deles continua vazio |
+| Baixa de volta no `ar` (escuta confirmação do match) | ✅ **CONSTRUÍDO** — `0012` emite `recon.match.decided`; AR consome via `0013` + `recon-settlement.ts` |
+| Baixa de volta no `ap` | **NÃO CONSTRUÍDO** — mesmo evento, handler do AP ainda não existe (`consumes` do AP continua `[]`) |
 
 Sobre o 1:1: a escolha é honesta, não ingênua. O schema **permite** baixa parcial e muitos-para-muitos, e o humano pode montar isso na tela. O que a sugestão automática não faz é adivinhar rateio — combinar N linhas com M títulos multiplica o risco de sugerir bobagem com cara de certeza.
 

@@ -48,7 +48,7 @@ As duas últimas são separadas de propósito: **quem concilia não precisa ser 
 
 ## Eventos que emite
 
-`recon.reconciliation.completed` · `recon.approval.decided` · `recon.statement.discarded`
+`recon.reconciliation.completed` · `recon.approval.decided` · `recon.statement.discarded` · `recon.match.decided`
 
 Consome: **nada, hoje.** O schema já prevê alimentar `payables` por `finance.payable.registered`, mas o handler está **NÃO CONSTRUÍDO** — declarar consumo sem consumidor seria promessa no ar (Lei 7).
 

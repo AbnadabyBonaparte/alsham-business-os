@@ -123,6 +123,12 @@ jobs:
       - name: aplicar 0011_recon_receivables.sql
         run: $PSQL -f supabase/migrations/0011_recon_receivables.sql
 
+      - name: aplicar 0012_recon_match_decided.sql
+        run: $PSQL -f supabase/migrations/0012_recon_match_decided.sql
+
+      - name: aplicar 0013_ar_apply_recon_match.sql
+        run: $PSQL -f supabase/migrations/0013_ar_apply_recon_match.sql
+
       # ---------------------------------------------------------------------
       # 2. SEED — e a prova de que reaplicar não muda nada
       # ---------------------------------------------------------------------
@@ -256,6 +262,9 @@ jobs:
       - name: teste triângulo crédito (ar emite → recon projeta)
         run: $PSQL -f supabase/tests/08_ar_recon_triangle.sql
 
+      - name: teste ciclo fechado (recon confirma → ar liquida)
+        run: $PSQL -f supabase/tests/09_ar_recon_settlement.sql
+
       # ⛔ CANCELAR É ESTADO, NUNCA DELETE — conferido no banco aplicado.
       - name: nenhuma porta de DELETE em ar.receivables
         run: |
@@ -296,18 +305,24 @@ jobs:
             echo "::error::o ar ganhou uma constraint de não receber a maior — ver 0010_ar.sql §2.1"; exit 1; }
           echo "espelho intacto: o ap recusa pagar a maior, o ar aceita receber a maior."
 
-      # ⭐ O CATÁLOGO TEM CINCO CARTÕES, e o quinto consome ZERO.
+      # ⭐ O CATÁLOGO TEM CINCO CARTÕES — e o quinto AGORA consome a baixa.
       #
-      # Lei 7 conferida no banco: o Módulo 1 ainda não casa crédito, então
-      # declarar consumo faria a Store anunciar uma conciliação de recebimentos
-      # que não acontece.
-      - name: o quinto cartão não promete o que o Módulo 1 não faz
+      # Lei 7: só declara consumo com handler. O ciclo fechou (`0012`/`0013` +
+      # recon-settlement.ts): AR escuta `recon.match.decided`. Esta guarda
+      # exige exatamente esse consumo — e só ele.
+      - name: o quinto cartão declara a baixa que o handler cobre
         run: |
           C=$($PSQL -tAc "select jsonb_array_length(events_consumes)
                             from core.module_registry where module_id='ar';")
-          [ "$C" = "0" ] || {
-            echo "::error::o módulo ar declara $C consumo(s) — e o motor do recon recusa linha de crédito (Lei 7)"
+          [ "$C" = "1" ] || {
+            echo "::error::o módulo ar declara $C consumo(s) — esperado 1 (recon.match.decided)"
             exit 1; }
+          T=$($PSQL -tAc "select events_consumes->0->>'type'
+                            from core.module_registry where module_id='ar';")
+          [ "$T" = "recon.match.decided" ] || {
+            echo "::error::consumo do ar é '$T' — esperado recon.match.decided"
+            exit 1; }
+          echo "ciclo fechado no catálogo: ar consome recon.match.decided."
 
       # ⛔ A INTERAÇÃO É IMUTÁVEL, CONFERIDA NO BANCO APLICADO.
       #
@@ -516,6 +531,8 @@ jobs:
           $PSQL -q -f supabase/migrations/0009_crm.sql
           $PSQL -q -f supabase/migrations/0010_ar.sql
           $PSQL -q -f supabase/migrations/0011_recon_receivables.sql
+          $PSQL -q -f supabase/migrations/0012_recon_match_decided.sql
+          $PSQL -q -f supabase/migrations/0013_ar_apply_recon_match.sql
           $PSQL -q -f supabase/seed/0001_platform.sql
 
       # ⚠️ Sem `DATABASE_URL` os testes do store se PULAM — de propósito, para

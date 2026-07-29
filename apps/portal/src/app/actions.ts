@@ -39,12 +39,20 @@ function toResult(err: unknown): { ok: false; message: string } {
 
 /** Confirma ou rejeita um casamento sugerido — o "visto" digital. */
 export async function decideMatchAction(
-  matchId: string,
+  suggestion: {
+    readonly kind: 'payable' | 'receivable';
+    readonly statementLineId: string;
+    readonly payableId?: string;
+    readonly receivableId?: string;
+    readonly matchedAmountCents: number;
+    readonly score: number;
+    readonly strategy: string;
+  },
   decision: 'confirmed' | 'rejected',
 ): Promise<ActionResult> {
   try {
     const port = await getDataPort();
-    await port.decideMatch({ matchId, decision });
+    await port.decideMatch({ decision, suggestion });
     revalidatePath('/conciliacao');
     return { ok: true };
   } catch (err) {

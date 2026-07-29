@@ -10,6 +10,7 @@
     "start": "node src/server.ts"
   },
   "dependencies": {
+    "@alsham/accounts-receivable": "workspace:*",
     "@alsham/billing": "workspace:*",
     "@alsham/core": "workspace:*",
     "@alsham/finance-reconciliation": "workspace:*",

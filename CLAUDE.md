@@ -130,13 +130,13 @@ Onde vai cada coisa:
   ⚠️ **O ciclo de vida dele DIFERE do `ap` de propósito:** `archived → active` existe, porque uma contraparte que volta é a MESMA pessoa e obrigá-la a nascer de novo partiria o histórico em dois. Copiar a regra do módulo anterior por consistência teria sido o erro.
 - `packages/accounts-receivable` é o **Módulo 5** — Contas a Receber. ⭐ **É o ESPELHO CONSCIENTE do Módulo 3:** cada decisão do `ap` foi re-perguntada, e a resposta está escrita no cabeçalho do `0010_ar.sql` (quadro MANTIDO × DIVERGE). Ver `docs/canon/MODULO-AR-SPEC.md`.
   ⭐ **A divergência:** **receber a maior é PERMITIDO**, e o `ap` recusa pagar a maior. Pagar a mais é erro de quem paga, e o sistema que paga pode recusar; receber a mais é o que o pagador fez, e o dinheiro já está na conta — recusar obrigaria o operador a **mentir sobre o que entrou**. Há três guardas: teste de pacote que lê as duas migrations, teste SQL com os dois lados no mesmo banco, e guarda de CI contra as constraints aplicadas.
-  ⚠️ **`consumes` é vazio, e é decisão de canon:** a conciliação de RECEBIMENTOS exigiria mudar o motor do Módulo 1, que recusa linha de crédito (`matching.ts`: `if (line.amountCents >= 0) return null;`) e cuja tabela de casamento tem `payable_id NOT NULL`. Está declarado NÃO CONSTRUÍDO com o que falta.
+  ⭐ **`consumes` deixou de ser vazio:** escuta `recon.match.decided` (`recon-settlement.ts` + `0013`). O recon projeta `ar.*` (`0011`); o AR liquida na confirmação (`0012`/`0013`). O AP ainda **não** consome o mesmo evento.
 - ⭐ **Copiar sem pensar e divergir sem escrever são o mesmo erro.** Módulo novo que espelha um existente: re-pergunte cada decisão e escreva a resposta — inclusive as que se mantêm.
 - ⭐ **A origem de um fato vem SEMPRE do envelope** (`producedBy`), nunca de constante no consumidor. Com ela chumbada, um segundo produtor do mesmo formato entraria disfarçado do primeiro e a trilha mentiria sem nunca dar erro. Há guarda no CI que reprova as três formas de chumbar.
 - `apps/store` e `apps/admin` e os demais 12 pacotes continuam **só com `README.md`** — status NÃO INICIADO. (`packages/finance` segue NÃO INICIADO: os módulos financeiros nascem em pastas próprias, como manda §6.)
 - ⚠️ **O seed é a FONTE do catálogo, não só a semente dele.** Desde a Etapa 10 os blocos de `core.module_registry` são `on conflict do update`, não `do nothing`: uma linha existente precisou mudar (o `recon` passou a escutar `ap.*`) e `do nothing` deixaria a Store exibindo o catálogo antigo para sempre, sem erro nenhum. Consequência: reaplicar o seed **desfaz edição feita à mão** no catálogo. Depreciar um módulo se faz mudando o arquivo.
 - ⚠️ **Schema novo precisa ser EXPOSTO na Data API do Supabase pelo dono** (Project Settings → API → Exposed schemas). Lição paga na Etapa 9 e repetida nas 10, 11 e 12: sem isso as telas carregam vazias, sem erro que diga o motivo. Está no runbook §10.0.
-- **As migrations são provadas no CI:** `0001` → … → `0010` + seed (duas vezes) aplicam de verdade num Postgres 17 limpo e passam nos testes de isolamento com usuário real (`supabase/tests/`), a cada mudança.
+- **As migrations são provadas no CI:** `0001` → … → `0013` + seed (duas vezes) aplicam de verdade num Postgres 17 limpo e passam nos testes de isolamento com usuário real (`supabase/tests/`), a cada mudança.
 
 #### ⛔ 5.4.1 O apply de produção já aconteceu — `0001` a `0009` estão CONGELADAS
 
@@ -146,12 +146,14 @@ A consequência é operacional e não é opinião:
 
 - ❌ **Não edite nenhuma migration de `0001` a `0009`.** Arquivo aplicado é história. Se estivessem só no papel, corrigir no lugar seria certo; aplicados, editar faz o próximo ambiente nascer diferente da produção **em silêncio**. Correção vira migration nova.
 - ✅ `0010_ar.sql` **ainda é só arquivo** — criado depois do apply, e a Etapa 12 foi instruída a não aplicá-lo. Aplicá-lo é ato do dono (runbook §10).
-- ✅ `0011_recon_receivables.sql` — **arquivo** (conciliação de recebimentos: `recon.receivables` + matches polimórficos). Aplicar **depois** do `0010`. A próxima é **`0012_*.sql`**.
-- **`0001` a `0009` e o seed estão APLICADOS** (informado pelo dono; ⚠️ NÃO VERIFICADO aqui). `0010` e `0011` são arquivo.
-- ⚠️ **PENDÊNCIAS DE INFRAESTRUTURA DO DONO — não são deste repositório, e nada aqui as conserta:** o **redeploy do `apps/api`** (sem ele a projeção do título no `recon` não acontece em produção, porque o host roda o build anterior ao consumidor; a caixa de saída guardou o evento e o correio reentrega quando subir), a **exposição do schema `crm`** na Data API, e a **instalação do `crm`** pela Store. Os testes no CI são a prova que vale.
+- ✅ `0011_recon_receivables.sql` — **arquivo** (conciliação de recebimentos: `recon.receivables` + matches polimórficos). Aplicar **depois** do `0010`.
+- ✅ `0012_recon_match_decided.sql` — **arquivo** (emite `recon.match.decided` ao confirmar/rejeitar casamento).
+- ✅ `0013_ar_apply_recon_match.sql` — **arquivo** (AR liquida título a partir do evento). A próxima é **`0014_*.sql`**.
+- **`0001` a `0009` e o seed estão APLICADOS** (informado pelo dono; ⚠️ NÃO VERIFICADO aqui). `0010`–`0013` são arquivo.
+- ⚠️ **PENDÊNCIAS DE INFRAESTRUTURA DO DONO — não são deste repositório, e nada aqui as conserta:** o **redeploy do `apps/api`** (sem ele a projeção do título no `recon` e a liquidação no `ar` não acontecem em produção, porque o host roda o build anterior ao consumidor; a caixa de saída guardou o evento e o correio reentrega quando subir), a **exposição do schema `crm`/`ar`** na Data API, e a **instalação do `crm`/`ar`** pela Store. Os testes no CI são a prova que vale.
 - ⛔ **A limpeza do runbook §7.3 FOI EXECUTADA** em 28/07/2026: a concessão global de permissão de módulo **não existe mais em produção**. O tenant piloto tem papel próprio, com as permissões concedidas por `core.install_module()` — pela Store, com o clique do dono. Nunca volte a conceder permissão de módulo no seed.
 - `packages/workflow` é **o correio do Core** — o entregador da caixa de saída: idempotência por consumidor, backoff exponencial, `dead` sem apagar. **ENGINE, não módulo** (Taxonomia §4): não aparece na Store.
-- `apps/api` é **a COMPOSIÇÃO** — o único lugar do repositório onde os módulos se conhecem. Ele importa `workflow`, `marketing`, `finance-reconciliation` e `billing`; **nenhum deles importa nenhum outro**. ⭐ Desde a Etapa 10 o mesmo pacote (`finance-reconciliation`) é PRODUTOR numa inscrição e CONSUMIDOR em outra — e continua sem conhecer ninguém. Traz a persistência real do correio (contra Postgres, com arrendamento e `skip locked`), os adaptadores dos consumidores, o endpoint protegido e a saúde da fila.
+- `apps/api` é **a COMPOSIÇÃO** — o único lugar do repositório onde os módulos se conhecem. Ele importa `workflow`, `marketing`, `finance-reconciliation`, `accounts-receivable` e `billing`; **nenhum deles importa nenhum outro**. ⭐ Desde a Etapa 10 o mesmo pacote (`finance-reconciliation`) é PRODUTOR numa inscrição e CONSUMIDOR em outra — e continua sem conhecer ninguém. Traz a persistência real do correio (contra Postgres, com arrendamento e `skip locked`), os adaptadores dos consumidores, o endpoint protegido e a saúde da fila.
   ⛔ **Roda com `service_role` e NÃO vai junto com `apps/portal`.** Há guarda no CI sobre essa fronteira.
   ⚡ **NO AR desde 28/07/2026** — o dono ligou: `apps/api` publicado, `pg_cron` + `pg_net`, job de 1 em 1 minuto. ⚠️ **NÃO VERIFICADO** por este repositório.
 - `packages/billing` é a **contabilidade de uso** — `usage_ledger` + leitura de limite, minerados do kraken-v2 (PROVADO). **Sem preço, e há guarda no CI para que continue assim** (Lei 7).
@@ -198,11 +200,13 @@ docs/canon/            taxonomia · roadmap · core-spec · identidade-visual
 docs/balancos/         tecnologia + supabase            — de onde minerar
 docs/historico/        catálogo anterior                — memória, não canon
 supabase/migrations/   0001_core … 0009_crm            — APLICADAS, não editar
-                       0010_ar · 0011_recon_receivables — arquivo; apply do dono
+                       0010_ar · 0011_recon_receivables
+                       · 0012_recon_match_decided
+                       · 0013_ar_apply_recon_match      — arquivo; apply do dono
 supabase/seed/         0001_platform.sql                — catálogo, idempotente; zero tenant
 supabase/tests/        shim · isolamento · uso · consumo entre módulos
                        · instalador · triângulo · relacionamentos · a receber
-                       · triângulo crédito ar→recon
+                       · triângulo crédito ar→recon · ciclo fechado recon→ar
                                                         — só CI; NUNCA no Supabase real
 docs/runbook/          APLICAR.md                       — o passo a passo do dono
 .github/scripts/       guarda de defasagem de documento — encanamento de CI
