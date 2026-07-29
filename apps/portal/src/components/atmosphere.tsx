@@ -30,6 +30,14 @@ type Scene = {
   ornament: ReactNode;
   /** Classes de posição/tamanho do ornamento. */
   ornamentClass: string;
+  /**
+   * Atmosfera gerada (Lei da Imagem: só ambiente/atmosfera — nunca pessoa,
+   * rosto, objeto real, texto ou logo; cada peça revista antes de entrar).
+   * Entra em `mix-blend-mode: screen`: só a LUZ soma, o preto do arquivo
+   * some — e se o arquivo faltar, `onError` remove a camada e o CSS por
+   * baixo assume. O site nunca quebra por causa de arte.
+   */
+  image?: string;
 };
 
 /** Traço padrão dos ornamentos: fino, dourado, quase sussurrado. */
@@ -304,11 +312,12 @@ const CORE_SCENE: Scene = {
   depth: '12% 100%',
   ornament: <OrnamentCore />,
   ornamentClass: RIGHT,
+  image: '/art/atmosphere-core.webp',
 };
 
 const SCENES: readonly (readonly [string, Scene])[] = [
-  ['/store', { sun: '18% 0%', depth: '90% 100%', ornament: <OrnamentStore />, ornamentClass: RIGHT }],
-  ['/conciliacao', { sun: '50% 0%', depth: '8% 100%', ornament: <OrnamentRecon />, ornamentClass: RIGHT }],
+  ['/store', { sun: '18% 0%', depth: '90% 100%', ornament: <OrnamentStore />, ornamentClass: RIGHT, image: '/art/atmosphere-store.webp' }],
+  ['/conciliacao', { sun: '50% 0%', depth: '8% 100%', ornament: <OrnamentRecon />, ornamentClass: RIGHT, image: '/art/atmosphere-mesa.webp' }],
   ['/importar', { sun: '80% 0%', depth: '20% 100%', ornament: <OrnamentImport />, ornamentClass: RIGHT }],
   ['/aprovacoes', { sun: '70% 0%', depth: '10% 100%', ornament: <OrnamentApprove />, ornamentClass: RIGHT }],
   ['/fechamento', { sun: '50% 0%', depth: '85% 100%', ornament: <OrnamentClose />, ornamentClass: RIGHT }],
@@ -323,7 +332,7 @@ const SCENES: readonly (readonly [string, Scene])[] = [
   ['/funil', { sun: '50% 0%', depth: '50% 100%', ornament: <OrnamentDeal />, ornamentClass: RIGHT }],
   ['/eventos', { sun: '82% 8%', depth: '10% 92%', ornament: <OrnamentEvt />, ornamentClass: RIGHT }],
   ['/esteiras', { sun: '30% 0%', depth: '80% 100%', ornament: <OrnamentOps />, ornamentClass: LEFT }],
-  ['/esteira', { sun: '70% 0%', depth: '20% 100%', ornament: <OrnamentOps />, ornamentClass: RIGHT }],
+  ['/esteira', { sun: '70% 0%', depth: '20% 100%', ornament: <OrnamentOps />, ornamentClass: RIGHT, image: '/art/atmosphere-esteira.webp' }],
   ['/ajustes', { sun: '50% 0%', depth: '50% 100%', ornament: <OrnamentSeal />, ornamentClass: RIGHT }],
   ['/login', { sun: '50% 12%', depth: '50% 100%', ornament: <OrnamentLogin />, ornamentClass: CENTER_LOW }],
   ['/', CORE_SCENE],
@@ -347,6 +356,25 @@ export function Atmosphere() {
       style={{ '--atm-sun': scene.sun, '--atm-depth': scene.depth } as React.CSSProperties}
     >
       <div className="bos-atm-mesh" />
+      {scene.image ? (
+        // eslint-disable-next-line @next/next/no-img-element -- camada de
+        // atmosfera fixa; next/image não soma nada a um decorativo estático.
+        <img
+          src={scene.image}
+          alt=""
+          aria-hidden
+          loading="lazy"
+          decoding="async"
+          className="absolute inset-0 h-full w-full object-cover opacity-30 mix-blend-screen"
+          style={{
+            maskImage: 'radial-gradient(120% 100% at 50% 30%, black 35%, transparent 100%)',
+            WebkitMaskImage: 'radial-gradient(120% 100% at 50% 30%, black 35%, transparent 100%)',
+          }}
+          onError={(e) => {
+            e.currentTarget.style.display = 'none';
+          }}
+        />
+      ) : null}
       <div className="bos-atm-grid" />
       <div className={`bos-atm-ornament ${scene.ornamentClass}`}>{scene.ornament}</div>
       <div className="bos-atm-vignette" />

@@ -16,9 +16,16 @@
   fino, estilo blueprint §5.2) e pela **posição da luz** — nunca por matiz.
 - **Atmosfera única por tela** (lei nascida em The-Bonaparte-Family): removidos texto
   e logo, ainda se sabe *qual* sala é.
-- **Tudo CSS/SVG inline** — zero imagem raster, zero request extra. As únicas
-  adições de peso são as 4 fontes variáveis auto-hospedadas (~237 KB, OFL,
-  `public/fonts/`), que realizam a tipografia que o canon já pedia (Fraunces).
+- **CSS/SVG primeiro; imagem só onde paga o peso.** A base de toda tela é
+  CSS/SVG inline (zero request). Quatro cenas-vitrine (Painel, Store, Mesa,
+  Esteira) ganharam **atmosfera gerada** pelo pipeline da casa (Lei da Imagem:
+  só ambiente/atmosfera — zero pessoa, rosto, objeto real, texto ou logo; cada
+  peça revista antes de entrar, e uma quinta peça foi **cortada** por escorregar
+  da paleta). Entram em `mix-blend-mode: screen` com máscara radial e `onError`
+  em cascata — se o arquivo faltar, o CSS assume e o site não quebra. Peso das
+  4 peças: **58 KB somadas** (webp, `public/art/`). As fontes variáveis
+  auto-hospedadas somam ~237 KB (OFL, `public/fonts/`), realizando a tipografia
+  que o canon já pedia (Fraunces).
 - **O Sol é um por peça** (§5.1): a marca no header; onde a cena pede outro foco,
   entra a fagulha ou o arco de horizonte — nunca um segundo sol.
 
@@ -49,7 +56,10 @@
 
 ## O que NÃO entrou (de propósito)
 
-- Nenhuma foto, stock ou imagem gerada — a estética blueprint da ALSHAM se faz a traço.
+- Nenhuma foto real, nenhum stock, nenhuma pessoa/rosto/objeto em imagem — as
+  quatro atmosferas geradas são luz e arquitetura abstrata, e o resto se faz a traço.
+- A atmosfera gerada do login foi **cortada** na revisão (violeta — pele de outro
+  mundo); a cena ficou com o arco CSS.
 - Nenhuma cor fora dos tokens `--bos-*`; estados continuam sem tocar no ouro.
 - Nenhum emoji no produto, nenhum gradiente de SaaS, nenhum bounce (§6).
 - Nada de regra de negócio: as telas continuam consumindo os mesmos motores.
