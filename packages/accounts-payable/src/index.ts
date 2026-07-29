@@ -13,6 +13,21 @@
 export { MANIFEST, PERMISSIONS, EVENTS } from './manifest.ts';
 
 export {
+  CONSUMED_EVENT_TYPE as RECON_MATCH_EVENT_TYPE,
+  CONSUMER_ID as RECON_MATCH_CONSUMER_ID,
+  toReconMatchSettlement,
+  handleReconMatchSettlement,
+} from './recon-settlement.ts';
+
+export type {
+  ReconMatchSettlement,
+  ReconMatchSettlementPort,
+  ApplyReconMatchEffect,
+  SettlementHandledOutcome,
+  SettlementTranslation,
+} from './recon-settlement.ts';
+
+export {
   ALLOWED_TRANSITIONS,
   canTransition,
   nextStatuses,

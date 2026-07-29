@@ -314,13 +314,8 @@ on conflict (module_id) do update set
 -- legível é "Contas a Pagar"; o pacote é `@alsham/accounts-payable`. Só o
 -- identificador é curto, e é ele que o contrato exige que seja o prefixo.
 --
--- ⭐ **A diferença que este bloco marca:** `events_emits` cheio e
--- `events_consumes` VAZIO — o espelho exato do `marketing`. Com este módulo, o
--- catálogo passa a mostrar o triângulo inteiro: `recon` emite e `marketing`
--- escuta; `ap` emite e `recon` escuta. Nenhum dos três conhece nenhum outro.
---
--- `status = 'published'` com UMA capacidade. As outras 18 do Domain Financeiro
--- não aparecem porque não existem.
+-- ⭐ **A diferença que este bloco marca:** `events_consumes` DEIXOU DE SER
+-- VAZIO — fechamento do ciclo do débito (`recon.match.decided` + `0014`).
 -- =============================================================================
 
 insert into core.module_registry (
@@ -347,12 +342,9 @@ values (
      {"type":"ap.payable.updated","version":1,"description":"Mudou algo que interessa a quem escuta: valor, vencimento, quanto já foi liquidado ou o estado."},
      {"type":"ap.payable.cancelled","version":1,"description":"Um título foi cancelado — a ação destrutiva deste módulo. Some da operação, nunca da trilha, e nunca do banco."}
    ]'::jsonb,
-  -- Vazio, e é Lei 7. Seria fácil declarar que este módulo escuta a baixa do
-  -- Módulo 1 e se liquida sozinho — é a integração óbvia, e a primeira que um
-  -- cliente pede. Mas o handler não existe, e consumo declarado sem consumidor
-  -- faz o Core acordar um módulo que não sabe responder.
-  '[]'::jsonb,
-  -- Nenhum agente embarcado ainda.
+  '[
+     {"type":"recon.match.decided","version":1,"description":"Um casamento de débito foi confirmado ou rejeitado na conciliação. Confirmar liquida o título a pagar pelo externalRef; rejeitar só registra. Overpay é recusado."}
+   ]'::jsonb,
   '[]'::jsonb,
   '0.0.x',
   'published'

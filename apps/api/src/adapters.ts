@@ -10,10 +10,15 @@ import type {
   ExternalReceivablePort,
 } from '@alsham/finance-reconciliation';
 import type {
-  ApplyReconMatchEffect,
-  ReconMatchSettlement,
-  ReconMatchSettlementPort,
+  ApplyReconMatchEffect as ArApplyEffect,
+  ReconMatchSettlement as ArSettlement,
+  ReconMatchSettlementPort as ArSettlementPort,
 } from '@alsham/accounts-receivable';
+import type {
+  ApplyReconMatchEffect as ApApplyEffect,
+  ReconMatchSettlement as ApSettlement,
+  ReconMatchSettlementPort as ApSettlementPort,
+} from '@alsham/accounts-payable';
 
 /**
  * Os adaptadores reais dos consumidores.
@@ -218,10 +223,10 @@ export function createExternalReceivablePort(pool: Pool): ExternalReceivablePort
  * Liquidação AR a partir de `recon.match.decided`.
  * Chama `ar.apply_recon_match()`; origem por parâmetro (envelope).
  */
-export function createReconMatchSettlementPort(pool: Pool): ReconMatchSettlementPort {
+export function createReconMatchSettlementPort(pool: Pool): ArSettlementPort {
   return {
-    async applyReconMatch(settlement: ReconMatchSettlement) {
-      const { rows } = await pool.query<{ efeito: ApplyReconMatchEffect }>(
+    async applyReconMatch(settlement: ArSettlement) {
+      const { rows } = await pool.query<{ efeito: ArApplyEffect }>(
         `select ar.apply_recon_match(
                   $1::uuid, $2::text, $3::uuid, $4::text,
                   $5::bigint, $6::char(3), $7::text, $8::text) as efeito`,
@@ -240,6 +245,38 @@ export function createReconMatchSettlementPort(pool: Pool): ReconMatchSettlement
       const efeito = rows[0]?.efeito;
       if (efeito === undefined) {
         throw new Error('ar.apply_recon_match não devolveu desfecho');
+      }
+      return efeito;
+    },
+  };
+}
+
+/**
+ * Liquidação AP a partir de `recon.match.decided`.
+ * Chama `ap.apply_recon_match()`; origem por parâmetro (envelope).
+ */
+export function createApReconMatchSettlementPort(pool: Pool): ApSettlementPort {
+  return {
+    async applyReconMatch(settlement: ApSettlement) {
+      const { rows } = await pool.query<{ efeito: ApApplyEffect }>(
+        `select ap.apply_recon_match(
+                  $1::uuid, $2::text, $3::uuid, $4::text,
+                  $5::bigint, $6::char(3), $7::text, $8::text) as efeito`,
+        [
+          settlement.tenantId,
+          settlement.sourceModuleId,
+          settlement.matchId,
+          settlement.externalRef,
+          settlement.matchedAmountCents,
+          settlement.currency,
+          settlement.decision,
+          settlement.targetKind,
+        ],
+      );
+
+      const efeito = rows[0]?.efeito;
+      if (efeito === undefined) {
+        throw new Error('ap.apply_recon_match não devolveu desfecho');
       }
       return efeito;
     },

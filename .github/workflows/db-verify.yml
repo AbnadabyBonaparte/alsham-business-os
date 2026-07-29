@@ -129,6 +129,9 @@ jobs:
       - name: aplicar 0013_ar_apply_recon_match.sql
         run: $PSQL -f supabase/migrations/0013_ar_apply_recon_match.sql
 
+      - name: aplicar 0014_ap_apply_recon_match.sql
+        run: $PSQL -f supabase/migrations/0014_ap_apply_recon_match.sql
+
       # ---------------------------------------------------------------------
       # 2. SEED — e a prova de que reaplicar não muda nada
       # ---------------------------------------------------------------------
@@ -264,6 +267,9 @@ jobs:
 
       - name: teste ciclo fechado (recon confirma → ar liquida)
         run: $PSQL -f supabase/tests/09_ar_recon_settlement.sql
+
+      - name: teste ciclo fechado (recon confirma → ap liquida)
+        run: $PSQL -f supabase/tests/10_ap_recon_settlement.sql
 
       # ⛔ CANCELAR É ESTADO, NUNCA DELETE — conferido no banco aplicado.
       - name: nenhuma porta de DELETE em ar.receivables
@@ -533,6 +539,7 @@ jobs:
           $PSQL -q -f supabase/migrations/0011_recon_receivables.sql
           $PSQL -q -f supabase/migrations/0012_recon_match_decided.sql
           $PSQL -q -f supabase/migrations/0013_ar_apply_recon_match.sql
+          $PSQL -q -f supabase/migrations/0014_ap_apply_recon_match.sql
           $PSQL -q -f supabase/seed/0001_platform.sql
 
       # ⚠️ Sem `DATABASE_URL` os testes do store se PULAM — de propósito, para

@@ -220,8 +220,8 @@ buraco conhecido, não como esquecimento.
 - ⚠️ **O schema `ar` precisará ser EXPOSTO na Data API do Supabase pelo dono** —
   quarta vez que este aviso aparece. Runbook §10.0.
 - **Ciclo do crédito fechado em arquivo:** confirmar casamento emite
-  `recon.match.decided`; o AR liquida. AP ainda **não** consome o mesmo evento
-  (espelho a construir).
+  `recon.match.decided`; o AR liquida. O AP também consome o mesmo evento
+  (`0014`).
 - **Ainda NÃO CONSTRUÍDO neste módulo:** botões de recebimento/estorno na tela;
   baixa por perda.
 - **O par `ap`/`ar` agora tem três guardas de espelho** (teste de pacote, teste
