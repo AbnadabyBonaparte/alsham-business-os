@@ -51,7 +51,7 @@ begin
   set local request.jwt.claim.sub = '11111111-1111-4111-8111-111111111111';
 
   insert into ar.receivables
-    (tenant_id, external_ref, due_date, amount_cents, currency, counterparty_name, description)
+    (tenant_id, external_ref, due_date, amount_cents, currency, payer_name, description)
   values
     ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', 'DOC-CRED-0001', '2026-09-10',
      200000, 'BRL', 'Cliente Alfa', 'serviço faturado');
@@ -79,7 +79,7 @@ begin
     (v_payload->>'currency')::char(3),
     v_payload->>'status',
     coalesce((v_payload->>'receivedAmountCents')::bigint, 0),
-    v_payload->>'counterpartyName',
+    v_payload->>'payerName',
     v_payload->>'counterpartyTaxId',
     v_payload->>'description'
   ) into v_efeito;

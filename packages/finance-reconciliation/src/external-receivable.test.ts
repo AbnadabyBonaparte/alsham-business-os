@@ -31,7 +31,7 @@ function envelope(
       amountCents: 150_000,
       receivedAmountCents: 0,
       currency: 'BRL',
-      counterpartyName: 'Cliente Alfa',
+      payerName: 'Cliente Alfa',
       counterpartyTaxId: null,
       description: 'serviço faturado',
       status: 'open',
@@ -48,6 +48,7 @@ describe('tradução ar.receivable → projeção recon', () => {
     if (r.kind !== 'apply') return;
     assert.equal(r.receivable.externalRef, 'DOC-R-2026-0001');
     assert.equal(r.receivable.sourceModuleId, 'ar');
+    assert.equal(r.receivable.counterpartyName, 'Cliente Alfa');
   });
 
   test('origem vem do envelope', () => {

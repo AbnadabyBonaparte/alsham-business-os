@@ -28,7 +28,8 @@ interface ReceivablePayload {
   readonly amountCents?: unknown;
   readonly receivedAmountCents?: unknown;
   readonly currency?: unknown;
-  readonly counterpartyName?: unknown;
+  /** Nome no evento AR (`0010_ar.sql` emite `payerName`). */
+  readonly payerName?: unknown;
   readonly counterpartyTaxId?: unknown;
   readonly description?: unknown;
   readonly status?: unknown;
@@ -114,7 +115,8 @@ export function toExternalReceivable(envelope: EventEnvelope): ReceivableTransla
       amountCents,
       receivedAmountCents,
       currency,
-      counterpartyName: textoOuNulo(payload.counterpartyName),
+      // Evento fala `payerName`; a projeção recon guarda `counterparty_name`.
+      counterpartyName: textoOuNulo(payload.payerName),
       counterpartyTaxId: textoOuNulo(payload.counterpartyTaxId),
       description: textoOuNulo(payload.description) ?? '',
       status: status as ExternalReceivable['status'],

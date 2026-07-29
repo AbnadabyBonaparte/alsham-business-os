@@ -11,7 +11,6 @@ const SEED = resolve(HERE, '../../../supabase/seed/0001_platform.sql');
 const MIGRATION = resolve(HERE, '../../../supabase/migrations/0010_ar.sql');
 const TAXONOMIA = resolve(HERE, '../../../docs/canon/TAXONOMIA-EMPRESARIAL-ALSHAM.md');
 const MATCHING = resolve(HERE, '../../finance-reconciliation/src/matching.ts');
-const RECON_SQL = resolve(HERE, '../../../supabase/migrations/0002_recon.sql');
 
 const sql = readFileSync(SEED, 'utf8');
 const migration = readFileSync(MIGRATION, 'utf8');
