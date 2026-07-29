@@ -54,4 +54,24 @@ export interface ApPort {
    * quer: a tela é conveniência, o schema é lei.
    */
   updateStatus(input: { payableId: string; status: PayableStatus }): Promise<void>;
+
+  /**
+   * ⭐ **Registra ou ESTORNA valor liquidado — e grava valor e estado JUNTOS.**
+   *
+   * Nasceu no acabamento de demonstração, e a razão de ser um método só (em
+   * vez de "registrar" e "estornar") é a mesma que fez o `usage_ledger` não ter
+   * `delete`: **estorno é lançamento**. O valor novo é o total acumulado, e
+   * quem o calcula é o pacote — a porta só grava.
+   *
+   * ⚠️ Valor e estado vão no MESMO `update`. Separá-los abriria um instante em
+   * que o título tem valor de liquidado e estado de aberto — e a
+   * `payables_status_coherent` do banco recusaria, com um erro que ninguém
+   * entende.
+   */
+  applySettlement(input: {
+    payableId: string;
+    settledAmountCents: number;
+    status: PayableStatus;
+    settlementMethod: string | null;
+  }): Promise<void>;
 }

@@ -13,7 +13,7 @@ const SEED = resolve(HERE, '../../../supabase/seed/0001_platform.sql');
 describe('o menu mostra só o que o usuário pode abrir', () => {
   test('sem permissão nenhuma, restam as rotas do Core', () => {
     const itens = visibleMenu(new Set());
-    assert.deepEqual(itens.map((i) => i.href), ['/', '/store']);
+    assert.deepEqual(itens.map((i) => i.href), ['/', '/store', '/ajustes']);
   });
 
   test('⭐ o Painel e a Store nunca somem — são a plataforma, não catálogo', () => {

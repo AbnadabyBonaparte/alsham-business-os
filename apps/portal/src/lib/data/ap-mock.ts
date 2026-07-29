@@ -120,6 +120,26 @@ export function createApMockPort(): ApPort {
       return { payableId: id };
     },
 
+    async applySettlement(input: {
+      payableId: string;
+      settledAmountCents: number;
+      status: PayableStatus;
+      settlementMethod: string | null;
+    }) {
+      const alvo = titulos.find((t) => t.id === input.payableId);
+      if (!alvo) throw new DataPortError('Título não encontrado.');
+      // ⛔ O mock recusa o que o banco recusa: pagar a maior. Um mock
+      // permissivo faria a demonstração prometer o que o produto nega.
+      if (input.settledAmountCents > alvo.amountCents) {
+        throw new DataPortError(
+          'O valor liquidado passaria do valor do título. Pagar a maior é recusado por este módulo — confira o valor.',
+        );
+      }
+      alvo.settledAmountCents = input.settledAmountCents;
+      alvo.status = input.status;
+      if (input.settlementMethod !== null) alvo.paymentMethod = input.settlementMethod;
+    },
+
     async updateStatus({ payableId, status }: { payableId: string; status: PayableStatus }) {
       const alvo = titulos.find((t) => t.id === payableId);
       if (!alvo) throw new DataPortError('Título não encontrado.');

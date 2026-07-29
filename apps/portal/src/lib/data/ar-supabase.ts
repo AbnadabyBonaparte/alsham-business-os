@@ -121,6 +121,41 @@ export function createArSupabasePort(db: SupabaseClient, tenantId: string): ArPo
       return { receivableId: (data as { id: string }).id };
     },
 
+    async applyReceipt(input) {
+      const { error } = await db
+        .schema(AR)
+        .from('receivables')
+        .update({
+          received_amount_cents: input.receivedAmountCents,
+          status: input.status,
+          ...(input.settlementMethod !== null
+            ? { settlement_method: input.settlementMethod }
+            : {}),
+        })
+        .eq('id', input.receivableId)
+        .eq('tenant_id', tenantId);
+
+      if (error) {
+        const code = (error as { code?: string }).code;
+        if (code === '42501') {
+          throw new DataPortError(
+            'Você não tem permissão para alterar este título.',
+            { cause: error },
+          );
+        }
+        if (code === '22023') {
+          throw new DataPortError(
+            'Esta mudança de estado não existe no ciclo de vida do título.',
+            { cause: error },
+          );
+        }
+        // ⭐ Aqui NÃO há constraint de "receber a maior": ela não existe de
+        // propósito (`0010_ar.sql` §2.1). Um 23514 aqui seria a coerência de
+        // estado, não o excedente.
+        fail('registrar o recebimento', error);
+      }
+    },
+
     async updateStatus(input) {
       const { error } = await db
         .schema(AR)

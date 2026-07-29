@@ -48,4 +48,18 @@ export interface ArPort {
    * quer: a tela é conveniência, o schema é lei.
    */
   updateStatus(input: { receivableId: string; status: ReceivableStatus }): Promise<void>;
+
+  /**
+   * ⭐ **Registra ou ESTORNA valor recebido — valor e estado JUNTOS.**
+   *
+   * Espelho do `applySettlement` do `ap`, com a divergência do módulo intacta:
+   * aqui o valor PODE passar do devido (receber a maior é permitido), e é
+   * `statusForReceipt()` quem decide o estado resultante.
+   */
+  applyReceipt(input: {
+    receivableId: string;
+    receivedAmountCents: number;
+    status: ReceivableStatus;
+    settlementMethod: string | null;
+  }): Promise<void>;
 }

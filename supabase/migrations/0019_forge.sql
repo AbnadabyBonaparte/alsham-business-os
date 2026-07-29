@@ -54,6 +54,26 @@
 -- É a mesma arquitetura do `lib/providerLabels.ts` do kraken-v2, que devolve o
 -- rótulo funcional da etapa ("Texto", "Arte") e deixa o fornecedor fora do
 -- texto visível.
+--
+-- **5. ⚠️ A GERAÇÃO É SÍNCRONA NESTA ETAPA, e a decisão é declarada.**
+--
+-- A sonda do kraken-v2 registrou que lá a geração é **JOB** — `jobs` com
+-- estados e avanço por `cron`, com lock idempotente. É o desenho certo para o
+-- pipeline dele: um vídeo vira dez peças, e ninguém fica olhando a tela.
+--
+-- Aqui é diferente, e por uma razão de produto: **o operador pede a geração
+-- PARADO numa etapa da esteira, e o resultado volta para a MESMA tela**, onde
+-- ele decide — aprova, refaz ou descarta. Assíncrono exigiria uma segunda tela
+-- ("seu rascunho ficou pronto") que não existe, e um caminho de notificação
+-- que também não existe.
+--
+-- ⛔ **E se um dia for assíncrona, a fila é a do Core — nunca uma segunda.**
+-- `core.event_outbox` já tem arrendamento, backoff e `dead` sem apagar.
+-- ⚠️ O que FALTA para isso, e por isso está NÃO CONSTRUÍDO: a política de
+-- reentrega do correio é boa para entregar FATO e perigosa para refazer
+-- CHAMADA PAGA — um evento que falha três vezes custa três gerações. Quando
+-- entrar, entra com política própria de tentativa, e essa política é decisão
+-- do dono.
 -- =============================================================================
 
 -- =============================================================================
@@ -161,6 +181,20 @@ create table core.ai_generations (
   consumed       integer     not null default 0 check (consumed >= 0),
   -- Termos da marca que ESCAPARAM — a rede de segurança acusa, não redige.
   violations     text[]      not null default '{}',
+  -- ⭐ **MINERADO do `usage_ledger.is_mock` do kraken-v2** (migration 0012
+  -- daquele repositório), e a razão está escrita lá: *"custo de laboratório
+  -- contamina o relatório de margem, que é a razão de existir do ledger"*.
+  --
+  -- ⚠️ **É COLUNA, e não inferência pelo nome do adaptador.** Deduzir "é mock
+  -- porque o `adapter_id` começa com demo-" funcionaria hoje e quebraria no dia
+  -- em que um adaptador real se chamasse assim. A marca tem de ser um fato
+  -- gravado, não um palpite sobre uma string.
+  --
+  -- ⛔ E a consequência é dupla: a geração de laboratório **existe no
+  -- registro** (para o operador ver o que aconteceu) e **não existe no
+  -- livro-caixa** (`core.usage_ledger` não recebe lançamento). Marcada, e fora
+  -- da conta.
+  is_mock        boolean     not null default false,
   failure_reason text,
   -- De onde veio o pedido. TEXTO LIVRE e opcional: hoje é a esteira, amanhã
   -- pode ser qualquer módulo, e um enum aqui obrigaria migration a cada um.

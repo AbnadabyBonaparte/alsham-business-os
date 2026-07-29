@@ -13,6 +13,8 @@ import {
   TableSkeleton,
 } from '@/components/states';
 import { WorkOrderDetail } from '@/components/work-order-detail';
+import { ForgePanel } from '@/components/forge-panel';
+import { readForgeState } from '@/app/forge-actions';
 import { shortDate } from '@/lib/format';
 
 export const dynamic = 'force-dynamic';
@@ -64,11 +66,16 @@ async function Conteudo({ orderId }: { orderId: string }) {
   const port = await getOpsPort();
 
   try {
-    const [permissions, ordens, esteiras, detalhe] = await Promise.all([
+    const [permissions, ordens, esteiras, detalhe, estadoTexto, estadoImagem] = await Promise.all([
       port.listPermissions(),
       port.loadOrders(),
       port.loadPipelines(),
       port.loadOrderDetail(orderId),
+      // ⭐ O estado da forja é lido no SERVIDOR, uma vez, e desce por
+      // parâmetro. O componente não pergunta ao motor — ele desenha o que já
+      // foi decidido.
+      readForgeState('text'),
+      readForgeState('image'),
     ]);
 
     const os = ordens.find((o) => o.id === orderId);
@@ -122,6 +129,20 @@ async function Conteudo({ orderId }: { orderId: string }) {
               {os.description}
             </p>
           </Panel>
+        ) : null}
+
+        {/* ⭐ A Etapa 14 encaixando na 13: o motor só existe DENTRO de uma OS
+            que está numa etapa, e o resultado dele é uma versão de entregável
+            como qualquer outra. */}
+        {os.status === 'open' || os.status === 'in_progress' ? (
+          <div className="mb-6">
+            <ForgePanel
+              orderId={os.id}
+              estadoTexto={estadoTexto}
+              estadoImagem={estadoImagem}
+              canManage={permissions.has(PERMISSIONS.orderManage)}
+            />
+          </div>
         ) : null}
 
         <WorkOrderDetail

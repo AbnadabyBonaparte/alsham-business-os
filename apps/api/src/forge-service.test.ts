@@ -261,6 +261,30 @@ describe('⭐ gerar mede, e o prompt não vaza', { skip: SEM_BANCO }, () => {
       [TENANT_PRO, AI_METRIC],
     );
     assert.equal(rows[0].n, 0, 'o mock lançou consumo — o relatório de margem mentiria');
+
+    // ⭐ **Mas ELA EXISTE no registro, MARCADA.** É a diferença entre "fora da
+    // conta" e "invisível": o operador precisa ver o que aconteceu, e o
+    // livro-caixa precisa não ver. Minerado do `usage_ledger.is_mock` do
+    // kraken-v2, com a marca virando COLUNA em vez de palpite sobre o nome do
+    // adaptador.
+    const { rows: reg } = await pool.query(
+      'select is_mock from core.ai_generations where id = $1',
+      [r.generationId],
+    );
+    assert.equal(reg[0].is_mock, true, 'a geração de laboratório não ficou marcada');
+  });
+
+  test('⛔ e a geração REAL nasce com is_mock falso', async () => {
+    // Sem `ALSHAM_FORGE_DEMO`, o caminho é o do adaptador real — que sem chave
+    // nem chega a ser chamado. O que importa aqui é a MARCA no registro.
+    const e = await readEngineState(
+      { pool, env: ENV_COM_CHAVE_FALSA },
+      TENANT_PRO,
+      'text',
+      new Date(),
+    );
+    assert.equal(e.status, 'ready');
+    assert.equal(isDemoMode(ENV_COM_CHAVE_FALSA), false);
   });
 });
 

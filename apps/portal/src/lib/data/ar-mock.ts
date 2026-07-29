@@ -120,6 +120,21 @@ export function createArMockPort(): ArPort {
       return { receivableId: id };
     },
 
+    async applyReceipt(input: {
+      receivableId: string;
+      receivedAmountCents: number;
+      status: ReceivableStatus;
+      settlementMethod: string | null;
+    }) {
+      const alvo = titulos.find((t) => t.id === input.receivableId);
+      if (!alvo) throw new DataPortError('Título não encontrado.');
+      // ⭐ E aqui NÃO há recusa por excedente — é a divergência do módulo, e o
+      // mock tem de reproduzi-la para a demonstração ser honesta.
+      alvo.receivedAmountCents = input.receivedAmountCents;
+      alvo.status = input.status;
+      if (input.settlementMethod !== null) alvo.settlementMethod = input.settlementMethod;
+    },
+
     async updateStatus({
       receivableId,
       status,

@@ -193,8 +193,8 @@ export async function generate(deps: ForgeDeps, input: ForgeInput): Promise<Forg
   // (3) O registro nasce ANTES da chamada.
   const { rows: criada } = await deps.pool.query<{ id: string }>(
     `insert into core.ai_generations
-       (tenant_id, kind, status, adapter_id, prompt, prompt_length, source_module, source_ref, created_by)
-     values ($1, $2, 'requested', $3, $4, $5, $6, $7, $8)
+       (tenant_id, kind, status, adapter_id, prompt, prompt_length, source_module, source_ref, created_by, is_mock)
+     values ($1, $2, 'requested', $3, $4, $5, $6, $7, $8, $9)
      returning id`,
     [
       input.tenantId,
@@ -206,6 +206,9 @@ export async function generate(deps: ForgeDeps, input: ForgeInput): Promise<Forg
       input.sourceModule ?? null,
       input.sourceRef ?? null,
       input.userId,
+      // ⭐ A marca é COLUNA, gravada no nascimento do pedido — e não deduzida
+      // depois pelo nome do adaptador. Ver `0019_forge.sql` §2.
+      demoMode,
     ],
   );
   const generationId = criada[0]!.id;
