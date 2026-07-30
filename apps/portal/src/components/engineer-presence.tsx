@@ -40,12 +40,36 @@ export function EngineerPresence() {
   const [pending, setPending] = useState(false);
   const pathname = usePathname();
 
+  // ⭐ Quem nunca viu PRECISA notar; quem já sabe não é incomodado. As primeiras
+  // visitas (por navegador) ganham um destaque maior; depois, o respiro discreto
+  // de sempre. Sem badge vermelho, sem "Novo!" — só amplitude e a entrada do
+  // rótulo (o anti-brand do §6 continua de pé).
+  const [novato, setNovato] = useState(false);
+
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const fimRef = useRef<HTMLDivElement>(null);
   const gatilhoRef = useRef<HTMLButtonElement>(null);
 
+  useEffect(() => {
+    try {
+      const KEY = 'bos_eng_visitas';
+      const n = Number(window.localStorage.getItem(KEY) ?? '0');
+      if (n < 3) setNovato(true); // as três primeiras vezes
+      window.localStorage.setItem(KEY, String(Number.isFinite(n) ? n + 1 : 1));
+    } catch {
+      // localStorage indisponível (aba privada): sem destaque, nunca quebra.
+    }
+  }, []);
+
   const abrir = useCallback(() => {
     setAberto(true);
+    // Abriu = já sabe que é interativo. O destaque se acalma para sempre.
+    setNovato(false);
+    try {
+      window.localStorage.setItem('bos_eng_visitas', '3');
+    } catch {
+      /* aba privada: tudo bem */
+    }
     // Dois quadros para o navegador registrar o estado fechado antes da
     // transição — é o que faz o painel DESLIZAR em vez de aparecer pronto.
     requestAnimationFrame(() => requestAnimationFrame(() => setEntrando(true)));
@@ -120,17 +144,22 @@ export function EngineerPresence() {
       {/* Estilos próprios da Presença — prefixo `eng-`, sem tocar o SSOT. */}
       <style>{ENGINEER_CSS}</style>
 
-      {/* O GATILHO — o arco que respira, fixo no canto. */}
+      {/* O GATILHO — o arco que respira, fixo no canto, com um rótulo SEMPRE
+          visível: quem não tem intimidade com tecnologia não precisa adivinhar
+          que ali se conversa. */}
       <button
         ref={gatilhoRef}
         type="button"
         onClick={aberto ? fechar : abrir}
-        aria-label="Abrir o Engenheiro"
+        aria-label="Abrir o Engenheiro, assistente do Business OS"
         aria-expanded={aberto}
-        className="eng-launcher"
+        className={`eng-launcher ${novato ? 'is-novato' : ''}`}
       >
+        <span className="eng-launcher-label">
+          <span className="eng-launcher-eyebrow">Assistente</span>
+          Fale com o Engenheiro
+        </span>
         <ArcoSol className="eng-launcher-arc" />
-        <span className="eng-launcher-hint">Engenheiro</span>
       </button>
 
       {aberto ? (
@@ -276,27 +305,51 @@ function Blueprint({ aceso }: { aceso: boolean }) {
 const ENGINEER_CSS = `
 .eng-launcher {
   position: fixed; right: 1.5rem; bottom: 1.5rem; z-index: 60;
-  display: inline-flex; align-items: center; gap: 0.5rem;
-  padding: 0.5rem; border-radius: 999px;
-  background: transparent; border: 1px solid transparent;
-  color: var(--bos-accent); cursor: pointer;
+  display: inline-flex; align-items: center; gap: 0.7rem;
+  padding: 0.5rem 0.6rem 0.5rem 0.95rem; border-radius: 999px;
+  cursor: pointer;
+  /* Uma superfície discreta para ler como CONTROLE, não como enfeite. */
+  background: color-mix(in srgb, var(--bos-midnight-ink) 80%, transparent);
+  border: 1px solid var(--bos-border);
+  box-shadow: inset 0 1px 0 0 color-mix(in srgb, var(--bos-ivory) 4%, transparent);
+  color: var(--bos-accent);
   transition: border-color var(--bos-duration) var(--bos-ease),
     background-color var(--bos-duration) var(--bos-ease);
 }
 .eng-launcher:hover {
-  border-color: color-mix(in srgb, var(--bos-imperial-gold) 40%, transparent);
-  background-color: color-mix(in srgb, var(--bos-midnight-ink) 70%, transparent);
+  border-color: color-mix(in srgb, var(--bos-imperial-gold) 45%, transparent);
+  background-color: color-mix(in srgb, var(--bos-midnight-ink) 92%, transparent);
+}
+/* O rótulo SEMPRE visível — legenda sóbria, nunca berrante. */
+.eng-launcher-label {
+  display: flex; flex-direction: column; align-items: flex-end; line-height: 1.15;
+  font-size: 0.82rem; color: var(--bos-text); white-space: nowrap;
+}
+.eng-launcher-eyebrow {
+  font-size: 0.56rem; letter-spacing: 0.22em; text-transform: uppercase;
+  color: color-mix(in srgb, var(--bos-imperial-gold) 72%, var(--bos-slate));
 }
 .eng-launcher-arc { width: 2.25rem; height: 2.25rem; animation: bos-sun 9s var(--bos-ease) infinite; }
-.eng-launcher-hint {
-  max-width: 0; overflow: hidden; white-space: nowrap;
-  font-size: 0.75rem; letter-spacing: 0.16em; text-transform: uppercase;
-  color: var(--bos-text); opacity: 0;
-  transition: max-width var(--bos-duration) var(--bos-ease), opacity var(--bos-duration) var(--bos-ease),
-    padding var(--bos-duration) var(--bos-ease);
+
+/* PRIMEIRAS VISITAS: o arco respira com mais amplitude e o rótulo entra —
+   destaque por movimento, jamais por badge de notificação (Anti-Brand §6). */
+.eng-launcher.is-novato { border-color: color-mix(in srgb, var(--bos-imperial-gold) 38%, transparent); }
+@media (prefers-reduced-motion: no-preference) {
+  .eng-launcher.is-novato .eng-launcher-arc { animation: eng-sun-strong 4.5s var(--bos-ease) infinite; }
+  .eng-launcher.is-novato .eng-launcher-label { animation: eng-label-in 900ms var(--bos-ease) both; }
 }
-.eng-launcher:hover .eng-launcher-hint,
-.eng-launcher:focus-visible .eng-launcher-hint { max-width: 8rem; opacity: 1; padding-right: 0.5rem; }
+@keyframes eng-sun-strong {
+  0%, 100% { opacity: 0.55; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.06); }
+}
+@keyframes eng-label-in {
+  from { opacity: 0; transform: translateX(6px); }
+  to { opacity: 1; transform: none; }
+}
+@media (max-width: 480px) {
+  /* Em tela estreita, o rótulo curto não empurra a barra: vira só o essencial. */
+  .eng-launcher-eyebrow { display: none; }
+}
 
 .eng-scrim {
   position: fixed; inset: 0; z-index: 70;

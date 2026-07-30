@@ -1,0 +1,77 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 400" role="img" aria-label="Horizonte dourado sobre obsidian — a planta antes da obra" preserveAspectRatio="xMidYMid slice">
+  <!--
+    O HERO DO PAINEL — "A Planta antes da Obra" (IDENTIDADE-VISUAL §5.2).
+    Obsidian + um único metal quente (Sol Único, §5.1). Abstrato/arquitetônico:
+    um horizonte dourado e a retícula técnica de blueprint. Zero foto de banco,
+    zero pessoa, zero gradiente roxo-rosa (Anti-Brand §6). Cores LITERAIS do
+    canon (§7); asset estático, sem marca d'água nem texto de fornecedor.
+  -->
+  <defs>
+    <radialGradient id="glow" cx="70%" cy="86%" r="62%">
+      <stop offset="0%" stop-color="#C9A24B" stop-opacity="0.22"/>
+      <stop offset="55%" stop-color="#C9A24B" stop-opacity="0.05"/>
+      <stop offset="100%" stop-color="#C9A24B" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="horizon" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#C9A24B" stop-opacity="0"/>
+      <stop offset="34%" stop-color="#C9A24B" stop-opacity="0.5"/>
+      <stop offset="72%" stop-color="#E8D9A8" stop-opacity="0.85"/>
+      <stop offset="100%" stop-color="#C9A24B" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="scrim" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#0A0E1A" stop-opacity="0.95"/>
+      <stop offset="42%" stop-color="#0A0E1A" stop-opacity="0.15"/>
+      <stop offset="100%" stop-color="#0A0E1A" stop-opacity="0"/>
+    </linearGradient>
+    <radialGradient id="gridfade" cx="70%" cy="82%" r="72%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.9"/>
+      <stop offset="68%" stop-color="#ffffff" stop-opacity="0.16"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+    <mask id="gridmask">
+      <rect width="1600" height="400" fill="url(#gridfade)"/>
+    </mask>
+    <pattern id="grid" width="64" height="64" patternUnits="userSpaceOnUse">
+      <path d="M64 0 H0 V64" fill="none" stroke="#C9A24B" stroke-width="1"/>
+    </pattern>
+    <pattern id="ticks" width="40" height="18" patternUnits="userSpaceOnUse">
+      <line x1="0.5" y1="0" x2="0.5" y2="9" stroke="#C9A24B" stroke-width="1"/>
+    </pattern>
+  </defs>
+
+  <!-- fundação obsidian + a luz (um ponto quente, nunca dois) -->
+  <rect width="1600" height="400" fill="#0A0E1A"/>
+  <rect width="1600" height="400" fill="url(#glow)"/>
+
+  <!-- a retícula técnica, dissolvendo nas bordas -->
+  <rect width="1600" height="400" fill="url(#grid)" opacity="0.13" mask="url(#gridmask)"/>
+
+  <!-- o Sol Único como horizonte: centro abaixo da borda, só o arco aparece -->
+  <g fill="none" stroke="#C9A24B">
+    <circle cx="1150" cy="486" r="150" stroke-width="1.5" stroke-opacity="0.55"/>
+    <circle cx="1150" cy="486" r="224" stroke-width="1" stroke-opacity="0.3" stroke-dasharray="2 9"/>
+    <circle cx="1150" cy="486" r="300" stroke-width="1" stroke-opacity="0.16" stroke-dasharray="2 13"/>
+    <circle cx="1150" cy="486" r="74" stroke-width="1" stroke-opacity="0.7"/>
+  </g>
+
+  <!-- linhas-guia de construção -->
+  <g stroke="#C9A24B" stroke-width="1" stroke-opacity="0.14">
+    <line x1="80" y1="360" x2="1150" y2="486"/>
+    <line x1="1150" y1="486" x2="1560" y2="250"/>
+  </g>
+
+  <!-- a linha do horizonte + os ticks de medição (blueprint, não papel milimetrado) -->
+  <rect x="0" y="300" width="1600" height="1.5" fill="url(#horizon)"/>
+  <rect x="840" y="296" width="620" height="18" fill="url(#ticks)" opacity="0.4"/>
+
+  <!-- nós nas interseções, discretos -->
+  <g fill="#C9A24B">
+    <circle cx="1150" cy="300" r="2.5" fill-opacity="0.7"/>
+    <circle cx="1310" cy="300" r="2" fill-opacity="0.5"/>
+    <circle cx="1004" cy="300" r="2" fill-opacity="0.5"/>
+    <circle cx="1224" cy="412" r="2" fill-opacity="0.45"/>
+  </g>
+
+  <!-- o scrim à esquerda: o título respira sobre obsidian, a arte vive à direita -->
+  <rect width="1600" height="400" fill="url(#scrim)"/>
+</svg>
