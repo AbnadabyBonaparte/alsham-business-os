@@ -1722,11 +1722,22 @@ jobs:
 
       # ⭐⭐ A assinatura do fund: o saldo NUNCA fica negativo (o DIVERGE do
       # bank/inv). A guarda confere que existe a recusa no schema.
+      #
+      # ⚠️ O CTE `materialized` restringe ao schema `fund` e a funções normais
+      # (prokind='f') ANTES de qualquer chamada a pg_get_functiondef. Sem essa
+      # barreira, o planejador do Postgres 17 pode avaliar pg_get_functiondef
+      # sobre TODO pg_proc antes do filtro de nspname — e ele recusa agregados
+      # ("array_agg is an aggregate function"), quebrando a guarda sem que nada
+      # no fund tenha mudado.
       - name: o fundo de promoção recusa saldo negativo
         run: |
-          D=$($PSQL -tAc "select count(*) from pg_proc p join pg_namespace n on n.oid=p.pronamespace
-                           where n.nspname='fund'
-                             and pg_get_functiondef(p.oid) ilike '%negativ%';")
+          D=$($PSQL -tAc "with fund_fns as materialized (
+                             select p.oid from pg_proc p
+                              where p.pronamespace = 'fund'::regnamespace
+                                and p.prokind = 'f'
+                           )
+                           select count(*) from fund_fns
+                            where pg_get_functiondef(oid) ilike '%negativ%';")
           [ "$D" -ge "1" ] || { echo "::error::o fund perdeu a recusa de saldo negativo (o DIVERGE do bank/inv)"; exit 1; }
 
       # ⭐ O relatório de vendas do lease, a ronda do sec e os livros do fund
