@@ -31,6 +31,7 @@
     "@alsham/visits": "workspace:*",
     "@alsham/goals": "workspace:*",
     "@alsham/comms": "workspace:*",
+    "@alsham/editorial": "workspace:*",
     "@alsham/leads": "workspace:*",
     "@alsham/maintenance": "workspace:*",
     "@alsham/marketing": "workspace:*",

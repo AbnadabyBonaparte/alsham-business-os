@@ -465,6 +465,18 @@ export const PECAS = [
     onde: 'packages/comms/',
   },
   {
+    nome: 'Módulo 25 — Calendário Editorial',
+    detector: [
+      'packages/editorial/src/manifest.ts',
+      'packages/editorial/src/editorial.ts',
+      'supabase/migrations/0040_edcal.sql',
+    ],
+    // ⚠️ NUNCA "calendário" solto: a palavra é prosa do canon (o calendário
+    // do apply, o calendário fiscal). O padrão exige o NOME DA PEÇA.
+    padrao: /(m[óo]dulo 25|packages\/editorial|@alsham\/editorial|0040_edcal)/i,
+    onde: 'packages/editorial/',
+  },
+  {
     nome: 'Menu filtrado por permissão',
     detector: ['packages/permissions/src/menu.ts'],
     // A dívida da Etapa 10 foi paga: os itens de menu não são mais escritos à

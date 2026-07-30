@@ -1667,7 +1667,64 @@ on conflict (module_id) do update set
   status          = excluded.status,
   updated_at      = now();
 
--- ⛔ Vinte e quatro módulos no catálogo, zero permissão concedida pelo seed.
+-- =============================================================================
+-- 4.23 O MÓDULO `edcal` NO CATÁLOGO DA STORE — o 25º cartão
+-- -----------------------------------------------------------------------------
+-- Calendário Editorial (Domain marketing — capacidade *Calendário*, a
+-- leitura editorial). Canal é dado do tenant; o fluxo é desenho do tenant
+-- (Lei das Etapas, 4ª aplicação); a pauta carrega o par de datas — a
+-- planejada (plano) e a real (carimbo do servidor); os dois fins terminais.
+-- `consumes` vazio por decisão de canon (Lei 7) — ver a spec §5.
+-- =============================================================================
+
+insert into core.module_registry (
+  module_id, name, version, summary,
+  layer, domain_key,
+  capabilities, permissions, events_emits, events_consumes, agents,
+  requires_core, status
+)
+values (
+  'edcal',
+  'Calendário Editorial',
+  '0.1.0',
+  'O calendário da produção de conteúdo: canal como dado do tenant, fluxo editorial como desenho do tenant (Lei das Etapas), a pauta com o par de datas — planejada × real — e dois fins terminais: publicada (ato registrado, data do servidor) ou descartada (com razão).',
+  'domain', 'marketing',
+  '[
+     {"key":"editorial-calendar","canonicalName":"Calendário"}
+   ]'::jsonb,
+  '[
+     {"key":"edcal.design.manage","moduleId":"edcal","description":"Desenhar o calendário do tenant: canais (criar, arquivar, devolver) e etapas do fluxo editorial."},
+     {"key":"edcal.piece.manage","moduleId":"edcal","description":"Planejar pautas, editar e reagendar o plano, e mover a pauta pelo fluxo (com trilha)."},
+     {"key":"edcal.piece.decide","moduleId":"edcal","description":"Registrar o fim da pauta: publicada (a data real é do servidor) ou descartada (com razão). Terminal."}
+   ]'::jsonb,
+  '[
+     {"type":"edcal.piece.planned","version":1,"description":"Uma pauta nasceu no calendário — canal, etapa e data planejada no envelope."},
+     {"type":"edcal.piece.moved","version":1,"description":"A pauta mudou de etapa no fluxo do tenant — de/para pelo NOME carimbado."},
+     {"type":"edcal.piece.published","version":1,"description":"O ATO de ter ido ao ar foi registrado — a data real ao lado da planejada. Terminal."},
+     {"type":"edcal.piece.dropped","version":1,"description":"A pauta morreu, com a razão escrita. Terminal."}
+   ]'::jsonb,
+  '[]'::jsonb,
+  '[]'::jsonb,
+  '0.0.x',
+  'published'
+)
+on conflict (module_id) do update set
+  name            = excluded.name,
+  version         = excluded.version,
+  summary         = excluded.summary,
+  layer           = excluded.layer,
+  domain_key      = excluded.domain_key,
+  vertical_key    = excluded.vertical_key,
+  capabilities    = excluded.capabilities,
+  permissions     = excluded.permissions,
+  events_emits    = excluded.events_emits,
+  events_consumes = excluded.events_consumes,
+  agents          = excluded.agents,
+  requires_core   = excluded.requires_core,
+  status          = excluded.status,
+  updated_at      = now();
+
+-- ⛔ Vinte e cinco módulos no catálogo, zero permissão concedida pelo seed.
 
 -- =============================================================================
 -- 5. PLANOS-BASE

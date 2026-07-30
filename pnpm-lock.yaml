@@ -105,6 +105,9 @@ importers:
       '@alsham/dunning':
         specifier: workspace:*
         version: link:../../packages/dunning
+      '@alsham/editorial':
+        specifier: workspace:*
+        version: link:../../packages/editorial
       '@alsham/event-management':
         specifier: workspace:*
         version: link:../../packages/event-management
@@ -354,6 +357,19 @@ importers:
         version: 5.9.3
 
   packages/dunning:
+    dependencies:
+      '@alsham/core':
+        specifier: workspace:*
+        version: link:../core
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.2
+        version: 22.20.1
+      typescript:
+        specifier: ^5.7.2
+        version: 5.9.3
+
+  packages/editorial:
     dependencies:
       '@alsham/core':
         specifier: workspace:*

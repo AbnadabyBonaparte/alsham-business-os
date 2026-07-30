@@ -49,6 +49,8 @@ import { createGoalMockPort } from './goal-mock';
 import { createGoalSupabasePort } from './goal-supabase';
 import { createCommMockPort } from './comm-mock';
 import { createCommSupabasePort } from './comm-supabase';
+import { createEdcalMockPort } from './edcal-mock';
+import { createEdcalSupabasePort } from './edcal-supabase';
 import { createOccSupabasePort } from './occ-supabase';
 import { createCareSupabasePort } from './care-supabase';
 import { createCashSupabasePort } from './cash-supabase';
@@ -80,6 +82,7 @@ import type { VisPort } from './vis-port';
 import type { LeadPort } from './lead-port';
 import type { GoalPort } from './goal-port';
 import type { CommPort } from './comm-port';
+import type { EdcalPort } from './edcal-port';
 import type { OpsPort } from './ops-port';
 import type { ForgePort } from './forge-port';
 import type { BrandPort } from './brand-port';
@@ -111,6 +114,7 @@ export type { VisPort, VisitRow } from './vis-port';
 export type { LeadPort, LeadRow } from './lead-port';
 export type { GoalPort, GoalRow } from './goal-port';
 export type { CommPort, NoticeRow } from './comm-port';
+export type { EdcalPort, PieceRow } from './edcal-port';
 export type { OpsPort, PipelineWithStages } from './ops-port';
 export type { ForgePort, GenerationResponse } from './forge-port';
 export type { BrandPort } from './brand-port';
@@ -464,6 +468,16 @@ export async function getCommPort(): Promise<CommPort> {
   // ⭐ A porta leva o userId da SESSÃO: a tela precisa saber se a PRÓPRIA
   // ciência já foi dada — e quem carimba a ciência é o gatilho, nunca a tela.
   return createCommSupabasePort(db, session.activeTenant.id, session.userId);
+}
+
+export async function getEdcalPort(): Promise<EdcalPort> {
+  const session = await resolveSession();
+  if (session.mode !== 'authenticated') return createEdcalMockPort();
+
+  const db = await createSupabaseServerClient();
+  if (!db) return createEdcalMockPort();
+
+  return createEdcalSupabasePort(db, session.activeTenant.id);
 }
 
 /**

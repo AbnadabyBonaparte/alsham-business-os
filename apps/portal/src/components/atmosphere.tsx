@@ -371,6 +371,20 @@ function OrnamentComm() {
   );
 }
 
+/** Calendário Editorial — a grade dos dias e a pena que escreve neles. */
+function OrnamentEdcal() {
+  return (
+    <svg viewBox="0 0 400 400" aria-hidden {...stroke}>
+      <rect x="100" y="120" width="200" height="170" rx="10" strokeOpacity="0.32" />
+      <path d="M100 160 h200" strokeOpacity="0.3" />
+      <path d="M140 104 v32 M260 104 v32" strokeOpacity="0.4" />
+      <path d="M133 196 h28 M187 196 h28 M241 196 h28 M133 240 h28 M187 240 h28" strokeOpacity="0.2" />
+      <path d="M252 300 q34 -44 66 -104 l14 8 q-28 62 -64 104 l-20 10 z" strokeOpacity="0.4" />
+      <path d="M318 196 l14 8" strokeOpacity="0.45" />
+    </svg>
+  );
+}
+
 /** Ajustes / a marca — o selo do tabelionato modernizado (§5.3). */
 function OrnamentSeal() {
   return (
@@ -435,6 +449,7 @@ const SCENES: readonly (readonly [string, Scene])[] = [
   ['/leads', { sun: '50% 0%', depth: '20% 100%', ornament: <OrnamentLead />, ornamentClass: RIGHT }],
   ['/metas', { sun: '80% 0%', depth: '15% 100%', ornament: <OrnamentGoal />, ornamentClass: RIGHT }],
   ['/comunicados', { sun: '25% 0%', depth: '82% 100%', ornament: <OrnamentComm />, ornamentClass: RIGHT }],
+  ['/calendario', { sun: '72% 0%', depth: '18% 100%', ornament: <OrnamentEdcal />, ornamentClass: RIGHT }],
   ['/ajustes', { sun: '50% 0%', depth: '50% 100%', ornament: <OrnamentSeal />, ornamentClass: RIGHT }],
   ['/login', { sun: '50% 12%', depth: '50% 100%', ornament: <OrnamentLogin />, ornamentClass: CENTER_LOW }],
   ['/', CORE_SCENE],
