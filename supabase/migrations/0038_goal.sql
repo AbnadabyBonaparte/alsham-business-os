@@ -425,8 +425,8 @@ select g.id                as goal_id,
        g.tenant_id,
        c.reported_value    as last_value,
        c.reported_at       as last_reported_at,
-       (select count(*) from goal.checkins cc
-         where cc.goal_id = g.id and cc.tenant_id = g.tenant_id) as checkin_count
+       (select count(*) from goal.checkins ck
+         where ck.goal_id = g.id and ck.tenant_id = g.tenant_id) as checkin_count
   from goal.goals g
   left join lateral (
     select ci.reported_value, ci.reported_at
