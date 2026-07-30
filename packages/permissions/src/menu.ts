@@ -74,6 +74,11 @@ const MENU: readonly MenuItem[] = [
   { href: '/calendario', label: 'Calendário', moduleId: 'edcal' },
   { href: '/midia', label: 'Mídia', moduleId: 'media' },
   { href: '/pesquisas', label: 'Pesquisas', moduleId: 'nps' },
+  { href: '/centros-de-custo', label: 'Centros de Custo', moduleId: 'cc' },
+  { href: '/orcamentos', label: 'Orçamentos', moduleId: 'bud' },
+  { href: '/contas-bancarias', label: 'Contas Bancárias', moduleId: 'bank' },
+  { href: '/investimentos', label: 'Investimentos', moduleId: 'invest' },
+  { href: '/dre', label: 'DRE Gerencial', moduleId: 'dre' },
   { href: '/store', label: 'Store', moduleId: null },
   { href: '/ajustes', label: 'Ajustes', moduleId: null },
 ];

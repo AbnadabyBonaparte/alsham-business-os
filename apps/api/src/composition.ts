@@ -27,11 +27,24 @@ import {
   CONSUMER_ID as DUN_CONSUMER_ID,
   handleDunTitle,
 } from '@alsham/dunning';
+import {
+  CONSUMED_EVENT_PATTERN as BUD_EVENT_PATTERN,
+  CONSUMER_ID as BUD_CONSUMER_ID,
+  handleBudMovement,
+} from '@alsham/budgets';
+import {
+  CASH_CONSUMED_EVENT_PATTERN as DRE_CASH_PATTERN,
+  CC_CONSUMED_EVENT_PATTERN as DRE_CC_PATTERN,
+  CONSUMER_ID as DRE_CONSUMER_ID,
+  handleDreEntry,
+} from '@alsham/dre';
 
 import { createPgOutboxStore } from './outbox-store.ts';
 import {
   createAuditWriter,
   createApReconMatchSettlementPort,
+  createBudMovementPort,
+  createDreEntryPort,
   createDunTitleProjectionPort,
   createExternalPayablePort,
   createExternalReceivablePort,
@@ -192,6 +205,45 @@ export function buildSubscriptions(pool: Pool): Subscription[] {
       eventType: DUN_EVENT_PATTERN,
       handle: async (envelope) => {
         await handleDunTitle(createDunTitleProjectionPort(pool))(envelope);
+      },
+    },
+
+    // 8. ⭐ O MÓDULO 29 ESCUTANDO O MÓDULO 14 — o orçamento acorda com o gasto.
+    //
+    //    O curinga `cash.*` é deliberado: só o lançamento registrado
+    //    interessa, mas categoria criada/arquivada chega pelo mesmo padrão e
+    //    é IGNORADA no handler (não enche dead letter). O realizado é VIEW
+    //    calculada; esta inscrição só ALIMENTA a projeção local.
+    //
+    //    ⛔ E aqui também NÃO está escrito o nome do módulo produtor: a
+    //    origem gravada vem de `envelope.producedBy`, dentro do handler.
+    //    Lançamento sem categoria não casa orçamento nenhum — ignorado.
+    {
+      consumer: BUD_CONSUMER_ID,
+      eventType: BUD_EVENT_PATTERN,
+      handle: async (envelope) => {
+        await handleBudMovement(createBudMovementPort(pool))(envelope);
+      },
+    },
+
+    // 9 e 10. ⭐⭐ O MÓDULO 32 (DRE) ESCUTANDO DOIS PRODUTORES — o caixa (14) e
+    //         o rateio (28). O primeiro consumidor do repositório com DUAS
+    //         inscrições para o MESMO handler: os valores da DRE nascem dos dois
+    //         livros. Nenhum dos dois módulos é importado; a origem gravada vem
+    //         de `envelope.producedBy`, dentro do handler. Categoria/origem
+    //         ausente é ignorada; a DRE não inventa exclusividade de fonte.
+    {
+      consumer: DRE_CONSUMER_ID,
+      eventType: DRE_CASH_PATTERN,
+      handle: async (envelope) => {
+        await handleDreEntry(createDreEntryPort(pool))(envelope);
+      },
+    },
+    {
+      consumer: DRE_CONSUMER_ID,
+      eventType: DRE_CC_PATTERN,
+      handle: async (envelope) => {
+        await handleDreEntry(createDreEntryPort(pool))(envelope);
       },
     },
   ];

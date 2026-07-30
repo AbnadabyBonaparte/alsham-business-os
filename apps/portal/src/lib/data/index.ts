@@ -55,6 +55,16 @@ import { createMediaMockPort } from './media-mock';
 import { createMediaSupabasePort } from './media-supabase';
 import { createNpsMockPort } from './nps-mock';
 import { createNpsSupabasePort } from './nps-supabase';
+import { createCcMockPort } from './cc-mock';
+import { createCcSupabasePort } from './cc-supabase';
+import { createBudMockPort } from './bud-mock';
+import { createBudSupabasePort } from './bud-supabase';
+import { createBankMockPort } from './bank-mock';
+import { createBankSupabasePort } from './bank-supabase';
+import { createInvestMockPort } from './invest-mock';
+import { createInvestSupabasePort } from './invest-supabase';
+import { createDreMockPort } from './dre-mock';
+import { createDreSupabasePort } from './dre-supabase';
 import { createOccSupabasePort } from './occ-supabase';
 import { createCareSupabasePort } from './care-supabase';
 import { createCashSupabasePort } from './cash-supabase';
@@ -89,6 +99,11 @@ import type { CommPort } from './comm-port';
 import type { EdcalPort } from './edcal-port';
 import type { MediaPort } from './media-port';
 import type { NpsPort } from './nps-port';
+import type { CcPort } from './cc-port';
+import type { BudPort } from './bud-port';
+import type { BankPort } from './bank-port';
+import type { InvestPort } from './invest-port';
+import type { DrePort } from './dre-port';
 import type { OpsPort } from './ops-port';
 import type { ForgePort } from './forge-port';
 import type { BrandPort } from './brand-port';
@@ -123,6 +138,11 @@ export type { CommPort, NoticeRow } from './comm-port';
 export type { EdcalPort, PieceRow } from './edcal-port';
 export type { MediaPort, AssetRowMedia } from './media-port';
 export type { NpsPort, SurveyRow } from './nps-port';
+export type { CcPort, CenterRow, RuleRow, ExecutionRow, ByCenterRow } from './cc-port';
+export type { BudPort, BudgetRow } from './bud-port';
+export type { BankPort, AccountRow, BalanceRow, MovementRow as BankMovementRow } from './bank-port';
+export type { InvestPort, HoldingRow, PositionRow } from './invest-port';
+export type { DrePort, DreLineRow, DreStatementRow, DreResultRow } from './dre-port';
 export type { OpsPort, PipelineWithStages } from './ops-port';
 export type { ForgePort, GenerationResponse } from './forge-port';
 export type { BrandPort } from './brand-port';
@@ -506,6 +526,56 @@ export async function getNpsPort(): Promise<NpsPort> {
   if (!db) return createNpsMockPort();
 
   return createNpsSupabasePort(db, session.activeTenant.id);
+}
+
+export async function getCcPort(): Promise<CcPort> {
+  const session = await resolveSession();
+  if (session.mode !== 'authenticated') return createCcMockPort();
+
+  const db = await createSupabaseServerClient();
+  if (!db) return createCcMockPort();
+
+  return createCcSupabasePort(db, session.activeTenant.id);
+}
+
+export async function getBudPort(): Promise<BudPort> {
+  const session = await resolveSession();
+  if (session.mode !== 'authenticated') return createBudMockPort();
+
+  const db = await createSupabaseServerClient();
+  if (!db) return createBudMockPort();
+
+  return createBudSupabasePort(db, session.activeTenant.id);
+}
+
+export async function getBankPort(): Promise<BankPort> {
+  const session = await resolveSession();
+  if (session.mode !== 'authenticated') return createBankMockPort();
+
+  const db = await createSupabaseServerClient();
+  if (!db) return createBankMockPort();
+
+  return createBankSupabasePort(db, session.activeTenant.id);
+}
+
+export async function getInvestPort(): Promise<InvestPort> {
+  const session = await resolveSession();
+  if (session.mode !== 'authenticated') return createInvestMockPort();
+
+  const db = await createSupabaseServerClient();
+  if (!db) return createInvestMockPort();
+
+  return createInvestSupabasePort(db, session.activeTenant.id);
+}
+
+export async function getDrePort(): Promise<DrePort> {
+  const session = await resolveSession();
+  if (session.mode !== 'authenticated') return createDreMockPort();
+
+  const db = await createSupabaseServerClient();
+  if (!db) return createDreMockPort();
+
+  return createDreSupabasePort(db, session.activeTenant.id);
 }
 
 /**

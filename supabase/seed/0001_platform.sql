@@ -1836,7 +1836,298 @@ on conflict (module_id) do update set
   status          = excluded.status,
   updated_at      = now();
 
--- ⛔ Vinte e sete módulos no catálogo, zero permissão concedida pelo seed.
+-- =============================================================================
+-- 4.26 O MÓDULO `cc` NO CATÁLOGO DA STORE — o 28º cartão
+-- -----------------------------------------------------------------------------
+-- Centros de Custo & Rateio (Domain finance — o primeiro da Missão Sete, o
+-- Bloco Financeiro). Centro é dado do tenant (volta do arquivo); a regra
+-- fecha 100% ao ativar (física); a execução é ato de gente que gera
+-- lançamentos imutáveis, com a origem por id solto + nome carimbado.
+-- `consumes` vazio e honesto — quem executa é gente.
+-- =============================================================================
+
+insert into core.module_registry (
+  module_id, name, version, summary,
+  layer, domain_key,
+  capabilities, permissions, events_emits, events_consumes, agents,
+  requires_core, status
+)
+values (
+  'cc',
+  'Centros de Custo & Rateio',
+  '0.1.0',
+  'Os centros de custo do tenant (que voltam do arquivo), as regras de rateio que fecham 100% ao ativar, e a execução como ato de gente: lançamentos imutáveis, um por centro, sem perder centavo — com a origem por id solto e nome carimbado.',
+  'domain', 'finance',
+  '[
+     {"key":"cost-centers","canonicalName":"Centros de custo"},
+     {"key":"cost-allocation","canonicalName":"Rateio"}
+   ]'::jsonb,
+  '[
+     {"key":"cc.center.manage","moduleId":"cc","description":"Cadastrar centros de custo, arquivar e devolver ao ativo."},
+     {"key":"cc.rule.design","moduleId":"cc","description":"Desenhar as regras de rateio: centros e percentuais; ativar (exige 100%) e arquivar."},
+     {"key":"cc.rateio.execute","moduleId":"cc","description":"Executar uma regra ativa sobre um valor, gerando os lançamentos de rateio (ato de gente)."}
+   ]'::jsonb,
+  '[
+     {"type":"cc.center.registered","version":1,"description":"Um centro de custo entrou no cadastro."},
+     {"type":"cc.center.archived","version":1,"description":"Um centro saiu de uso — a história e as execuções ficam."},
+     {"type":"cc.rule.activated","version":1,"description":"Uma regra fechou 100% e passou a ratear."},
+     {"type":"cc.rateio.executed","version":1,"description":"Um rateio foi executado — a regra, a origem pelo nome e o total no envelope; os valores por centro ficam no livro."}
+   ]'::jsonb,
+  '[]'::jsonb,
+  '[]'::jsonb,
+  '0.0.x',
+  'published'
+)
+on conflict (module_id) do update set
+  name            = excluded.name,
+  version         = excluded.version,
+  summary         = excluded.summary,
+  layer           = excluded.layer,
+  domain_key      = excluded.domain_key,
+  vertical_key    = excluded.vertical_key,
+  capabilities    = excluded.capabilities,
+  permissions     = excluded.permissions,
+  events_emits    = excluded.events_emits,
+  events_consumes = excluded.events_consumes,
+  agents          = excluded.agents,
+  requires_core   = excluded.requires_core,
+  status          = excluded.status,
+  updated_at      = now();
+
+-- ⛔ Vinte e oito módulos no catálogo, zero permissão concedida pelo seed.
+
+-- =============================================================================
+-- 4.27 O MÓDULO `bud` NO CATÁLOGO DA STORE — o 29º cartão
+-- -----------------------------------------------------------------------------
+-- Orçamentos (Domain finance — o segundo da Missão Sete). O teto por categoria
+-- e período; ativar CONGELA a trave (categoria, período, teto — a física do
+-- goal no dinheiro); o realizado é a soma do livro do cash — calculado, nunca
+-- coluna. ⭐ `consumes` NÃO é vazio: escuta `cash.entry.registered` com handler
+-- construído (realized.ts) — esta onda EXIGE redeploy do apps/api.
+-- =============================================================================
+
+insert into core.module_registry (
+  module_id, name, version, summary,
+  layer, domain_key,
+  capabilities, permissions, events_emits, events_consumes, agents,
+  requires_core, status
+)
+values (
+  'bud',
+  'Orçamentos',
+  '0.1.0',
+  'O teto de gasto por categoria e período. Ativar congela a trave (categoria, período, teto); o realizado é a soma do livro do Fluxo de Caixa que casa a categoria — calculado, nunca digitado. O período fechado é terminal.',
+  'domain', 'finance',
+  '[
+     {"key":"budgeting","canonicalName":"Orçamento"}
+   ]'::jsonb,
+  '[
+     {"key":"bud.budget.manage","moduleId":"bud","description":"Criar, editar e ativar orçamentos. Ativar congela a trave — categoria, período e teto param de mudar."},
+     {"key":"bud.budget.close","moduleId":"bud","description":"Fechar o período de um orçamento — ato terminal: o período vira história e o próximo é orçamento novo."}
+   ]'::jsonb,
+  '[
+     {"type":"bud.budget.opened","version":1,"description":"Um orçamento nasceu no rascunho — categoria, período e teto ainda editáveis."},
+     {"type":"bud.budget.activated","version":1,"description":"O orçamento foi ativado — a trave congelou; a partir daqui só o nome muda."},
+     {"type":"bud.budget.closed","version":1,"description":"O período do orçamento foi fechado — terminal; o próximo período é orçamento novo."}
+   ]'::jsonb,
+  '[
+     {"type":"cash.entry.registered","version":1,"description":"Um lançamento entrou no livro do Fluxo de Caixa — se for desembolso na categoria e no período de um orçamento, entra no realizado."}
+   ]'::jsonb,
+  '[]'::jsonb,
+  '0.0.x',
+  'published'
+)
+on conflict (module_id) do update set
+  name            = excluded.name,
+  version         = excluded.version,
+  summary         = excluded.summary,
+  layer           = excluded.layer,
+  domain_key      = excluded.domain_key,
+  vertical_key    = excluded.vertical_key,
+  capabilities    = excluded.capabilities,
+  permissions     = excluded.permissions,
+  events_emits    = excluded.events_emits,
+  events_consumes = excluded.events_consumes,
+  agents          = excluded.agents,
+  requires_core   = excluded.requires_core,
+  status          = excluded.status,
+  updated_at      = now();
+
+-- ⛔ Vinte e nove módulos no catálogo, zero permissão concedida pelo seed.
+
+-- =============================================================================
+-- 4.28 O MÓDULO `bank` NO CATÁLOGO DA STORE — o 30º cartão
+-- -----------------------------------------------------------------------------
+-- Contas Bancárias (Domain finance — o terceiro da Missão Sete). SOL ÚNICO: a
+-- conciliação é do recon; aqui é o cadastro das contas (voltam do arquivo) e o
+-- livro por conta. O saldo é view e PODE ser negativo (cheque especial); a
+-- transferência é atômica. `consumes` vazio e honesto (dupla contagem).
+-- =============================================================================
+
+insert into core.module_registry (
+  module_id, name, version, summary,
+  layer, domain_key,
+  capabilities, permissions, events_emits, events_consumes, agents,
+  requires_core, status
+)
+values (
+  'bank',
+  'Contas Bancárias',
+  '0.1.0',
+  'As contas do tenant (que voltam do arquivo) e o livro de movimentos por conta, imutável. O saldo é a soma do livro — pode ser negativo (cheque especial). A transferência é atômica: duas pernas, uma transação. Não refaz a conciliação (é do recon).',
+  'domain', 'finance',
+  '[
+     {"key":"bank-accounts","canonicalName":"Bancos"}
+   ]'::jsonb,
+  '[
+     {"key":"bank.account.manage","moduleId":"bank","description":"Cadastrar contas bancárias, arquivar e devolver ao ativo."},
+     {"key":"bank.movement.register","moduleId":"bank","description":"Lançar entrada/saída no livro de uma conta e transferir entre contas."},
+     {"key":"bank.movement.adjust","moduleId":"bank","description":"Ajustar o saldo de uma conta — ato com razão obrigatória, de quem confere."}
+   ]'::jsonb,
+  '[
+     {"type":"bank.account.registered","version":1,"description":"Uma conta bancária entrou no cadastro."},
+     {"type":"bank.account.archived","version":1,"description":"Uma conta saiu de uso — o livro dela continua inteiro."},
+     {"type":"bank.movement.registered","version":1,"description":"Um movimento entrou no livro de uma conta — com o sinal do tipo e a competência."},
+     {"type":"bank.transfer.executed","version":1,"description":"Uma transferência entre duas contas foi executada — as duas pernas ligadas pelo transfer_id."}
+   ]'::jsonb,
+  '[]'::jsonb,
+  '[]'::jsonb,
+  '0.0.x',
+  'published'
+)
+on conflict (module_id) do update set
+  name            = excluded.name,
+  version         = excluded.version,
+  summary         = excluded.summary,
+  layer           = excluded.layer,
+  domain_key      = excluded.domain_key,
+  vertical_key    = excluded.vertical_key,
+  capabilities    = excluded.capabilities,
+  permissions     = excluded.permissions,
+  events_emits    = excluded.events_emits,
+  events_consumes = excluded.events_consumes,
+  agents          = excluded.agents,
+  requires_core   = excluded.requires_core,
+  status          = excluded.status,
+  updated_at      = now();
+
+-- ⛔ Trinta módulos no catálogo, zero permissão concedida pelo seed.
+
+-- =============================================================================
+-- 4.29 O MÓDULO `invest` NO CATÁLOGO DA STORE — o 31º cartão
+-- -----------------------------------------------------------------------------
+-- Investimentos (Domain finance — o quarto da Missão Sete). Livro de atos
+-- imutáveis (aplicação, rendimento, resgate); a posição é a soma dos atos —
+-- SEM cotação de mercado (Lei 3/7). ⭐ Resgatar mais que a posição é RECUSADO
+-- (a terceira resposta: ar permite overpay, inv permite negativo). `consumes`
+-- vazio — rendimento é ato de gente.
+-- =============================================================================
+
+insert into core.module_registry (
+  module_id, name, version, summary,
+  layer, domain_key,
+  capabilities, permissions, events_emits, events_consumes, agents,
+  requires_core, status
+)
+values (
+  'invest',
+  'Investimentos',
+  '0.1.0',
+  'Os investimentos do tenant (que voltam do arquivo) e o livro de atos imutáveis: aplicação, rendimento e resgate. A posição é a soma dos atos — sem cotação de mercado. Resgatar mais que a posição é recusado.',
+  'domain', 'finance',
+  '[
+     {"key":"investments","canonicalName":"Investimentos"}
+   ]'::jsonb,
+  '[
+     {"key":"invest.holding.manage","moduleId":"invest","description":"Cadastrar investimentos, arquivar e devolver ao ativo."},
+     {"key":"invest.movement.register","moduleId":"invest","description":"Registrar atos: aplicação, rendimento e resgate (resgate não passa da posição)."}
+   ]'::jsonb,
+  '[
+     {"type":"invest.holding.registered","version":1,"description":"Um investimento entrou no cadastro."},
+     {"type":"invest.holding.archived","version":1,"description":"Um investimento saiu de uso — o livro dele continua inteiro."},
+     {"type":"invest.movement.registered","version":1,"description":"Um ato entrou no livro — aplicação, rendimento ou resgate, com o sinal e a competência."}
+   ]'::jsonb,
+  '[]'::jsonb,
+  '[]'::jsonb,
+  '0.0.x',
+  'published'
+)
+on conflict (module_id) do update set
+  name            = excluded.name,
+  version         = excluded.version,
+  summary         = excluded.summary,
+  layer           = excluded.layer,
+  domain_key      = excluded.domain_key,
+  vertical_key    = excluded.vertical_key,
+  capabilities    = excluded.capabilities,
+  permissions     = excluded.permissions,
+  events_emits    = excluded.events_emits,
+  events_consumes = excluded.events_consumes,
+  agents          = excluded.agents,
+  requires_core   = excluded.requires_core,
+  status          = excluded.status,
+  updated_at      = now();
+
+-- ⛔ Trinta e um módulos no catálogo, zero permissão concedida pelo seed.
+
+-- =============================================================================
+-- 4.30 O MÓDULO `dre` NO CATÁLOGO DA STORE — o 32º cartão
+-- -----------------------------------------------------------------------------
+-- DRE Gerencial (Domain finance — o quinto e último da Missão Sete). ⛔ NÃO é
+-- fiscal (Lei 3). O plano de linhas é desenho do tenant; ⭐⭐ os valores nascem
+-- dos livros do cash E do cc, projetados por evento com handler real; totais
+-- são views; linha sem lançamento não aparece. ⚠️ Consumidor — o apps/api
+-- precisa de redeploy no apply.
+-- =============================================================================
+
+insert into core.module_registry (
+  module_id, name, version, summary,
+  layer, domain_key,
+  capabilities, permissions, events_emits, events_consumes, agents,
+  requires_core, status
+)
+values (
+  'dre',
+  'DRE Gerencial',
+  '0.1.0',
+  'A leitura gerencial do resultado (não fiscal): as linhas que o tenant desenha, com os valores nascendo dos livros do Fluxo de Caixa e dos Rateios — projetados por evento. Totais e subtotais são calculados; linha sem lançamento não aparece.',
+  'domain', 'finance',
+  '[
+     {"key":"income-statement","canonicalName":"DRE"}
+   ]'::jsonb,
+  '[
+     {"key":"dre.line.manage","moduleId":"dre","description":"Desenhar o plano de linhas da DRE: nome, natureza (receita/custo/despesa) e a categoria que casa."},
+     {"key":"dre.statement.read","moduleId":"dre","description":"Ler o demonstrativo e o resultado — sem poder alterar o plano."}
+   ]'::jsonb,
+  '[
+     {"type":"dre.line.registered","version":1,"description":"Uma linha entrou no plano da DRE."},
+     {"type":"dre.line.archived","version":1,"description":"Uma linha saiu do plano — o histórico dela continua nos livros."}
+   ]'::jsonb,
+  '[
+     {"type":"cash.entry.registered","version":1,"description":"Um lançamento de caixa — vira valor da linha que casa a categoria."},
+     {"type":"cc.rateio.executed","version":1,"description":"Um custo rateado — vira valor (negativo) da linha que casa a origem do rateio."}
+   ]'::jsonb,
+  '[]'::jsonb,
+  '0.0.x',
+  'published'
+)
+on conflict (module_id) do update set
+  name            = excluded.name,
+  version         = excluded.version,
+  summary         = excluded.summary,
+  layer           = excluded.layer,
+  domain_key      = excluded.domain_key,
+  vertical_key    = excluded.vertical_key,
+  capabilities    = excluded.capabilities,
+  permissions     = excluded.permissions,
+  events_emits    = excluded.events_emits,
+  events_consumes = excluded.events_consumes,
+  agents          = excluded.agents,
+  requires_core   = excluded.requires_core,
+  status          = excluded.status,
+  updated_at      = now();
+
+-- ⛔ Trinta e dois módulos no catálogo, zero permissão concedida pelo seed.
 
 -- =============================================================================
 -- 5. PLANOS-BASE

@@ -501,6 +501,56 @@ export const PECAS = [
     onde: 'packages/nps/',
   },
   {
+    nome: 'Módulo 28 — Centros de Custo & Rateio',
+    detector: [
+      'packages/cost-centers/src/manifest.ts',
+      'packages/cost-centers/src/cost-centers.ts',
+      'supabase/migrations/0043_cc.sql',
+    ],
+    padrao: /(m[óo]dulo 28|packages\/cost-centers|@alsham\/cost-centers|0043_cc)/i,
+    onde: 'packages/cost-centers/',
+  },
+  {
+    nome: 'Módulo 29 — Orçamentos',
+    detector: [
+      'packages/budgets/src/manifest.ts',
+      'packages/budgets/src/realized.ts',
+      'supabase/migrations/0044_bud.sql',
+    ],
+    padrao: /(m[óo]dulo 29|packages\/budgets|@alsham\/budgets|0044_bud)/i,
+    onde: 'packages/budgets/',
+  },
+  {
+    nome: 'Módulo 30 — Contas Bancárias',
+    detector: [
+      'packages/bank-accounts/src/manifest.ts',
+      'packages/bank-accounts/src/bank-accounts.ts',
+      'supabase/migrations/0045_bank.sql',
+    ],
+    padrao: /(m[óo]dulo 30|packages\/bank-accounts|@alsham\/bank-accounts|0045_bank)/i,
+    onde: 'packages/bank-accounts/',
+  },
+  {
+    nome: 'Módulo 31 — Investimentos',
+    detector: [
+      'packages/investments/src/manifest.ts',
+      'packages/investments/src/investments.ts',
+      'supabase/migrations/0046_invest.sql',
+    ],
+    padrao: /(m[óo]dulo 31|packages\/investments|@alsham\/investments|0046_invest)/i,
+    onde: 'packages/investments/',
+  },
+  {
+    nome: 'Módulo 32 — DRE Gerencial',
+    detector: [
+      'packages/dre/src/manifest.ts',
+      'packages/dre/src/realized.ts',
+      'supabase/migrations/0047_dre.sql',
+    ],
+    padrao: /(m[óo]dulo 32|packages\/dre|@alsham\/dre|0047_dre)/i,
+    onde: 'packages/dre/',
+  },
+  {
     nome: 'Menu filtrado por permissão',
     detector: ['packages/permissions/src/menu.ts'],
     // A dívida da Etapa 10 foi paga: os itens de menu não são mais escritos à

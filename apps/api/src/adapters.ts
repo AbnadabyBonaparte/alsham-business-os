@@ -23,6 +23,14 @@ import type {
   DunTitlePort,
   ExternalTitle as DunExternalTitle,
 } from '@alsham/dunning';
+import type {
+  BudMovement,
+  BudMovementPort,
+} from '@alsham/budgets';
+import type {
+  DreEntry,
+  DreEntryPort,
+} from '@alsham/dre';
 
 /**
  * Os adaptadores reais dos consumidores.
@@ -317,6 +325,71 @@ export function createDunTitleProjectionPort(pool: Pool): DunTitlePort {
       const efeito = rows[0]?.efeito;
       if (efeito === undefined) {
         throw new Error('dun.record_external_receivable não devolveu desfecho');
+      }
+      return efeito;
+    },
+  };
+}
+
+/**
+ * Projeção do orçamento a partir dos lançamentos do Fluxo de Caixa.
+ * Chama `bud.record_external_movement()`; origem por parâmetro (envelope).
+ * Zero decisão aqui — o realizado é VIEW calculada, e quem soma é o banco.
+ */
+export function createBudMovementPort(pool: Pool): BudMovementPort {
+  return {
+    async recordExternalMovement(movement: BudMovement) {
+      const { rows } = await pool.query<{ efeito: 'projected' | 'unchanged' }>(
+        `select bud.record_external_movement(
+                  $1::uuid, $2::text, $3::text, $4::text,
+                  $5::char(3), $6::date, $7::bigint) as efeito`,
+        [
+          movement.tenantId,
+          movement.sourceModuleId,
+          movement.externalRef,
+          movement.categoryName,
+          movement.currency,
+          movement.occurredOn,
+          movement.signedAmountCents,
+        ],
+      );
+
+      const efeito = rows[0]?.efeito;
+      if (efeito === undefined) {
+        throw new Error('bud.record_external_movement não devolveu desfecho');
+      }
+      return efeito;
+    },
+  };
+}
+
+/**
+ * Projeção da DRE a partir de DOIS livros (cash e cc).
+ * Chama `dre.record_external_entry()`; origem por parâmetro (envelope).
+ * Zero decisão aqui — os totais são views calculadas, e quem soma é o banco.
+ */
+export function createDreEntryPort(pool: Pool): DreEntryPort {
+  return {
+    async recordExternalEntry(entry: DreEntry) {
+      const { rows } = await pool.query<{ efeito: 'projected' | 'unchanged' }>(
+        `select dre.record_external_entry(
+                  $1::uuid, $2::text, $3::text, $4::text, $5::text,
+                  $6::char(3), $7::date, $8::bigint) as efeito`,
+        [
+          entry.tenantId,
+          entry.sourceModuleId,
+          entry.sourceKind,
+          entry.externalRef,
+          entry.categoryName,
+          entry.currency,
+          entry.occurredOn,
+          entry.signedAmountCents,
+        ],
+      );
+
+      const efeito = rows[0]?.efeito;
+      if (efeito === undefined) {
+        throw new Error('dre.record_external_entry não devolveu desfecho');
       }
       return efeito;
     },

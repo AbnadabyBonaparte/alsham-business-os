@@ -29,9 +29,15 @@ importers:
       '@alsham/billing':
         specifier: workspace:*
         version: link:../../packages/billing
+      '@alsham/budgets':
+        specifier: workspace:*
+        version: link:../../packages/budgets
       '@alsham/core':
         specifier: workspace:*
         version: link:../../packages/core
+      '@alsham/dre':
+        specifier: workspace:*
+        version: link:../../packages/dre
       '@alsham/dunning':
         specifier: workspace:*
         version: link:../../packages/dunning
@@ -72,9 +78,15 @@ importers:
       '@alsham/assets':
         specifier: workspace:*
         version: link:../../packages/assets
+      '@alsham/bank-accounts':
+        specifier: workspace:*
+        version: link:../../packages/bank-accounts
       '@alsham/billing':
         specifier: workspace:*
         version: link:../../packages/billing
+      '@alsham/budgets':
+        specifier: workspace:*
+        version: link:../../packages/budgets
       '@alsham/care':
         specifier: workspace:*
         version: link:../../packages/care
@@ -96,12 +108,18 @@ importers:
       '@alsham/core':
         specifier: workspace:*
         version: link:../../packages/core
+      '@alsham/cost-centers':
+        specifier: workspace:*
+        version: link:../../packages/cost-centers
       '@alsham/crm':
         specifier: workspace:*
         version: link:../../packages/crm
       '@alsham/deals':
         specifier: workspace:*
         version: link:../../packages/deals
+      '@alsham/dre':
+        specifier: workspace:*
+        version: link:../../packages/dre
       '@alsham/dunning':
         specifier: workspace:*
         version: link:../../packages/dunning
@@ -120,6 +138,9 @@ importers:
       '@alsham/inventory':
         specifier: workspace:*
         version: link:../../packages/inventory
+      '@alsham/investments':
+        specifier: workspace:*
+        version: link:../../packages/investments
       '@alsham/leads':
         specifier: workspace:*
         version: link:../../packages/leads
@@ -246,7 +267,33 @@ importers:
         specifier: ^5.7.2
         version: 5.9.3
 
+  packages/bank-accounts:
+    dependencies:
+      '@alsham/core':
+        specifier: workspace:*
+        version: link:../core
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.2
+        version: 22.20.1
+      typescript:
+        specifier: ^5.7.2
+        version: 5.9.3
+
   packages/billing:
+    dependencies:
+      '@alsham/core':
+        specifier: workspace:*
+        version: link:../core
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.2
+        version: 22.20.1
+      typescript:
+        specifier: ^5.7.2
+        version: 5.9.3
+
+  packages/budgets:
     dependencies:
       '@alsham/core':
         specifier: workspace:*
@@ -336,6 +383,19 @@ importers:
         specifier: ^5.7.2
         version: 5.9.3
 
+  packages/cost-centers:
+    dependencies:
+      '@alsham/core':
+        specifier: workspace:*
+        version: link:../core
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.2
+        version: 22.20.1
+      typescript:
+        specifier: ^5.7.2
+        version: 5.9.3
+
   packages/crm:
     dependencies:
       '@alsham/core':
@@ -350,6 +410,19 @@ importers:
         version: 5.9.3
 
   packages/deals:
+    dependencies:
+      '@alsham/core':
+        specifier: workspace:*
+        version: link:../core
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.2
+        version: 22.20.1
+      typescript:
+        specifier: ^5.7.2
+        version: 5.9.3
+
+  packages/dre:
     dependencies:
       '@alsham/core':
         specifier: workspace:*
@@ -428,6 +501,19 @@ importers:
         version: 5.9.3
 
   packages/inventory:
+    dependencies:
+      '@alsham/core':
+        specifier: workspace:*
+        version: link:../core
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.2
+        version: 22.20.1
+      typescript:
+        specifier: ^5.7.2
+        version: 5.9.3
+
+  packages/investments:
     dependencies:
       '@alsham/core':
         specifier: workspace:*

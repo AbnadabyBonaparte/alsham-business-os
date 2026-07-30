@@ -415,6 +415,89 @@ function OrnamentNps() {
   );
 }
 
+/** Centros de Custo — o círculo que se reparte em fatias que fecham o todo. */
+function OrnamentCc() {
+  return (
+    <svg viewBox="0 0 400 400" aria-hidden {...stroke}>
+      <circle cx="200" cy="200" r="92" strokeOpacity="0.32" />
+      <path d="M200 200 L200 108" strokeOpacity="0.4" />
+      <path d="M200 200 L280 246" strokeOpacity="0.4" />
+      <path d="M200 200 L120 246" strokeOpacity="0.4" />
+      <path d="M200 200 m0 -92 a92 92 0 0 1 80 46" strokeOpacity="0.2" strokeDasharray="2 6" />
+      <circle cx="200" cy="200" r="6" strokeOpacity="0.5" />
+      <path d="M96 320 h208" strokeOpacity="0.18" strokeDasharray="2 8" />
+    </svg>
+  );
+}
+
+/** Orçamentos — a trave (o teto) e a barra que sobe até encostar nela. */
+function OrnamentBud() {
+  return (
+    <svg viewBox="0 0 400 400" aria-hidden {...stroke}>
+      {/* A TRAVE — o teto congelado, horizontal e firme. */}
+      <path d="M96 150 h208" strokeOpacity="0.4" />
+      {/* A barra do realizado, subindo por baixo da trave. */}
+      <path d="M140 300 v-96" strokeOpacity="0.34" />
+      <path d="M200 300 v-128" strokeOpacity="0.34" />
+      <path d="M260 300 v-150" strokeOpacity="0.4" />
+      <path d="M96 300 h208" strokeOpacity="0.3" />
+      {/* O estouro pontilhado — o que passa da trave é honesto. */}
+      <path d="M260 150 v-24" strokeOpacity="0.2" strokeDasharray="2 6" />
+    </svg>
+  );
+}
+
+/** Contas Bancárias — duas contas e o arco da transferência entre elas. */
+function OrnamentBank() {
+  return (
+    <svg viewBox="0 0 400 400" aria-hidden {...stroke}>
+      {/* Duas contas — dois cofres redondos. */}
+      <circle cx="130" cy="230" r="46" strokeOpacity="0.34" />
+      <circle cx="270" cy="230" r="46" strokeOpacity="0.34" />
+      {/* O arco da transferência — a ponte entre as duas. */}
+      <path d="M130 184 q70 -70 140 0" strokeOpacity="0.4" />
+      <path d="M258 178 l14 6 -6 14" strokeOpacity="0.4" />
+      {/* A linha do saldo — pode descer abaixo de zero. */}
+      <path d="M96 300 h208" strokeOpacity="0.2" strokeDasharray="2 8" />
+    </svg>
+  );
+}
+
+/** Investimentos — a semente e a árvore que cresce dos atos, sem prometer. */
+function OrnamentInvest() {
+  return (
+    <svg viewBox="0 0 400 400" aria-hidden {...stroke}>
+      {/* O tronco — o principal aplicado. */}
+      <path d="M200 320 v-120" strokeOpacity="0.4" />
+      {/* Os galhos — os rendimentos que se somam, degrau a degrau. */}
+      <path d="M200 260 l40 -30" strokeOpacity="0.34" />
+      <path d="M200 230 l-40 -30" strokeOpacity="0.34" />
+      <path d="M200 200 l40 -34" strokeOpacity="0.34" />
+      {/* A linha do chão — a posição parte do zero, do que está no papel. */}
+      <path d="M120 320 h160" strokeOpacity="0.2" strokeDasharray="2 8" />
+      <circle cx="200" cy="150" r="6" strokeOpacity="0.5" />
+    </svg>
+  );
+}
+
+/** DRE — a régua do resultado: receita para cima, custo e despesa para baixo. */
+function OrnamentDre() {
+  return (
+    <svg viewBox="0 0 400 400" aria-hidden {...stroke}>
+      {/* A linha do zero — o eixo do resultado. */}
+      <path d="M96 230 h208" strokeOpacity="0.4" />
+      {/* A receita — a barra que sobe. */}
+      <path d="M150 230 v-70" strokeOpacity="0.34" />
+      {/* Custo e despesa — as barras que descem. */}
+      <path d="M200 230 v40" strokeOpacity="0.34" />
+      <path d="M250 230 v24" strokeOpacity="0.34" />
+      {/* O resultado — o traço que sobra. */}
+      <path d="M296 200 h-16" strokeOpacity="0.5" />
+      <path d="M296 200 v30" strokeOpacity="0.2" strokeDasharray="2 6" />
+    </svg>
+  );
+}
+
 /** Ajustes / a marca — o selo do tabelionato modernizado (§5.3). */
 function OrnamentSeal() {
   return (
@@ -482,6 +565,11 @@ const SCENES: readonly (readonly [string, Scene])[] = [
   ['/calendario', { sun: '72% 0%', depth: '18% 100%', ornament: <OrnamentEdcal />, ornamentClass: RIGHT }],
   ['/midia', { sun: '18% 0%', depth: '85% 100%', ornament: <OrnamentMedia />, ornamentClass: LEFT }],
   ['/pesquisas', { sun: '78% 0%', depth: '12% 100%', ornament: <OrnamentNps />, ornamentClass: RIGHT }],
+  ['/centros-de-custo', { sun: '55% 0%', depth: '20% 100%', ornament: <OrnamentCc />, ornamentClass: RIGHT }],
+  ['/orcamentos', { sun: '42% 0%', depth: '76% 100%', ornament: <OrnamentBud />, ornamentClass: LEFT }],
+  ['/contas-bancarias', { sun: '62% 0%', depth: '30% 100%', ornament: <OrnamentBank />, ornamentClass: RIGHT }],
+  ['/investimentos', { sun: '38% 0%', depth: '70% 100%', ornament: <OrnamentInvest />, ornamentClass: LEFT }],
+  ['/dre', { sun: '50% 0%', depth: '50% 100%', ornament: <OrnamentDre />, ornamentClass: RIGHT }],
   ['/ajustes', { sun: '50% 0%', depth: '50% 100%', ornament: <OrnamentSeal />, ornamentClass: RIGHT }],
   ['/login', { sun: '50% 12%', depth: '50% 100%', ornament: <OrnamentLogin />, ornamentClass: CENTER_LOW }],
   ['/', CORE_SCENE],
