@@ -52,15 +52,43 @@ const TOM: Record<ShelfState, Tone> = {
   'previously-installed': 'neutral',
 };
 
+/**
+ * O filtro de EXIBIÇÃO da vitrine — os dois grupos que os badges do topo já
+ * contam. Não é enum de banco nem estado do módulo: é só qual fatia da
+ * prateleira o dono quer olhar agora.
+ */
+type FiltroGrupo = 'em-uso' | 'disponivel';
+
+/**
+ * O grupo de um item — MESMO critério de `summarizeShelf` (o que ocupa vaga no
+ * plano: instalado, instalando ou suspenso). É o que garante que "N instalados"
+ * filtra exatamente o que "N instalados" conta.
+ */
+function grupoDoEstado(state: ShelfState): FiltroGrupo {
+  return state === 'installed' || state === 'installing' || state === 'suspended'
+    ? 'em-uso'
+    : 'disponivel';
+}
+
 export function StoreShelf({
   items,
   roles,
   canInstall,
+  resumo,
+  limite,
 }: {
   items: readonly ShelfItem[];
   roles: readonly { key: string; name: string }[];
   canInstall: boolean;
+  resumo: { readonly installed: number; readonly available: number };
+  limite: number | null;
 }) {
+  // ⭐ Estado LOCAL, mutuamente exclusivo. Sem query param: não há padrão de URL
+  // state para listas neste portal (só login e troca de tenant o usam), então
+  // seguir um inexistente seria inventar convenção. Clicar no badge ativo
+  // desliga o filtro.
+  const [filtro, setFiltro] = useState<FiltroGrupo | null>(null);
+
   if (items.length === 0) {
     return (
       <EmptyState
@@ -71,26 +99,132 @@ export function StoreShelf({
   }
 
   const { domains, verticals } = mapShelfToTaxonomy(items);
+  const nenhumVisivel =
+    filtro !== null && !items.some((i) => grupoDoEstado(i.state) === filtro);
 
   return (
-    <div className="flex flex-col gap-14">
-      <GalleryView
-        gallery={domains}
-        eyebrow="O mapa · Domínios Universais"
-        title="Domínios Universais"
-        blurb="18 territórios que praticamente toda empresa usa. Cada um agrupa suas capacidades; o empacotamento em módulos é decisão de produto."
-        roles={roles}
+    <div className="flex flex-col gap-10">
+      <FiltroBadges
+        filtro={filtro}
+        onToggle={(g) => setFiltro((atual) => (atual === g ? null : g))}
+        resumo={resumo}
+        limite={limite}
         canInstall={canInstall}
       />
-      <GalleryView
-        gallery={verticals}
-        eyebrow="O mapa · Verticais por Setor"
-        title="Verticais por Setor"
-        blurb="29 territórios por ramo. Reutilizam os Domínios e acrescentam só o que é do ofício."
-        roles={roles}
-        canInstall={canInstall}
-      />
+
+      {nenhumVisivel ? (
+        <EmptyState
+          title={
+            filtro === 'em-uso'
+              ? 'Nenhum módulo instalado ainda'
+              : 'Nada disponível para instalar'
+          }
+          hint="É só o filtro. Clique de novo no badge ativo para ver a vitrine inteira."
+        />
+      ) : (
+        <div className="flex flex-col gap-14">
+          <GalleryView
+            gallery={domains}
+            eyebrow="O mapa · Domínios Universais"
+            title="Domínios Universais"
+            blurb="18 territórios que praticamente toda empresa usa. Cada um agrupa suas capacidades; o empacotamento em módulos é decisão de produto."
+            roles={roles}
+            canInstall={canInstall}
+            filtro={filtro}
+          />
+          <GalleryView
+            gallery={verticals}
+            eyebrow="O mapa · Verticais por Setor"
+            title="Verticais por Setor"
+            blurb="29 territórios por ramo. Reutilizam os Domínios e acrescentam só o que é do ofício."
+            roles={roles}
+            canInstall={canInstall}
+            filtro={filtro}
+          />
+        </div>
+      )}
     </div>
+  );
+}
+
+/**
+ * A fileira de badges do topo — agora TOGGLE de filtro (o dono clicou esperando
+ * que filtrassem, e não filtravam). São mutuamente exclusivos; o ativo ganha
+ * realce com `--bos-accent` (nunca cor nova, IDENTIDADE-VISUAL §2). O badge
+ * "somente leitura" continua informativo: quem barra instalar é
+ * `core.install_module()`, não a tela.
+ */
+function FiltroBadges({
+  filtro,
+  onToggle,
+  resumo,
+  limite,
+  canInstall,
+}: {
+  filtro: FiltroGrupo | null;
+  onToggle: (grupo: FiltroGrupo) => void;
+  resumo: { readonly installed: number; readonly available: number };
+  limite: number | null;
+  canInstall: boolean;
+}) {
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <ToggleBadge
+        ativo={filtro === 'em-uso'}
+        onClick={() => onToggle('em-uso')}
+        rotulo={`Filtrar por ${resumo.installed} instalado${resumo.installed === 1 ? '' : 's'}`}
+      >
+        {resumo.installed} instalado{resumo.installed === 1 ? '' : 's'}
+        {/* O teto é INFORMAÇÃO aqui. Quem barra é core.install_module(). */}
+        {limite !== null ? ` de ${limite}` : ''}
+      </ToggleBadge>
+      <ToggleBadge
+        ativo={filtro === 'disponivel'}
+        onClick={() => onToggle('disponivel')}
+        rotulo={`Filtrar por ${resumo.available} disponíve${resumo.available === 1 ? 'l' : 'is'}`}
+      >
+        {resumo.available} disponíve{resumo.available === 1 ? 'l' : 'is'}
+      </ToggleBadge>
+      {filtro !== null ? (
+        <span className="text-[11px] text-bos-muted">
+          filtrando — clique de novo no badge para ver tudo
+        </span>
+      ) : null}
+      {canInstall ? null : (
+        <span className="inline-flex items-center gap-1 rounded-full border border-bos-border bg-bos-elevated px-2.5 py-0.5 text-xs whitespace-nowrap text-bos-muted">
+          somente leitura
+        </span>
+      )}
+    </div>
+  );
+}
+
+/** Um badge que é botão: neutro quando inativo, realçado no accent quando ativo. */
+function ToggleBadge({
+  ativo,
+  onClick,
+  rotulo,
+  children,
+}: {
+  ativo: boolean;
+  onClick: () => void;
+  rotulo: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={ativo}
+      aria-label={rotulo}
+      className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs whitespace-nowrap transition-colors ${
+        ativo
+          ? 'border-bos-accent bg-bos-accent/20 text-bos-text'
+          : 'border-bos-border bg-bos-elevated text-bos-muted hover:border-bos-accent/50 hover:text-bos-text'
+      }`}
+    >
+      {children}
+    </button>
   );
 }
 
@@ -101,6 +235,7 @@ function GalleryView({
   blurb,
   roles,
   canInstall,
+  filtro,
 }: {
   gallery: Gallery;
   eyebrow: string;
@@ -108,8 +243,25 @@ function GalleryView({
   blurb: string;
   roles: readonly { key: string; name: string }[];
   canInstall: boolean;
+  filtro: FiltroGrupo | null;
 }) {
   const rotuloCamada = gallery.layer === 'domain' ? 'Domínio' : 'Vertical';
+
+  // O filtro é de EXIBIÇÃO, por cima do que buildShelf()/mapShelfToTaxonomy já
+  // decidiram: cada seção mostra só os cards do grupo escolhido, e uma seção que
+  // fica sem card some. Território "Em breve" (sem módulo) não participa do
+  // filtro — some enquanto ele estiver ativo (Lei 7: é mapa, não card).
+  const secoesVisiveis = gallery.live
+    .map((secao) => ({
+      ...secao,
+      items: filtro
+        ? secao.items.filter((i) => grupoDoEstado(i.state) === filtro)
+        : secao.items,
+    }))
+    .filter((secao) => secao.items.length > 0);
+
+  // Com filtro ativo, uma galeria inteira sem card não vira cabeçalho órfão.
+  if (filtro !== null && secoesVisiveis.length === 0) return null;
 
   return (
     <section>
@@ -121,9 +273,9 @@ function GalleryView({
         <p className="mt-1.5 max-w-2xl text-sm text-bos-muted">{blurb}</p>
       </div>
 
-      {gallery.live.length > 0 ? (
+      {secoesVisiveis.length > 0 ? (
         <div className="flex flex-col gap-8">
-          {gallery.live.map((secao) => (
+          {secoesVisiveis.map((secao) => (
             <LiveSection
               key={secao.territory.key}
               section={secao}
@@ -135,7 +287,7 @@ function GalleryView({
         </div>
       ) : null}
 
-      {gallery.upcoming.length > 0 ? (
+      {filtro === null && gallery.upcoming.length > 0 ? (
         <UpcomingBlock territories={gallery.upcoming} rotuloCamada={rotuloCamada} />
       ) : null}
     </section>

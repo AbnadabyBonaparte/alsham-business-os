@@ -3,7 +3,7 @@ import { Suspense } from 'react';
 import { buildShelf, summarizeShelf } from '@alsham/permissions';
 
 import { getStorePort, DataPortError } from '@/lib/data';
-import { Badge, DemoNotice, ErrorState, PageHero, SectionHeader, TableSkeleton } from '@/components/states';
+import { DemoNotice, ErrorState, PageHero, SectionHeader, TableSkeleton } from '@/components/states';
 import { StoreShelf } from '@/components/store-shelf';
 
 export const dynamic = 'force-dynamic';
@@ -64,20 +64,18 @@ async function Conteudo() {
           title="A empresa não compra um sistema."
           accent="Ela monta o dela."
           subtitle="Core mais módulos, como Lego: instalar dá acesso e concede as permissões do manifesto — e desinstalar não apaga nada."
-          aside={
-            <div className="flex flex-wrap items-center gap-2">
-              <Badge tone={resumo.installed > 0 ? 'success' : 'neutral'}>
-                {resumo.installed} instalado{resumo.installed === 1 ? '' : 's'}
-                {/* O teto é INFORMAÇÃO aqui. Quem barra é core.install_module(). */}
-                {limite !== null ? ` de ${limite}` : ''}
-              </Badge>
-              <Badge tone="neutral">{resumo.available} disponíve{resumo.available === 1 ? 'l' : 'is'}</Badge>
-              {canInstall ? null : <Badge tone="neutral">somente leitura</Badge>}
-            </div>
-          }
         />
 
-        <StoreShelf items={items} roles={roles} canInstall={canInstall} />
+        {/* Os badges de resumo agora vivem DENTRO da prateleira: são toggle de
+            filtro, e o estado do filtro é local ao client component que desenha
+            as seções que ele filtra. */}
+        <StoreShelf
+          items={items}
+          roles={roles}
+          canInstall={canInstall}
+          resumo={resumo}
+          limite={limite}
+        />
 
         <div className="mt-6 flex max-w-3xl flex-col gap-3 text-xs text-bos-muted">
           <p>
