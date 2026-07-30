@@ -1498,7 +1498,62 @@ on conflict (module_id) do update set
   status          = excluded.status,
   updated_at      = now();
 
--- ⛔ Vinte e um módulos no catálogo, zero permissão concedida pelo seed.
+-- -----------------------------------------------------------------------------
+-- 4.20 O MÓDULO `lead` NO CATÁLOGO DA STORE — o 22º cartão
+-- -----------------------------------------------------------------------------
+-- Leads (Domain crm — capacidade *Leads*). A fila de entrada: origem TEXTO
+-- LIVRE, ciclo curto com desfechos terminais (o lead é a manifestação de
+-- interesse — quem volta é lead novo), vínculos SOLTOS carimbados pela tela.
+-- `consumes` vazio por decisão de canon (Lei 7) — ver a spec §5.
+-- =============================================================================
+
+insert into core.module_registry (
+  module_id, name, version, summary,
+  layer, domain_key,
+  capabilities, permissions, events_emits, events_consumes, agents,
+  requires_core, status
+)
+values (
+  'lead',
+  'Leads',
+  '0.1.0',
+  'A fila de entrada do comercial: origem em TEXTO LIVRE (o dado que a fila existe para guardar), ciclo curto com a volta à fila permitida, desfechos terminais com carimbo — e o vínculo SOLTO com a contraparte e o negócio de quem qualificou.',
+  'domain', 'crm',
+  '[
+     {"key":"leads","canonicalName":"Leads"}
+   ]'::jsonb,
+  '[
+     {"key":"lead.lead.manage","moduleId":"lead","description":"Registrar leads, atender, devolver à fila e atribuir responsável."},
+     {"key":"lead.lead.decide","moduleId":"lead","description":"Qualificar (carimbando os vínculos soltos) e descartar com razão — atos terminais."}
+   ]'::jsonb,
+  '[
+     {"type":"lead.lead.created","version":1,"description":"Um interesse entrou na fila — nome, origem e interesse no envelope; o contato fica."},
+     {"type":"lead.lead.updated","version":1,"description":"O lead mudou no que é FATO: atendimento, devolução à fila, responsável, origem."},
+     {"type":"lead.lead.qualified","version":1,"description":"Qualificado — terminal, com os vínculos soltos carimbados (contraparte, negócio)."},
+     {"type":"lead.lead.discarded","version":1,"description":"Descartado — terminal, com a razão escrita. Quem volta é lead novo."}
+   ]'::jsonb,
+  '[]'::jsonb,
+  '[]'::jsonb,
+  '0.0.x',
+  'published'
+)
+on conflict (module_id) do update set
+  name            = excluded.name,
+  version         = excluded.version,
+  summary         = excluded.summary,
+  layer           = excluded.layer,
+  domain_key      = excluded.domain_key,
+  vertical_key    = excluded.vertical_key,
+  capabilities    = excluded.capabilities,
+  permissions     = excluded.permissions,
+  events_emits    = excluded.events_emits,
+  events_consumes = excluded.events_consumes,
+  agents          = excluded.agents,
+  requires_core   = excluded.requires_core,
+  status          = excluded.status,
+  updated_at      = now();
+
+-- ⛔ Vinte e dois módulos no catálogo, zero permissão concedida pelo seed.
 
 -- =============================================================================
 -- 5. PLANOS-BASE

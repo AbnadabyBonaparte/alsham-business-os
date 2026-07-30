@@ -329,6 +329,20 @@ function OrnamentVis() {
   );
 }
 
+/** Leads — a foz: muitos afluentes, uma fila que corre para o funil. */
+function OrnamentLead() {
+  return (
+    <svg viewBox="0 0 400 400" aria-hidden {...stroke}>
+      <path d="M90 110 q60 30 110 84 M200 84 v110 M310 110 q-60 30 -110 84" strokeOpacity="0.3" />
+      <path d="M200 194 v96" strokeOpacity="0.45" />
+      <path d="M200 290 l-14 -16 m14 16 l14 -16" strokeOpacity="0.45" />
+      <circle cx="90" cy="110" r="4" strokeOpacity="0.35" />
+      <circle cx="200" cy="84" r="4" strokeOpacity="0.35" />
+      <circle cx="310" cy="110" r="4" strokeOpacity="0.35" />
+    </svg>
+  );
+}
+
 /** Ajustes / a marca — o selo do tabelionato modernizado (§5.3). */
 function OrnamentSeal() {
   return (
@@ -390,6 +404,7 @@ const SCENES: readonly (readonly [string, Scene])[] = [
   ['/checklists', { sun: '22% 0%', depth: '88% 100%', ornament: <OrnamentChk />, ornamentClass: RIGHT }],
   ['/espacos', { sun: '65% 0%', depth: '18% 100%', ornament: <OrnamentSpc />, ornamentClass: RIGHT }],
   ['/visitas', { sun: '15% 5%', depth: '85% 95%', ornament: <OrnamentVis />, ornamentClass: LEFT }],
+  ['/leads', { sun: '50% 0%', depth: '20% 100%', ornament: <OrnamentLead />, ornamentClass: RIGHT }],
   ['/ajustes', { sun: '50% 0%', depth: '50% 100%', ornament: <OrnamentSeal />, ornamentClass: RIGHT }],
   ['/login', { sun: '50% 12%', depth: '50% 100%', ornament: <OrnamentLogin />, ornamentClass: CENTER_LOW }],
   ['/', CORE_SCENE],
