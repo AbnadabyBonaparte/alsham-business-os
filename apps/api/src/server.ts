@@ -16,6 +16,7 @@ import { handleRequest } from './handler.ts';
  */
 
 const CABECALHO_SEGREDO = 'x-correio-secret';
+const CABECALHO_FORJA = 'x-forge-secret';
 
 function exigir(nome: string): string {
   const v = process.env[nome];
@@ -31,11 +32,20 @@ function exigir(nome: string): string {
 export function main(): void {
   const pool = new Pool({ connectionString: exigir('DATABASE_URL'), max: 4 });
   const secret = exigir('COURIER_SECRET');
+  // ⚠️ Opcional de propósito: sem FORGE_SECRET as rotas da forja e do Engenheiro
+  // ficam DESLIGADAS (503), não abertas. Só o correio exige segredo no arranque.
+  const forgeSecret = process.env.FORGE_SECRET;
   const port = Number(process.env.PORT ?? 8080);
 
   const server = createServer((req, res) => {
     const url = new URL(req.url ?? '/', 'http://localhost');
-    const cabecalho = req.headers[CABECALHO_SEGREDO];
+    // ⭐ Cada família de rota lê o SEU cabeçalho. A forja e o Engenheiro são o
+    // mesmo chamador (o portal, com FORGE_SECRET); o correio é o cron do banco.
+    const daForja =
+      url.pathname.startsWith('/forja/') || url.pathname.startsWith('/engenheiro/');
+    const cabecalho = daForja
+      ? req.headers[CABECALHO_FORJA]
+      : req.headers[CABECALHO_SEGREDO];
 
     void handleRequest(
       {
@@ -43,7 +53,12 @@ export function main(): void {
         path: url.pathname,
         ...(typeof cabecalho === 'string' ? { secret: cabecalho } : {}),
       },
-      { pool, secret },
+      {
+        pool,
+        secret,
+        env: process.env,
+        ...(typeof forgeSecret === 'string' ? { forgeSecret } : {}),
+      },
     )
       .then((r) => {
         res.writeHead(r.status, { 'content-type': 'application/json; charset=utf-8' });

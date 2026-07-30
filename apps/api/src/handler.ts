@@ -7,6 +7,7 @@ import type { GenerationKind } from '@alsham/ai';
 import { runCourierOnce } from './composition.ts';
 import { judgeHealth, readQueueHealth } from './health.ts';
 import { generate, isDemoMode, readEngineState } from './forge-service.ts';
+import { converseText } from './forge-adapters.ts';
 
 /**
  * O endpoint protegido que aciona uma rodada do correio.
@@ -76,6 +77,9 @@ const ROTAS = [
   '/correio/saude',
   '/forja/gerar',
   '/forja/estado',
+  // ⭐ O relay do Engenheiro: uma rodada de conversa com o motor (com tools).
+  // Usa o segredo da FORJA — é o mesmo chamador (o portal, com FORGE_SECRET).
+  '/engenheiro/conversar',
 ] as const;
 
 interface ForgeBody {
@@ -112,14 +116,16 @@ export async function handleRequest(
   }
 
   const daForja = rota.startsWith('/forja/');
+  const doEngenheiro = rota === '/engenheiro/conversar';
 
   // ⭐ Cada família de rota confere o SEU segredo. Quem tem o do correio não
-  // gera, e quem tem o da forja não dispara entrega.
+  // gera, e quem tem o da forja não dispara entrega. O Engenheiro é o mesmo
+  // chamador da forja (o portal), então usa o mesmo segredo.
   //
   // ⚠️ `forgeSecret` ausente = forja DESLIGADA, não forja aberta. Um `?? ''`
   // aqui faria a rota aceitar qualquer coisa num ambiente que só esqueceu de
   // configurar — e é exatamente a lição do `?? ''` que o kraken registrou.
-  const esperado = daForja ? deps.forgeSecret : deps.secret;
+  const esperado = daForja || doEngenheiro ? deps.forgeSecret : deps.secret;
   if (typeof esperado !== 'string' || esperado.length === 0) {
     return { status: 503, body: { error: 'rota não configurada neste ambiente' } };
   }
@@ -131,6 +137,7 @@ export async function handleRequest(
   }
 
   if (daForja) return atenderForja(rota, req, deps);
+  if (doEngenheiro) return atenderEngenheiro(req, deps);
 
   if (rota === '/correio/saude') {
     if (req.method !== 'GET') return { status: 405, body: { error: 'use GET' } };
@@ -225,4 +232,56 @@ async function atenderForja(
       rotulo: engineLabel(kind),
     },
   };
+}
+
+interface ConversaBody {
+  system?: unknown;
+  messages?: unknown;
+  tools?: unknown;
+  maxTokens?: unknown;
+}
+
+/**
+ * ⭐ **O RELAY DO ENGENHEIRO.**
+ *
+ * Uma rodada de conversa com o motor, COM `tools`. É o passo que o portal não
+ * pode dar sozinho: a chave do motor vive aqui (Lei do Motor). O portal manda o
+ * `system`, o histórico e as ferramentas; recebe de volta os blocos crus
+ * (texto + `tool_use`) e o motivo de parada, e é ELE quem executa as
+ * ferramentas — sob a sessão do usuário (RLS). Este relay não fala com o banco.
+ *
+ * ⚖️ **A composição do motor não sai daqui.** O portal recebe blocos do
+ * protocolo, nunca o nome do fornecedor: um erro do motor vira `502` com
+ * mensagem neutra, no molde do `safeFailureReason` da forja.
+ */
+async function atenderEngenheiro(
+  req: { method: string; path: string; secret?: string; body?: unknown },
+  deps: HandlerDeps,
+): Promise<HandlerResult> {
+  if (req.method !== 'POST') return { status: 405, body: { error: 'use POST' } };
+
+  const env = deps.env ?? process.env;
+  const corpo = (req.body ?? {}) as ConversaBody;
+
+  const system = typeof corpo.system === 'string' ? corpo.system : '';
+  const messages = Array.isArray(corpo.messages) ? corpo.messages : null;
+  if (system.length === 0 || messages === null) {
+    return { status: 400, body: { error: 'system e messages são obrigatórios' } };
+  }
+  const tools = Array.isArray(corpo.tools) ? corpo.tools : [];
+  const maxTokens = typeof corpo.maxTokens === 'number' ? corpo.maxTokens : undefined;
+
+  try {
+    const reply = await converseText(env, {
+      system,
+      messages,
+      tools,
+      ...(maxTokens !== undefined ? { maxTokens } : {}),
+    });
+    return { status: 200, body: reply };
+  } catch (err) {
+    // O detalhe (que pode citar o motor) vai só ao log; a resposta é neutra.
+    console.error('[engenheiro] falha no motor:', err);
+    return { status: 502, body: { error: 'o motor ALSHAM não respondeu' } };
+  }
 }

@@ -1,22 +1,16 @@
 /**
- * O braço do motor — a MESMA credencial e o MESMO padrão de chamada da Forja.
+ * O braço do motor NO PORTAL — mas o portal NÃO fala com o motor.
  *
- * ⚖️ **Reaproveitamento, não segunda credencial.** Lê `ALSHAM_TEXT_API_KEY`,
- * `ALSHAM_TEXT_ENDPOINT` e `ALSHAM_TEXT_MODEL` — exatamente as variáveis que a
- * Forja (`apps/api`) já usa — e faz o mesmo `fetch` cru contra a Messages API.
- * A única diferença é que a Forja não precisava de `tools`/`system`; o
- * Engenheiro precisa, e o protocolo já os suporta. Nenhuma chave nova nasce
- * aqui.
+ * ⚖️ **A fronteira do repo, e o CI a verifica:** a chave do motor
+ * (`ALSHAM_TEXT_*`) vive só em `apps/api`. O portal fala com `apps/api` pela
+ * porta autenticada com `FORGE_SECRET` — exatamente como a Forja (`forge-http.ts`)
+ * já faz. Este arquivo NÃO lê chave de motor, NÃO chama fornecedor e NÃO cita
+ * nenhum: ele só empacota a rodada de conversa e a entrega ao `apps/api`, que
+ * relaia ao motor (com `tools`) e devolve os blocos crus.
  *
- * ⚖️ **Lei do Motor (CI a verifica em `apps/portal/src`):** o nome do fornecedor
- * de IA NÃO aparece neste código. Tudo que é específico do fornecedor — a URL, o
- * cabeçalho de versão e seu valor — vem de **variável de ambiente**, que é o
- * lugar que a Lei do Motor reserva para isso ("permitido em env e config"). Sem
- * essas env, o Engenheiro explica que o motor não está ligado, e nada vaza.
- *
- * ⛔ Server-only por uso: este arquivo só é importado pela rota (`/api/engineer`),
- * jamais pelo cliente. E nada aqui usa `service_role` — o motor não fala com o
- * banco; quem fala é o executor, sob a sessão do usuário.
+ * ⛔ Server-only por uso: só a rota `/api/engineer` (e o executor) importam
+ * isto. E nada aqui usa `service_role` — quem lê o dado do tenant é o executor,
+ * sob a sessão do usuário.
  */
 
 /** Um bloco de conteúdo do protocolo (texto ou pedido de ferramenta). */
@@ -41,36 +35,19 @@ export interface ForgeMessage {
   content: unknown; // string OU array de blocos (text/tool_use/tool_result)
 }
 
-/** O motor está configurado neste ambiente? (Sem chave, o Engenheiro explica.) */
-export function forgeConfigured(): boolean {
-  return Boolean(
-    process.env.ALSHAM_TEXT_API_KEY?.trim() &&
-      process.env.ALSHAM_TEXT_MODEL?.trim() &&
-      process.env.ALSHAM_TEXT_ENDPOINT?.trim(),
-  );
-}
-
 /**
- * Monta os cabeçalhos da chamada. O cabeçalho de versão do motor — nome E valor
- * — vem de env (`ALSHAM_TEXT_VERSION_HEADER` / `ALSHAM_TEXT_API_VERSION`), nunca
- * escrito aqui: é onde a Lei do Motor manda a especificidade do fornecedor ficar.
+ * O Engenheiro está ligado neste ambiente? Depende da PORTA para o `apps/api`
+ * (URL + segredo). A chave do motor é do outro lado da porta — não se olha aqui.
  */
-function forgeHeaders(key: string): Record<string, string> {
-  const headers: Record<string, string> = {
-    'content-type': 'application/json',
-    'x-api-key': key,
-  };
-  const versionHeader = process.env.ALSHAM_TEXT_VERSION_HEADER?.trim();
-  const versionValue = process.env.ALSHAM_TEXT_API_VERSION?.trim();
-  if (versionHeader && versionValue) headers[versionHeader] = versionValue;
-  return headers;
+export function forgeConfigured(): boolean {
+  return Boolean(process.env.ALSHAM_API_URL?.trim() && process.env.FORGE_SECRET?.trim());
 }
 
 /**
- * Uma rodada com o motor. Recebe o histórico + ferramentas; devolve os blocos.
- *
- * A rota chama isto em laço: enquanto o motor pedir ferramenta (`stopReason ===
- * 'tool_use'`), executa e chama de novo com o resultado.
+ * Uma rodada com o motor, VIA `apps/api`. Recebe o histórico + ferramentas;
+ * devolve os blocos. A rota chama isto em laço: enquanto o motor pedir
+ * ferramenta (`stopReason === 'tool_use'`), o portal executa sob a sessão e
+ * chama de novo com o resultado.
  */
 export async function callForge(input: {
   system: string;
@@ -78,57 +55,53 @@ export async function callForge(input: {
   tools?: unknown[];
   maxTokens?: number;
 }): Promise<ForgeResult> {
-  const key = process.env.ALSHAM_TEXT_API_KEY?.trim();
-  const model = process.env.ALSHAM_TEXT_MODEL?.trim();
-  const endpoint = process.env.ALSHAM_TEXT_ENDPOINT?.trim();
+  const apiUrl = process.env.ALSHAM_API_URL?.trim();
+  const secret = process.env.FORGE_SECRET?.trim();
 
-  if (!key || !model || !endpoint) {
+  if (!apiUrl || !secret) {
     return {
       ok: false,
       reason: 'unconfigured',
-      detail: 'O motor ALSHAM não está configurado neste ambiente.',
+      detail: 'A porta para o motor ALSHAM não está configurada neste ambiente.',
     };
   }
 
-  const body: Record<string, unknown> = {
-    model,
-    max_tokens: input.maxTokens ?? 1500,
-    system: input.system,
-    messages: input.messages,
-  };
-  if (input.tools && input.tools.length > 0) body.tools = input.tools;
-
   let resposta: Response;
   try {
-    resposta = await fetch(endpoint, {
+    resposta = await fetch(`${apiUrl.replace(/\/+$/, '')}/engenheiro/conversar`, {
       method: 'POST',
-      headers: forgeHeaders(key),
-      body: JSON.stringify(body),
+      headers: {
+        'content-type': 'application/json',
+        // A chave da PORTA entre os apps — não a chave do motor.
+        'x-forge-secret': secret,
+      },
+      body: JSON.stringify({
+        system: input.system,
+        messages: input.messages,
+        tools: input.tools ?? [],
+        maxTokens: input.maxTokens ?? 1500,
+      }),
     });
   } catch (err) {
     return { ok: false, reason: 'network', detail: (err as Error).message };
   }
 
   if (!resposta.ok) {
-    // O status vaza no log do servidor, nunca na tela — e nunca o nome do motor.
-    return { ok: false, reason: 'upstream', detail: `motor respondeu ${resposta.status}` };
+    return { ok: false, reason: 'upstream', detail: `apps/api respondeu ${resposta.status}` };
   }
 
   const dados = (await resposta.json()) as {
     content?: ForgeContentBlock[];
-    stop_reason?: string | null;
-    usage?: { input_tokens?: number; output_tokens?: number };
+    stopReason?: string | null;
+    usage?: { input?: number; output?: number };
   };
 
   return {
     ok: true,
     reply: {
       content: dados.content ?? [],
-      stopReason: dados.stop_reason ?? null,
-      usage: {
-        input: dados.usage?.input_tokens ?? 0,
-        output: dados.usage?.output_tokens ?? 0,
-      },
+      stopReason: dados.stopReason ?? null,
+      usage: { input: dados.usage?.input ?? 0, output: dados.usage?.output ?? 0 },
     },
   };
 }
