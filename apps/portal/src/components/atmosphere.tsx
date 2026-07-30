@@ -284,6 +284,24 @@ function OrnamentPat() {
   );
 }
 
+/** Checklists — a prancheta: os itens e os ticks do traço. */
+function OrnamentChk() {
+  return (
+    <svg viewBox="0 0 400 400" aria-hidden {...stroke}>
+      <rect x="120" y="90" width="160" height="220" rx="10" strokeOpacity="0.3" />
+      <path d="M170 90 v-16 h60 v16" strokeOpacity="0.35" />
+      {[0, 1, 2].map((i) => (
+        <g key={i} strokeOpacity="0.28">
+          <rect x="144" y={140 + i * 52} width="22" height="22" rx="4" />
+          <path d="M188 151 h68" transform={`translate(0 ${i * 52})`} strokeOpacity="0.2" />
+        </g>
+      ))}
+      <path d="M148 149 l6 7 l11 -13" strokeOpacity="0.5" />
+      <path d="M148 201 l6 7 l11 -13" strokeOpacity="0.5" />
+    </svg>
+  );
+}
+
 /** Ajustes / a marca — o selo do tabelionato modernizado (§5.3). */
 function OrnamentSeal() {
   return (
@@ -342,6 +360,7 @@ const SCENES: readonly (readonly [string, Scene])[] = [
   ['/esteiras', { sun: '30% 0%', depth: '80% 100%', ornament: <OrnamentOps />, ornamentClass: LEFT }],
   ['/esteira', { sun: '70% 0%', depth: '20% 100%', ornament: <OrnamentOps />, ornamentClass: RIGHT }],
   ['/patrimonio', { sun: '88% 4%', depth: '8% 96%', ornament: <OrnamentPat />, ornamentClass: RIGHT }],
+  ['/checklists', { sun: '22% 0%', depth: '88% 100%', ornament: <OrnamentChk />, ornamentClass: RIGHT }],
   ['/ajustes', { sun: '50% 0%', depth: '50% 100%', ornament: <OrnamentSeal />, ornamentClass: RIGHT }],
   ['/login', { sun: '50% 12%', depth: '50% 100%', ornament: <OrnamentLogin />, ornamentClass: CENTER_LOW }],
   ['/', CORE_SCENE],

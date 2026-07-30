@@ -186,7 +186,7 @@ begin
 
   begin
     update pat.assets set status = 'written_off' where id = v_id;
-    perform pg_temp.assert23(false, 'DEVERIA TER FALHADO: baixou sem razão');
+    perform pg_temp.assert23(false, 'DEVERIA TER FALHADO: baixou sem escrever o porquê');
   exception when others then
     get stacked diagnostics v_erro = message_text;
     perform pg_temp.assert23(v_erro like '%razão%', '⭐ a baixa exige a razão escrita');
@@ -223,7 +223,7 @@ begin
   begin
     insert into pat.transfers (tenant_id, asset_id, to_location)
     values ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', v_id, 'qualquer lugar');
-    perform pg_temp.assert23(false, 'DEVERIA TER FALHADO: transferiu bem baixado');
+    perform pg_temp.assert23(false, 'DEVERIA TER FALHADO: transferiu bem fora do livro');
   exception when others then
     get stacked diagnostics v_erro = message_text;
     perform pg_temp.assert23(v_erro like '%baixado%', 'bem baixado não se transfere');

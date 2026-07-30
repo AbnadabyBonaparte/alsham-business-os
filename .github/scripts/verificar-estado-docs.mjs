@@ -392,6 +392,18 @@ export const PECAS = [
     onde: 'packages/assets/',
   },
   {
+    nome: 'Módulo 19 — Checklists',
+    detector: [
+      'packages/checklists/src/manifest.ts',
+      'packages/checklists/src/checklists.ts',
+      'supabase/migrations/0034_chk.sql',
+    ],
+    // ⚠️ NUNCA a palavra "checklist" solta: ela é capacidade da Taxonomia e
+    // vocabulário de prosa do canon. O padrão exige o NOME DA PEÇA.
+    padrao: /(m[óo]dulo 19|packages\/checklists|@alsham\/checklists|0034_chk)/i,
+    onde: 'packages/checklists/',
+  },
+  {
     nome: 'Menu filtrado por permissão',
     detector: ['packages/permissions/src/menu.ts'],
     // A dívida da Etapa 10 foi paga: os itens de menu não são mais escritos à

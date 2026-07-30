@@ -26,6 +26,7 @@
     "@alsham/finance-reconciliation": "workspace:*",
     "@alsham/inventory": "workspace:*",
     "@alsham/assets": "workspace:*",
+    "@alsham/checklists": "workspace:*",
     "@alsham/maintenance": "workspace:*",
     "@alsham/marketing": "workspace:*",
     "@alsham/occurrences": "workspace:*",

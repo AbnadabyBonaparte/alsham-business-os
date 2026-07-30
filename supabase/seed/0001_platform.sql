@@ -1334,7 +1334,61 @@ on conflict (module_id) do update set
   status          = excluded.status,
   updated_at      = now();
 
--- ⛔ Dezoito módulos no catálogo, zero permissão concedida pelo seed.
+-- -----------------------------------------------------------------------------
+-- 4.17 O MÓDULO `chk` NO CATÁLOGO DA STORE — o 19º cartão
+-- -----------------------------------------------------------------------------
+-- Checklists (Domain operations — capacidade *Checklist*). O modelo é
+-- desenho do tenant; executar CONGELA o modelo por cópia (gatilho); a
+-- resposta é ato imutável; concluir exige tudo respondido.
+-- `consumes` vazio por decisão de canon (Lei 7) — ver a spec §5.
+-- =============================================================================
+
+insert into core.module_registry (
+  module_id, name, version, summary,
+  layer, domain_key,
+  capabilities, permissions, events_emits, events_consumes, agents,
+  requires_core, status
+)
+values (
+  'chk',
+  'Checklists',
+  '0.1.0',
+  'Os checklists do tenant: o modelo é desenho livre (itens ordenados, texto livre); executar congela o modelo daquele momento; cada resposta é ato carimbado que não se rasura — e concluir exige tudo respondido.',
+  'domain', 'operations',
+  '[
+     {"key":"checklists","canonicalName":"Checklist"}
+   ]'::jsonb,
+  '[
+     {"key":"chk.run.execute","moduleId":"chk","description":"Abrir execuções, responder itens (ato carimbado), concluir e abandonar com razão."},
+     {"key":"chk.setup.manage","moduleId":"chk","description":"Desenhar os modelos de checklist do tenant — itens ordenados, texto livre."}
+   ]'::jsonb,
+  '[
+     {"type":"chk.run.started","version":1,"description":"Uma execução abriu — com o modelo congelado daquele momento."},
+     {"type":"chk.run.completed","version":1,"description":"A execução foi concluída — tudo respondido, com as contagens no envelope. Terminal."},
+     {"type":"chk.run.abandoned","version":1,"description":"A execução foi abandonada — com a razão escrita. A inspeção refeita é outra inspeção."}
+   ]'::jsonb,
+  '[]'::jsonb,
+  '[]'::jsonb,
+  '0.0.x',
+  'published'
+)
+on conflict (module_id) do update set
+  name            = excluded.name,
+  version         = excluded.version,
+  summary         = excluded.summary,
+  layer           = excluded.layer,
+  domain_key      = excluded.domain_key,
+  vertical_key    = excluded.vertical_key,
+  capabilities    = excluded.capabilities,
+  permissions     = excluded.permissions,
+  events_emits    = excluded.events_emits,
+  events_consumes = excluded.events_consumes,
+  agents          = excluded.agents,
+  requires_core   = excluded.requires_core,
+  status          = excluded.status,
+  updated_at      = now();
+
+-- ⛔ Dezenove módulos no catálogo, zero permissão concedida pelo seed.
 
 -- =============================================================================
 -- 5. PLANOS-BASE

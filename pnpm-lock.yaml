@@ -81,6 +81,9 @@ importers:
       '@alsham/cashflow':
         specifier: workspace:*
         version: link:../../packages/cashflow
+      '@alsham/checklists':
+        specifier: workspace:*
+        version: link:../../packages/checklists
       '@alsham/config':
         specifier: workspace:*
         version: link:../../packages/config
@@ -246,6 +249,19 @@ importers:
         version: 5.9.3
 
   packages/cashflow:
+    dependencies:
+      '@alsham/core':
+        specifier: workspace:*
+        version: link:../core
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.2
+        version: 22.20.1
+      typescript:
+        specifier: ^5.7.2
+        version: 5.9.3
+
+  packages/checklists:
     dependencies:
       '@alsham/core':
         specifier: workspace:*
