@@ -13,6 +13,7 @@ import { TenantSwitcher } from '@/components/tenant-switcher';
 import { Atmosphere, Grain } from '@/components/atmosphere';
 import { NavLink } from '@/components/nav-link';
 import { ModulesMenu } from '@/components/modules-menu';
+import { EngineerPresence } from '@/components/engineer-presence';
 
 import './globals.css';
 
@@ -176,6 +177,12 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
             </div>
           </footer>
         </div>
+
+        {/* ⭐ O ENGENHEIRO — presente em toda página do shell autenticado (e no
+            demo). Client component, fixo num canto; abre o painel imersivo e
+            fala com `/api/engineer` sob a sessão do usuário. Fora do shell
+            (login, sem acesso) ele não aparece — não há tenant para servir. */}
+        {navVisivel ? <EngineerPresence /> : null}
       </body>
     </html>
   );

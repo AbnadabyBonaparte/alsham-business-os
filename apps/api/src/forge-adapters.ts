@@ -136,6 +136,88 @@ const textEngine: EngineAdapter = {
   },
 };
 
+/* ══════════════════════════════════════════════════════════════════════════ */
+
+/** O que o Engenheiro manda ao motor numa rodada de conversa. */
+export interface ConverseInput {
+  readonly system: string;
+  /** Mensagens no formato do protocolo (texto ou blocos tool_use/tool_result). */
+  readonly messages: unknown[];
+  /** As ferramentas oferecidas nesta rodada, quando houver. */
+  readonly tools?: unknown[];
+  readonly maxTokens?: number;
+}
+
+/** A resposta crua do motor: os blocos, o motivo de parada e o consumo. */
+export interface ConverseReply {
+  readonly content: unknown[];
+  readonly stopReason: string | null;
+  readonly usage: { readonly input: number; readonly output: number };
+}
+
+/**
+ * **A rodada de conversa do Engenheiro** — o motor de texto COM `tools`.
+ *
+ * ⚖️ Mesma credencial, mesmo endpoint e mesmo modelo do `textEngine` acima; a
+ * diferença é só que a conversa passa `system` e `tools`, que o `generate`
+ * single-shot não precisava. Vive AQUI, em `apps/api`, porque é onde a chave do
+ * motor pode viver (Lei do Motor) — o portal chama esta função por HTTP, com o
+ * `FORGE_SECRET`, e nunca toca a chave.
+ *
+ * ⛔ Esta função NÃO fala com o banco e NÃO usa `service_role`: é um puro relay
+ * ao motor. Quem lê o dado do tenant é o portal, sob a sessão do usuário.
+ */
+export async function converseText(
+  env: NodeJS.ProcessEnv,
+  input: ConverseInput,
+): Promise<ConverseReply> {
+  const key = env.ALSHAM_TEXT_API_KEY;
+  if (typeof key !== 'string' || key.trim().length === 0) {
+    throw new Error('ALSHAM_TEXT_API_KEY ausente: motor de texto inerte neste ambiente.');
+  }
+  const model = env.ALSHAM_TEXT_MODEL;
+  if (typeof model !== 'string' || model.trim().length === 0) {
+    throw new Error('ALSHAM_TEXT_MODEL ausente: o motor não sabe o que executar.');
+  }
+
+  const body: Record<string, unknown> = {
+    model,
+    max_tokens: input.maxTokens ?? 1500,
+    system: input.system,
+    messages: input.messages,
+  };
+  if (input.tools && input.tools.length > 0) body.tools = input.tools;
+
+  const resposta = await fetch(env.ALSHAM_TEXT_ENDPOINT ?? '', {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      'x-api-key': key,
+      'anthropic-version': '2023-06-01',
+    },
+    body: JSON.stringify(body),
+  });
+
+  if (!resposta.ok) {
+    // O status vai ao log do servidor; a resposta ao portal nunca cita o motor.
+    throw new Error(`motor de texto respondeu ${resposta.status}`);
+  }
+
+  const dados = (await resposta.json()) as {
+    content?: unknown[];
+    stop_reason?: string | null;
+    usage?: { input_tokens?: number; output_tokens?: number };
+  };
+  return {
+    content: dados.content ?? [],
+    stopReason: dados.stop_reason ?? null,
+    usage: {
+      input: dados.usage?.input_tokens ?? 0,
+      output: dados.usage?.output_tokens ?? 0,
+    },
+  };
+}
+
 /**
  * **Motor de ARTE.**
  *

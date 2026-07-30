@@ -22,6 +22,7 @@
     "@alsham/crm": "workspace:*",
     "@alsham/deals": "workspace:*",
     "@alsham/dunning": "workspace:*",
+    "@alsham/engineer": "workspace:*",
     "@alsham/event-management": "workspace:*",
     "@alsham/finance-reconciliation": "workspace:*",
     "@alsham/inventory": "workspace:*",
