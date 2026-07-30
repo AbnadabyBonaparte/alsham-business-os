@@ -263,6 +263,12 @@ jobs:
       - name: aplicar 0038_goal.sql
         run: $PSQL -f supabase/migrations/0038_goal.sql
 
+      # ⭐ O Módulo 24: o mural do tenant — publicar congela a palavra dada,
+      # corrigir é comunicado novo com o título carimbado pelo servidor, a
+      # ciência é ato próprio/único/eterno e o arquivado é terminal.
+      - name: aplicar 0039_comm.sql
+        run: $PSQL -f supabase/migrations/0039_comm.sql
+
       # ---------------------------------------------------------------------
       # 2. SEED — e a prova de que reaplicar não muda nada
       # ---------------------------------------------------------------------
@@ -290,12 +296,12 @@ jobs:
           FALTA=$($PSQL -tAc "
             select coalesce(string_agg(n.nspname||'.'||c.relname, ', '), '')
               from pg_class c join pg_namespace n on n.oid = c.relnamespace
-             where n.nspname in ('core','recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt','dun','ctr','cash','care','occ','mnt','pat','chk','spc','vis','lead','goal') and c.relkind = 'r'
+             where n.nspname in ('core','recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt','dun','ctr','cash','care','occ','mnt','pat','chk','spc','vis','lead','goal','comm') and c.relkind = 'r'
                and (not c.relrowsecurity or not c.relforcerowsecurity);")
           [ -z "$FALTA" ] || { echo "::error::sem RLS enable+force: $FALTA"; exit 1; }
           $PSQL -c "select n.nspname as schema, count(*) as tabelas
                       from pg_class c join pg_namespace n on n.oid=c.relnamespace
-                     where n.nspname in ('core','recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt','dun','ctr','cash','care','occ','mnt','pat','chk','spc','vis','lead','goal') and c.relkind='r'
+                     where n.nspname in ('core','recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt','dun','ctr','cash','care','occ','mnt','pat','chk','spc','vis','lead','goal','comm') and c.relkind='r'
                      group by 1 order by 1;"
 
       - name: nenhuma policy USING (true)
@@ -305,7 +311,7 @@ jobs:
               from pg_policy p
               join pg_class c on c.oid = p.polrelid
               join pg_namespace n on n.oid = c.relnamespace
-             where n.nspname in ('core','recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt','dun','ctr','cash','care','occ','mnt','pat','chk','spc','vis','lead','goal')
+             where n.nspname in ('core','recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt','dun','ctr','cash','care','occ','mnt','pat','chk','spc','vis','lead','goal','comm')
                and pg_get_expr(p.polqual, p.polrelid) = 'true';")
           [ -z "$ABERTAS" ] || { echo "::error::policy aberta (lição paga do suna-core): $ABERTAS"; exit 1; }
 
@@ -316,7 +322,7 @@ jobs:
                              where n.nspname='public' and c.relkind='r';")
           [ "$PUB" = "0" ] || { echo "::error::$PUB tabela(s) em public — expostas via API"; exit 1; }
           ANON=$($PSQL -tAc "select count(*) from information_schema.role_table_grants
-                              where grantee='anon' and table_schema in ('core','recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt','dun','ctr','cash','care','occ','mnt','pat','chk','spc','vis','lead','goal');")
+                              where grantee='anon' and table_schema in ('core','recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt','dun','ctr','cash','care','occ','mnt','pat','chk','spc','vis','lead','goal','comm');")
           [ "$ANON" = "0" ] || { echo "::error::anon tem $ANON grant(s) no Business OS"; exit 1; }
 
       - name: o seed não semeou tenant nem usuário
@@ -1117,6 +1123,49 @@ jobs:
             exit 1; }
           echo "goal no catálogo com consumes vazio."
 
+      # ⭐ A PROVA DO MÓDULO 24 NO BANCO: a palavra congelada, a ciência
+      # própria/única/eterna, o arquivo terminal e o corpo fora do envelope.
+      - name: teste de comunicados (comm)
+        run: $PSQL -f supabase/tests/29_comm_isolation.sql
+
+      # ⛔ A CIÊNCIA NÃO SE RETIRA — no banco aplicado.
+      - name: a ciência do comm é própria, única e eterna
+        run: |
+          G=$($PSQL -tAc "select coalesce(string_agg(distinct privilege_type, ',' order by privilege_type), '')
+                            from information_schema.role_table_grants
+                           where table_schema='comm' and table_name='acks'
+                             and grantee in ('anon','authenticated','PUBLIC');")
+          [ "$G" = "INSERT,SELECT" ] || { echo "::error::comm.acks tem privilégios além de INSERT,SELECT: [$G]"; exit 1; }
+          # A unicidade está em vigor: ciência não se dá duas vezes.
+          U=$($PSQL -tAc "select count(*) from information_schema.table_constraints
+                            where constraint_schema='comm' and constraint_name='comm_acks_once'
+                              and constraint_type='UNIQUE';")
+          [ "$U" = "1" ] || { echo "::error::sumiu a constraint comm_acks_once — a ciência em dobro entraria"; exit 1; }
+          # O corpo NÃO passeia no envelope.
+          P=$($PSQL -tAc "select prosrc from pg_proc p
+                            join pg_namespace n on n.oid=p.pronamespace
+                           where n.nspname='comm' and p.proname='notice_payload';")
+          echo "$P" | grep -q "p.title" || { echo "::error::o payload do comm perdeu o título"; exit 1; }
+          echo "$P" | grep -q "p.body" && { echo "::error::o payload do comm carrega o corpo — o envelope entrega o fato, não o mural"; exit 1; }
+          # Nenhum enum: a audiência é texto livre.
+          E=$($PSQL -tAc "select count(*) from pg_type t
+                            join pg_namespace n on n.oid=t.typnamespace
+                           where n.nspname='comm' and t.typtype='e';")
+          [ "$E" = "0" ] || { echo "::error::apareceu enum no schema comm"; exit 1; }
+          D=$($PSQL -tAc "select count(*) from information_schema.role_table_grants
+                            where table_schema='comm' and privilege_type='DELETE'
+                              and grantee in ('anon','authenticated','PUBLIC');")
+          [ "$D" = "0" ] || { echo "::error::alguém concedeu DELETE no schema comm"; exit 1; }
+
+      - name: o vigésimo quarto cartão (comm) tem consumes vazio
+        run: |
+          C=$($PSQL -tAc "select jsonb_array_length(events_consumes)
+                            from core.module_registry where module_id='comm';")
+          [ "$C" = "0" ] || {
+            echo "::error::o módulo comm declara $C consumo(s) — sem handler, sem promessa (Lei 7)"
+            exit 1; }
+          echo "comm no catálogo com consumes vazio."
+
       - name: nenhuma porta de DELETE em quote.proposals
         run: |
           G=$($PSQL -tAc "select count(*) from information_schema.role_table_grants
@@ -1305,8 +1354,8 @@ jobs:
           # Só apareceu porque os números foram conferidos contra o banco.
           N=$($PSQL -tAc "select count(*) from core.module_registry
                            where status='published'
-                             and module_id in ('recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt','dun','ctr','cash','care','occ','mnt','pat','chk','spc','vis','lead','goal');")
-          [ "$N" = "23" ] || { echo "::error::o catálogo tem $N dos 23 módulos reais publicados"; exit 1; }
+                             and module_id in ('recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt','dun','ctr','cash','care','occ','mnt','pat','chk','spc','vis','lead','goal','comm');")
+          [ "$N" = "24" ] || { echo "::error::o catálogo tem $N dos 24 módulos reais publicados"; exit 1; }
           C=$($PSQL -tAc "select jsonb_array_length(events_consumes)
                             from core.module_registry where module_id='crm';")
           [ "$C" = "0" ] || {
@@ -1445,7 +1494,7 @@ jobs:
           ABERTAS=$($PSQL -tAc "
             select coalesce(string_agg(n.nspname||'.'||p.proname, ', ' order by p.proname), '')
               from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-             where n.nspname in ('core','recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt','dun','ctr','cash','care','occ','mnt','pat','chk','spc','vis','lead','goal')
+             where n.nspname in ('core','recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt','dun','ctr','cash','care','occ','mnt','pat','chk','spc','vis','lead','goal','comm')
                and has_function_privilege('anon', p.oid, 'execute');")
           [ -z "$ABERTAS" ] || { echo "::error::função executável por anon: $ABERTAS"; exit 1; }
 
@@ -1456,7 +1505,7 @@ jobs:
             OK=$($PSQL -tAc "
               select count(*) from pg_proc p join pg_namespace n on n.oid = p.pronamespace
                where p.proname = '$FN'
-                 and n.nspname in ('core','recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt','dun','ctr','cash','care','occ','mnt','pat','chk','spc','vis','lead','goal')
+                 and n.nspname in ('core','recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt','dun','ctr','cash','care','occ','mnt','pat','chk','spc','vis','lead','goal','comm')
                  and has_function_privilege('authenticated', p.oid, 'execute');")
             [ "$OK" -ge 1 ] || { echo "::error::$FN() deixou de ser chamável pelo portal"; exit 1; }
           done
@@ -1566,6 +1615,7 @@ jobs:
           $PSQL -q -f supabase/migrations/0036_vis.sql
           $PSQL -q -f supabase/migrations/0037_lead.sql
           $PSQL -q -f supabase/migrations/0038_goal.sql
+          $PSQL -q -f supabase/migrations/0039_comm.sql
           $PSQL -q -f supabase/seed/0001_platform.sql
 
       # ⚠️ Sem `DATABASE_URL` os testes do store se PULAM — de propósito, para
@@ -2113,7 +2163,7 @@ jobs:
       - name: módulo não conhece módulo
         run: |
           FALHOU=0
-          MODULOS="finance-reconciliation marketing accounts-payable crm accounts-receivable purchase-orders ops inventory quotes deals event-management dunning contracts cashflow care occurrences maintenance assets checklists spaces visits leads goals"
+          MODULOS="finance-reconciliation marketing accounts-payable crm accounts-receivable purchase-orders ops inventory quotes deals event-management dunning contracts cashflow care occurrences maintenance assets checklists spaces visits leads goals comms"
 
           # 1. Nenhum módulo importa outro módulo, em nenhuma forma.
           for MOD in $MODULOS; do
@@ -2181,6 +2231,7 @@ jobs:
             [0036_vis.sql]=vis
             [0037_lead.sql]=lead
             [0038_goal.sql]=goal
+            [0039_comm.sql]=comm
           )
           for ARQUIVO in "${!SCHEMA_DE[@]}"; do
             DONO="${SCHEMA_DE[$ARQUIVO]}"

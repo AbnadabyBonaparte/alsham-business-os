@@ -453,6 +453,18 @@ export const PECAS = [
     onde: 'packages/goals/',
   },
   {
+    nome: 'Módulo 24 — Comunicados',
+    detector: [
+      'packages/comms/src/manifest.ts',
+      'packages/comms/src/comms.ts',
+      'supabase/migrations/0039_comm.sql',
+    ],
+    // ⚠️ NUNCA "comunicado" solto: a palavra é prosa do canon (o que foi
+    // comunicado, comunicado ao dono). O padrão exige o NOME DA PEÇA.
+    padrao: /(m[óo]dulo 24|packages\/comms|@alsham\/comms|0039_comm)/i,
+    onde: 'packages/comms/',
+  },
+  {
     nome: 'Menu filtrado por permissão',
     detector: ['packages/permissions/src/menu.ts'],
     // A dívida da Etapa 10 foi paga: os itens de menu não são mais escritos à

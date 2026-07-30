@@ -357,6 +357,20 @@ function OrnamentGoal() {
   );
 }
 
+/** Comunicados — o sino do mural: a palavra dada, pendurada para todos. */
+function OrnamentComm() {
+  return (
+    <svg viewBox="0 0 400 400" aria-hidden {...stroke}>
+      <path d="M200 96 v14" strokeOpacity="0.35" />
+      <path d="M148 210 a52 52 0 0 1 104 0 v34 h-104 z" strokeOpacity="0.35" />
+      <path d="M132 244 h136" strokeOpacity="0.45" />
+      <path d="M188 262 a12 12 0 0 0 24 0" strokeOpacity="0.4" />
+      <path d="M120 160 q-16 18 -18 44 M280 160 q16 18 18 44" strokeOpacity="0.2" strokeDasharray="2 7" />
+      <path d="M96 316 h208" strokeOpacity="0.18" strokeDasharray="2 8" />
+    </svg>
+  );
+}
+
 /** Ajustes / a marca — o selo do tabelionato modernizado (§5.3). */
 function OrnamentSeal() {
   return (
@@ -420,6 +434,7 @@ const SCENES: readonly (readonly [string, Scene])[] = [
   ['/visitas', { sun: '15% 5%', depth: '85% 95%', ornament: <OrnamentVis />, ornamentClass: LEFT }],
   ['/leads', { sun: '50% 0%', depth: '20% 100%', ornament: <OrnamentLead />, ornamentClass: RIGHT }],
   ['/metas', { sun: '80% 0%', depth: '15% 100%', ornament: <OrnamentGoal />, ornamentClass: RIGHT }],
+  ['/comunicados', { sun: '25% 0%', depth: '82% 100%', ornament: <OrnamentComm />, ornamentClass: RIGHT }],
   ['/ajustes', { sun: '50% 0%', depth: '50% 100%', ornament: <OrnamentSeal />, ornamentClass: RIGHT }],
   ['/login', { sun: '50% 12%', depth: '50% 100%', ornament: <OrnamentLogin />, ornamentClass: CENTER_LOW }],
   ['/', CORE_SCENE],

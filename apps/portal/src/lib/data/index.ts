@@ -47,6 +47,8 @@ import { createLeadMockPort } from './lead-mock';
 import { createLeadSupabasePort } from './lead-supabase';
 import { createGoalMockPort } from './goal-mock';
 import { createGoalSupabasePort } from './goal-supabase';
+import { createCommMockPort } from './comm-mock';
+import { createCommSupabasePort } from './comm-supabase';
 import { createOccSupabasePort } from './occ-supabase';
 import { createCareSupabasePort } from './care-supabase';
 import { createCashSupabasePort } from './cash-supabase';
@@ -77,6 +79,7 @@ import type { SpcPort } from './spc-port';
 import type { VisPort } from './vis-port';
 import type { LeadPort } from './lead-port';
 import type { GoalPort } from './goal-port';
+import type { CommPort } from './comm-port';
 import type { OpsPort } from './ops-port';
 import type { ForgePort } from './forge-port';
 import type { BrandPort } from './brand-port';
@@ -107,6 +110,7 @@ export type { SpcPort, ReservationRow } from './spc-port';
 export type { VisPort, VisitRow } from './vis-port';
 export type { LeadPort, LeadRow } from './lead-port';
 export type { GoalPort, GoalRow } from './goal-port';
+export type { CommPort, NoticeRow } from './comm-port';
 export type { OpsPort, PipelineWithStages } from './ops-port';
 export type { ForgePort, GenerationResponse } from './forge-port';
 export type { BrandPort } from './brand-port';
@@ -448,6 +452,18 @@ export async function getGoalPort(): Promise<GoalPort> {
   if (!db) return createGoalMockPort();
 
   return createGoalSupabasePort(db, session.activeTenant.id);
+}
+
+export async function getCommPort(): Promise<CommPort> {
+  const session = await resolveSession();
+  if (session.mode !== 'authenticated') return createCommMockPort();
+
+  const db = await createSupabaseServerClient();
+  if (!db) return createCommMockPort();
+
+  // ⭐ A porta leva o userId da SESSÃO: a tela precisa saber se a PRÓPRIA
+  // ciência já foi dada — e quem carimba a ciência é o gatilho, nunca a tela.
+  return createCommSupabasePort(db, session.activeTenant.id, session.userId);
 }
 
 /**

@@ -1612,7 +1612,62 @@ on conflict (module_id) do update set
   status          = excluded.status,
   updated_at      = now();
 
--- ⛔ Vinte e três módulos no catálogo, zero permissão concedida pelo seed.
+-- -----------------------------------------------------------------------------
+-- 4.22 O MÓDULO `comm` NO CATÁLOGO DA STORE — o 24º cartão
+-- -----------------------------------------------------------------------------
+-- Comunicados (Domain hr — comunicação interna; o vertical Condomínios
+-- nomeia o recorte). Publicar congela a palavra dada; corrigir é comunicado
+-- novo; a ciência é ato próprio, único e eterno; arquivado é terminal.
+-- `consumes` vazio por decisão de canon (Lei 7) — ver a spec §5.
+-- =============================================================================
+
+insert into core.module_registry (
+  module_id, name, version, summary,
+  layer, domain_key,
+  capabilities, permissions, events_emits, events_consumes, agents,
+  requires_core, status
+)
+values (
+  'comm',
+  'Comunicados',
+  '0.1.0',
+  'O mural oficial do tenant: publicar congela a palavra dada; corrigir é comunicado novo referenciando o antigo; a ciência é ato próprio, único e eterno — e a cobertura conta quem leu enquanto a palavra esteve de pé.',
+  'domain', 'hr',
+  '[
+     {"key":"notices","canonicalName":"Comunicados"}
+   ]'::jsonb,
+  '[
+     {"key":"comm.notice.manage","moduleId":"comm","description":"Redigir rascunhos, publicar (dar a palavra) e arquivar comunicados."},
+     {"key":"comm.notice.ack","moduleId":"comm","description":"Dar a PRÓPRIA ciência em comunicado publicado — ato único, carimbado, que não se retira."}
+   ]'::jsonb,
+  '[
+     {"type":"comm.notice.drafted","version":1,"description":"Um comunicado nasceu no rascunho — ainda sem dar a palavra."},
+     {"type":"comm.notice.published","version":1,"description":"A palavra foi dada — título e audiência no envelope; o corpo mora no mural."},
+     {"type":"comm.notice.archived","version":1,"description":"Saiu do mural — a história e as ciências ficam. Terminal."},
+     {"type":"comm.notice.acked","version":1,"description":"Um membro deu ciência — ato próprio, único, carimbado."}
+   ]'::jsonb,
+  '[]'::jsonb,
+  '[]'::jsonb,
+  '0.0.x',
+  'published'
+)
+on conflict (module_id) do update set
+  name            = excluded.name,
+  version         = excluded.version,
+  summary         = excluded.summary,
+  layer           = excluded.layer,
+  domain_key      = excluded.domain_key,
+  vertical_key    = excluded.vertical_key,
+  capabilities    = excluded.capabilities,
+  permissions     = excluded.permissions,
+  events_emits    = excluded.events_emits,
+  events_consumes = excluded.events_consumes,
+  agents          = excluded.agents,
+  requires_core   = excluded.requires_core,
+  status          = excluded.status,
+  updated_at      = now();
+
+-- ⛔ Vinte e quatro módulos no catálogo, zero permissão concedida pelo seed.
 
 -- =============================================================================
 -- 5. PLANOS-BASE

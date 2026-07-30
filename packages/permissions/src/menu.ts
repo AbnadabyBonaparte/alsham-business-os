@@ -70,6 +70,7 @@ const MENU: readonly MenuItem[] = [
   { href: '/visitas', label: 'Visitas', moduleId: 'vis' },
   { href: '/leads', label: 'Leads', moduleId: 'lead' },
   { href: '/metas', label: 'Metas', moduleId: 'goal' },
+  { href: '/comunicados', label: 'Comunicados', moduleId: 'comm' },
   { href: '/store', label: 'Store', moduleId: null },
   { href: '/ajustes', label: 'Ajustes', moduleId: null },
 ];
