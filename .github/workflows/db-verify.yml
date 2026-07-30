@@ -396,18 +396,6 @@ jobs:
           echo "após 1x: $ANTES | após 3x: $DEPOIS"
           [ "$ANTES" = "$DEPOIS" ] || { echo "::error::seed NÃO é idempotente"; exit 1; }
 
-      # ⭐ 42/42 — a campanha das 6 Ondas está completa no catálogo.
-      # ⚠️ Contado AQUI, logo após o seed, e não no fim do job: o
-      # `04_install_module.sql` insere o fixture `terceiro` (status='published')
-      # para provar o teto do plano, e ele fica no banco. No fim do job a conta
-      # daria 43 — 42 do catálogo + 1 de teste. Antes dos testes, o registro é
-      # exatamente o seed.
-      - name: quarenta e dois módulos publicados no catálogo
-        run: |
-          T=$($PSQL -tAc "select count(*) from core.module_registry where status='published';")
-          [ "$T" = "42" ] || { echo "::error::esperava 42 módulos publicados (campanha das 6 Ondas): [$T]"; exit 1; }
-          echo "⭐ 42/42 módulos publicados — Campanha das 6 Ondas COMPLETA."
-
       # ---------------------------------------------------------------------
       # 3. AS INVARIANTES DE SEGURANÇA — as mesmas do runbook
       # ---------------------------------------------------------------------
@@ -1954,15 +1942,16 @@ jobs:
           # `04_install_module.sql` insere módulos FICTÍCIOS no catálogo para
           # provar o instalador: um `rascunho` (para provar que draft não
           # aparece na vitrine) e um `terceiro` publicado (para provar o teto do
-          # plano). Uma contagem ingênua de `status='published'` daria 7 e
+          # plano). Uma contagem ingênua de `status='published'` daria 43 e
           # reprovaria o repositório inteiro, por causa do fixture de outro
-          # teste.
+          # teste. Por isso conta a whitelist dos 42 reais (37 Domain + 5
+          # Vertical) — a Campanha das 6 Ondas COMPLETA.
           #
           # Só apareceu porque os números foram conferidos contra o banco.
           N=$($PSQL -tAc "select count(*) from core.module_registry
                            where status='published'
                              and module_id in ('recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt','dun','ctr','cash','care','occ','mnt','pat','chk','spc','vis','lead','goal','comm','edcal','media','nps','cc','bud','bank','invest','dre','hr','shift','train','perf','pol','mall','lease','fund','park','sec');")
-          [ "$N" = "37" ] || { echo "::error::o catálogo tem $N dos 37 módulos reais publicados"; exit 1; }
+          [ "$N" = "42" ] || { echo "::error::o catálogo tem $N dos 42 módulos reais publicados"; exit 1; }
           C=$($PSQL -tAc "select jsonb_array_length(events_consumes)
                             from core.module_registry where module_id='crm';")
           [ "$C" = "0" ] || {
