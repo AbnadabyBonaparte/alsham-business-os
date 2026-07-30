@@ -23,6 +23,10 @@ import type {
   DunTitlePort,
   ExternalTitle as DunExternalTitle,
 } from '@alsham/dunning';
+import type {
+  BudMovement,
+  BudMovementPort,
+} from '@alsham/budgets';
 
 /**
  * Os adaptadores reais dos consumidores.
@@ -317,6 +321,38 @@ export function createDunTitleProjectionPort(pool: Pool): DunTitlePort {
       const efeito = rows[0]?.efeito;
       if (efeito === undefined) {
         throw new Error('dun.record_external_receivable não devolveu desfecho');
+      }
+      return efeito;
+    },
+  };
+}
+
+/**
+ * Projeção do orçamento a partir dos lançamentos do Fluxo de Caixa.
+ * Chama `bud.record_external_movement()`; origem por parâmetro (envelope).
+ * Zero decisão aqui — o realizado é VIEW calculada, e quem soma é o banco.
+ */
+export function createBudMovementPort(pool: Pool): BudMovementPort {
+  return {
+    async recordExternalMovement(movement: BudMovement) {
+      const { rows } = await pool.query<{ efeito: 'projected' | 'unchanged' }>(
+        `select bud.record_external_movement(
+                  $1::uuid, $2::text, $3::text, $4::text,
+                  $5::char(3), $6::date, $7::bigint) as efeito`,
+        [
+          movement.tenantId,
+          movement.sourceModuleId,
+          movement.externalRef,
+          movement.categoryName,
+          movement.currency,
+          movement.occurredOn,
+          movement.signedAmountCents,
+        ],
+      );
+
+      const efeito = rows[0]?.efeito;
+      if (efeito === undefined) {
+        throw new Error('bud.record_external_movement não devolveu desfecho');
       }
       return efeito;
     },

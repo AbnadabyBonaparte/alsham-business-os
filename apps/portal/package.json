@@ -35,6 +35,7 @@
     "@alsham/media": "workspace:*",
     "@alsham/nps": "workspace:*",
     "@alsham/cost-centers": "workspace:*",
+    "@alsham/budgets": "workspace:*",
     "@alsham/leads": "workspace:*",
     "@alsham/maintenance": "workspace:*",
     "@alsham/marketing": "workspace:*",

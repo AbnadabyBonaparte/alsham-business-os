@@ -1897,6 +1897,65 @@ on conflict (module_id) do update set
 -- ⛔ Vinte e oito módulos no catálogo, zero permissão concedida pelo seed.
 
 -- =============================================================================
+-- 4.27 O MÓDULO `bud` NO CATÁLOGO DA STORE — o 29º cartão
+-- -----------------------------------------------------------------------------
+-- Orçamentos (Domain finance — o segundo da Missão Sete). O teto por categoria
+-- e período; ativar CONGELA a trave (categoria, período, teto — a física do
+-- goal no dinheiro); o realizado é a soma do livro do cash — calculado, nunca
+-- coluna. ⭐ `consumes` NÃO é vazio: escuta `cash.entry.registered` com handler
+-- construído (realized.ts) — esta onda EXIGE redeploy do apps/api.
+-- =============================================================================
+
+insert into core.module_registry (
+  module_id, name, version, summary,
+  layer, domain_key,
+  capabilities, permissions, events_emits, events_consumes, agents,
+  requires_core, status
+)
+values (
+  'bud',
+  'Orçamentos',
+  '0.1.0',
+  'O teto de gasto por categoria e período. Ativar congela a trave (categoria, período, teto); o realizado é a soma do livro do Fluxo de Caixa que casa a categoria — calculado, nunca digitado. O período fechado é terminal.',
+  'domain', 'finance',
+  '[
+     {"key":"budgeting","canonicalName":"Orçamento"}
+   ]'::jsonb,
+  '[
+     {"key":"bud.budget.manage","moduleId":"bud","description":"Criar, editar e ativar orçamentos. Ativar congela a trave — categoria, período e teto param de mudar."},
+     {"key":"bud.budget.close","moduleId":"bud","description":"Fechar o período de um orçamento — ato terminal: o período vira história e o próximo é orçamento novo."}
+   ]'::jsonb,
+  '[
+     {"type":"bud.budget.opened","version":1,"description":"Um orçamento nasceu no rascunho — categoria, período e teto ainda editáveis."},
+     {"type":"bud.budget.activated","version":1,"description":"O orçamento foi ativado — a trave congelou; a partir daqui só o nome muda."},
+     {"type":"bud.budget.closed","version":1,"description":"O período do orçamento foi fechado — terminal; o próximo período é orçamento novo."}
+   ]'::jsonb,
+  '[
+     {"type":"cash.entry.registered","version":1,"description":"Um lançamento entrou no livro do Fluxo de Caixa — se for desembolso na categoria e no período de um orçamento, entra no realizado."}
+   ]'::jsonb,
+  '[]'::jsonb,
+  '0.0.x',
+  'published'
+)
+on conflict (module_id) do update set
+  name            = excluded.name,
+  version         = excluded.version,
+  summary         = excluded.summary,
+  layer           = excluded.layer,
+  domain_key      = excluded.domain_key,
+  vertical_key    = excluded.vertical_key,
+  capabilities    = excluded.capabilities,
+  permissions     = excluded.permissions,
+  events_emits    = excluded.events_emits,
+  events_consumes = excluded.events_consumes,
+  agents          = excluded.agents,
+  requires_core   = excluded.requires_core,
+  status          = excluded.status,
+  updated_at      = now();
+
+-- ⛔ Vinte e nove módulos no catálogo, zero permissão concedida pelo seed.
+
+-- =============================================================================
 -- 5. PLANOS-BASE
 -- Minerado de: `plan_limits` (5 planos) do kraken-v2 (PROVADO em produção).
 -- -----------------------------------------------------------------------------

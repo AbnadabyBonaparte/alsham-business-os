@@ -430,6 +430,23 @@ function OrnamentCc() {
   );
 }
 
+/** Orçamentos — a trave (o teto) e a barra que sobe até encostar nela. */
+function OrnamentBud() {
+  return (
+    <svg viewBox="0 0 400 400" aria-hidden {...stroke}>
+      {/* A TRAVE — o teto congelado, horizontal e firme. */}
+      <path d="M96 150 h208" strokeOpacity="0.4" />
+      {/* A barra do realizado, subindo por baixo da trave. */}
+      <path d="M140 300 v-96" strokeOpacity="0.34" />
+      <path d="M200 300 v-128" strokeOpacity="0.34" />
+      <path d="M260 300 v-150" strokeOpacity="0.4" />
+      <path d="M96 300 h208" strokeOpacity="0.3" />
+      {/* O estouro pontilhado — o que passa da trave é honesto. */}
+      <path d="M260 150 v-24" strokeOpacity="0.2" strokeDasharray="2 6" />
+    </svg>
+  );
+}
+
 /** Ajustes / a marca — o selo do tabelionato modernizado (§5.3). */
 function OrnamentSeal() {
   return (
@@ -498,6 +515,7 @@ const SCENES: readonly (readonly [string, Scene])[] = [
   ['/midia', { sun: '18% 0%', depth: '85% 100%', ornament: <OrnamentMedia />, ornamentClass: LEFT }],
   ['/pesquisas', { sun: '78% 0%', depth: '12% 100%', ornament: <OrnamentNps />, ornamentClass: RIGHT }],
   ['/centros-de-custo', { sun: '55% 0%', depth: '20% 100%', ornament: <OrnamentCc />, ornamentClass: RIGHT }],
+  ['/orcamentos', { sun: '42% 0%', depth: '76% 100%', ornament: <OrnamentBud />, ornamentClass: LEFT }],
   ['/ajustes', { sun: '50% 0%', depth: '50% 100%', ornament: <OrnamentSeal />, ornamentClass: RIGHT }],
   ['/login', { sun: '50% 12%', depth: '50% 100%', ornament: <OrnamentLogin />, ornamentClass: CENTER_LOW }],
   ['/', CORE_SCENE],

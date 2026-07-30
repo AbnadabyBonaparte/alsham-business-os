@@ -27,11 +27,17 @@ import {
   CONSUMER_ID as DUN_CONSUMER_ID,
   handleDunTitle,
 } from '@alsham/dunning';
+import {
+  CONSUMED_EVENT_PATTERN as BUD_EVENT_PATTERN,
+  CONSUMER_ID as BUD_CONSUMER_ID,
+  handleBudMovement,
+} from '@alsham/budgets';
 
 import { createPgOutboxStore } from './outbox-store.ts';
 import {
   createAuditWriter,
   createApReconMatchSettlementPort,
+  createBudMovementPort,
   createDunTitleProjectionPort,
   createExternalPayablePort,
   createExternalReceivablePort,
@@ -192,6 +198,24 @@ export function buildSubscriptions(pool: Pool): Subscription[] {
       eventType: DUN_EVENT_PATTERN,
       handle: async (envelope) => {
         await handleDunTitle(createDunTitleProjectionPort(pool))(envelope);
+      },
+    },
+
+    // 8. ⭐ O MÓDULO 29 ESCUTANDO O MÓDULO 14 — o orçamento acorda com o gasto.
+    //
+    //    O curinga `cash.*` é deliberado: só o lançamento registrado
+    //    interessa, mas categoria criada/arquivada chega pelo mesmo padrão e
+    //    é IGNORADA no handler (não enche dead letter). O realizado é VIEW
+    //    calculada; esta inscrição só ALIMENTA a projeção local.
+    //
+    //    ⛔ E aqui também NÃO está escrito o nome do módulo produtor: a
+    //    origem gravada vem de `envelope.producedBy`, dentro do handler.
+    //    Lançamento sem categoria não casa orçamento nenhum — ignorado.
+    {
+      consumer: BUD_CONSUMER_ID,
+      eventType: BUD_EVENT_PATTERN,
+      handle: async (envelope) => {
+        await handleBudMovement(createBudMovementPort(pool))(envelope);
       },
     },
   ];

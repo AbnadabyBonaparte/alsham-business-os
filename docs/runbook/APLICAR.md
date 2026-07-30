@@ -1318,10 +1318,19 @@ O rito é o mesmo — migration na ordem, seed, Data API, Store:
 
 1. **Aplicar a migration** no SQL Editor, na ordem:
    - `0043_cc.sql` — Módulo 28, Centros de Custo & Rateio (schema `cc`)
+   - `0044_bud.sql` — Módulo 29, Orçamentos (schema `bud`)
 2. **Reaplicar o seed** — os cartões novos entram no catálogo.
-3. ⚠️ **Expor os schemas novos na Data API**: `cc`. Sem isso as telas
+3. ⚠️ **Expor os schemas novos na Data API**: `cc`, `bud`. Sem isso as telas
    carregam vazias, sem erro que diga o motivo.
-4. **Instalar cada módulo pela Store**, no tenant que o contratou.
+4. ⛔🔴 **REDEPLOYAR o `apps/api` — ESTA ONDA EXIGE.** O Módulo 29 (`bud`)
+   é CONSUMIDOR: ele escuta `cash.entry.registered` e projeta o realizado.
+   A inscrição (`cash.*` → `bud.record_external_movement`) só existe no
+   **build novo** do `apps/api`. Aplicar a migration sem redeployar deixa o
+   realizado nascer **sempre zero**, sem erro que diga o motivo — o
+   orçamento carrega, mas nunca "vê" o gasto. **Redeploy obrigatório**,
+   como foi na Missão Trina (o `dun`). O `cc` não exige redeploy (`consumes`
+   vazio); o `bud`, sim.
+5. **Instalar cada módulo pela Store**, no tenant que o contratou.
 
 Nenhum agente aplica em produção. A conferência de segurança do PASSO 15
 (§ pós-apply) vale para os schemas novos.
@@ -1362,6 +1371,9 @@ Honestidade de escopo, para você não procurar o que não foi construído:
 | Geração ASSÍNCRONA (fila de jobs) | **NÃO CONSTRUÍDA**, e é decisão: a geração desta etapa é **síncrona**. Se um dia for assíncrona, a fila é o correio do Core — **nunca uma segunda** |
 | Upload/armazenamento da ARTE gerada | **NÃO CONSTRUÍDO** — o entregável guarda a referência em texto. *Storage & Arquivos* é capacidade do Core, ainda não construída |
 | Política de repetição de geração que FALHOU | **NÃO CONSTRUÍDA** — repetir chamada paga sem política é pagar duas vezes por um erro. Declarado no cabeçalho do `0019` |
+| Módulo 28 — Centros de Custo & Rateio (`0043_cc.sql`) | ✅ **CONSTRUÍDO** — arquivo, ainda não aplicado (§20). **Expor schema `cc`.** `consumes` vazio: sem redeploy do `apps/api` |
+| Módulo 29 — Orçamentos (`0044_bud.sql`) | ✅ **CONSTRUÍDO** — arquivo, ainda não aplicado (§20). **Expor schema `bud`.** ⛔🔴 **CONSUMIDOR: EXIGE redeploy do `apps/api`** (a projeção `cash.*` → `bud.record_external_movement`) |
+| Realizado do orçamento por CENTRO / orçamento de RECEITA / forecast | **NÃO CONSTRUÍDO** — ver `MODULO-BUD-SPEC §5` |
 | Painel Executivo (`0021`) | ✅ **CONSTRUÍDO** — arquivo, ainda não aplicado (§14). É **Core**: não entra no catálogo |
 | Fechar o `EXECUTE` de `PUBLIC` (`0022`) | ✅ **CONSTRUÍDO** — arquivo, ainda não aplicado (§15). ⛔ Aplique junto com o `0021` |
 | Preço da geração / repasse de custo | **NÃO CONSTRUÍDO** — `usage_ledger` conta uso, não dinheiro. Lei 7 |
