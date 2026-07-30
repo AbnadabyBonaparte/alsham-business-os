@@ -84,6 +84,11 @@ const MENU: readonly MenuItem[] = [
   { href: '/treinamentos', label: 'Treinamentos', moduleId: 'train' },
   { href: '/avaliacoes', label: 'Avaliações', moduleId: 'perf' },
   { href: '/politicas', label: 'Políticas', moduleId: 'pol' },
+  { href: '/lojistas', label: 'Lojistas', moduleId: 'mall' },
+  { href: '/locacao', label: 'Locação', moduleId: 'lease' },
+  { href: '/fundo-promocao', label: 'Fundo de Promoção', moduleId: 'fund' },
+  { href: '/estacionamento', label: 'Estacionamento', moduleId: 'park' },
+  { href: '/rondas', label: 'Rondas', moduleId: 'sec' },
   { href: '/store', label: 'Store', moduleId: null },
   { href: '/ajustes', label: 'Ajustes', moduleId: null },
 ];

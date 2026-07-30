@@ -187,13 +187,20 @@ Onde vai cada coisa:
   - `packages/training` é o **Módulo 35 — Treinamentos** (`train`, Domain `hr`): programas + turmas + inscrições. ⭐ **A identidade do `evt` aplicada ao treino:** turma publicada abre inscrição, lotação recusa clara, presença é ato IMUTÁVEL carimbado pelo servidor; turma concluída/cancelada terminal. Colaborador por id solto. ⛔ Certificado (Storage do Core) declarado FORA. Ver `MODULO-TRAIN-SPEC`.
   - `packages/performance` é o **Módulo 36 — Avaliação de Desempenho** (`perf`, Domain `hr`): ⭐ **NÃO é o goal — avaliador × avaliado, dois papéis** (o goal mede a PRÓPRIA ambição com check-in; perf é o julgamento de OUTRA pessoa). Ciclo TEXTO LIVRE; a avaliação é ato IMUTÁVEL com o avaliador carimbado pelo servidor; o ciclo fechado é TERMINAL. OKRs estruturados FORA. Ver `MODULO-PERF-SPEC`.
   - `packages/policies` é o **Módulo 37 — Políticas** (`pol`, Domain `hr` — a *Políticas* de GRC é o HOMÔNIMO declarado): ⭐⭐ **o DIVERGE do `comm`: política tem VERSÃO — a ciência é por (política, versão)**, então versão nova exige ciência de novo (unique `version_id,user_id`). Publicar CONGELA o corpo; versão arquivada terminal (o congelamento do quote); a ciência é ato próprio, único por versão e eterno. Ver `MODULO-POL-SPEC`.
+- ⭐ **A MISSÃO NOVE entregou os Módulos 38–42 num PR só, um commit por módulo** (migrations `0053`–`0057`, ARQUIVO — apply do dono, runbook §22), a **Onda 6 de 6 — a ÚLTIMA da campanha**, e o **primeiro bloco VERTICAL** do catálogo (`vertical_key='shopping-centers'`, a `VerticalKey` do `@alsham/core`). ⚠️ **Lei do Reaproveitamento (Taxonomia §9):** verticais reutilizam os Domains genéricos — camada fina, vínculo por ID SOLTO + nome carimbado, nunca FK cruzada, nunca reescreve a física do genérico. Os CINCO têm **`consumes` VAZIO** — sem redeploy do `apps/api`:
+  - `packages/mall` é o **Módulo 38 — Gestão de Lojistas** (`mall`, Vertical `shopping-centers`): o PRIMEIRO cartão vertical. Segmento TEXTO LIVRE; a unidade física por id solto ao `spc` (não recria cadastro de espaço). ⭐ **`active ↔ archived` — o DIVERGE do `hr`** (o lojista é relação comercial que volta, mais perto do crm/spc). Ver `MODULO-MALL-SPEC`.
+  - `packages/lease` é o **Módulo 39 — Locação de Lojistas** (`lease`, Vertical): ⭐⭐ **CAMADA COMERCIAL sobre o `ctr` — não o reescreve** (vigência/reajuste/renovação são do `ctr`, por id solto). Registra o termo comercial sobre vendas (texto livre) e o relatório mensal de vendas (ato imutável, sem POS). Ver `MODULO-LEASE-SPEC`.
+  - `packages/fund` é o **Módulo 40 — Fundo de Promoção** (`fund`, Vertical): livro próprio (autossuficiente — não importa o `cc`; física duplicada de propósito, como spc→shift). ⭐⭐ **O saldo NUNCA fica negativo — a TERCEIRA resposta ao "pode ficar negativo?"** (o `bank` permite, o `inv` permite, o `fund` RECUSA: dinheiro coletivo de terceiros). Ver `MODULO-FUND-SPEC`.
+  - `packages/park` é o **Módulo 41 — Estacionamento** (`park`, Vertical): ⭐ **a identidade do `vis`** — veículo NEUTRO (placa texto livre), entrada e saída carimbadas pelo SERVIDOR, correção é registro novo. Tarifa opcional em texto; sem cálculo de tarifa. Ver `MODULO-PARK-SPEC`.
+  - `packages/sec` é o **Módulo 42 — Segurança / Rondas** (`sec`, Vertical) — ⭐ **a ÚLTIMA peça (42/42)**: ⭐⭐ **NÃO reescreve o `occ`** (o incidente É uma Ocorrência, que já existe); este módulo é só a RONDA — postos do tenant e o livro de rondas (ato pontual imutável). Ver `MODULO-SEC-SPEC`.
+- ⭐⭐ **A CAMPANHA DAS 6 ONDAS ESTÁ COMPLETA (30/07/2026): 42/42 módulos publicados** — 37 Domain + 5 Vertical. É a meta que orientou a apresentação desde o começo.
 - ⛔ **Função nasce ABERTA a `PUBLIC` no PostgreSQL** — diferente de tabela. Toda função criada depois do `revoke ... on all functions` do seu schema herda esse privilégio, e o `grant` escrito logo abaixo vira decoração. Oito funções `security definer` eram chamáveis por `anon` até o `0022_revoke_public_execute.sql`. **Escreveu `create function` em schema já revogado? Revogue de novo antes de conceder.**
 - ⭐ **Copiar sem pensar e divergir sem escrever são o mesmo erro.** Módulo novo que espelha um existente: re-pergunte cada decisão e escreva a resposta — inclusive as que se mantêm.
 - ⭐ **A origem de um fato vem SEMPRE do envelope** (`producedBy`), nunca de constante no consumidor. Com ela chumbada, um segundo produtor do mesmo formato entraria disfarçado do primeiro e a trilha mentiria sem nunca dar erro. Há guarda no CI que reprova as três formas de chumbar.
 - `apps/store` e `apps/admin` e os demais 12 pacotes continuam **só com `README.md`** — status NÃO INICIADO. (`packages/finance` segue NÃO INICIADO: os módulos financeiros nascem em pastas próprias, como manda §6.)
 - ⚠️ **O seed é a FONTE do catálogo, não só a semente dele.** Desde a Etapa 10 os blocos de `core.module_registry` são `on conflict do update`, não `do nothing`: uma linha existente precisou mudar (o `recon` passou a escutar `ap.*`) e `do nothing` deixaria a Store exibindo o catálogo antigo para sempre, sem erro nenhum. Consequência: reaplicar o seed **desfaz edição feita à mão** no catálogo. Depreciar um módulo se faz mudando o arquivo.
 - ⚠️ **Schema novo precisa ser EXPOSTO na Data API do Supabase pelo dono** (Project Settings → API → Exposed schemas). Lição paga na Etapa 9 e repetida nas 10, 11 e 12: sem isso as telas carregam vazias, sem erro que diga o motivo. Está no runbook §10.0. ⭐ **A Forja e o Painel não pedem schema novo** — os dois são Core e escrevem/leem em `core`, que já está exposto.
-- **As migrations são provadas no CI:** `0001` → … → `0014` + `0017` → `0052` + seed (duas vezes) aplicam de verdade num Postgres 17 limpo e passam nos **quarenta e dois** testes de isolamento com usuário real (`supabase/tests/`), a cada mudança.
+- **As migrations são provadas no CI:** `0001` → … → `0014` + `0017` → `0057` + seed (duas vezes) aplicam de verdade num Postgres 17 limpo e passam nos **quarenta e sete** testes de isolamento com usuário real (`supabase/tests/`), a cada mudança.
 
 #### ⛔ 5.4.1 O apply de produção já aconteceu — `0001` a `0014` estão CONGELADAS
 
@@ -216,7 +223,8 @@ A consequência é operacional e não é opinião:
   - `0038_goal.sql` · `0039_comm.sql` · `0040_edcal.sql` · `0041_media.sql` · `0042_nps.sql` — os cinco da Missão Sexta (runbook §19). ⚠️ **Expor os schemas `goal`, `comm`, `edcal`, `media`, `nps` na Data API** ao aplicar. Nenhum consome evento — não há redeploy obrigatório do `apps/api` nesta onda. ⛔ E o `nps` não ganha exceção de `anon`: o link público de resposta é integração futura.
   - `0043_cc.sql` · `0044_bud.sql` · `0045_bank.sql` · `0046_invest.sql` · `0047_dre.sql` — os cinco da Missão Sete, o Bloco Financeiro (runbook §20). ⚠️ **Expor os schemas `cc`, `bud`, `bank`, `invest`, `dre` na Data API** ao aplicar. ⛔🔴 **DOIS consumidores nesta onda — o `bud` (cash.*) e o `dre` (cash.* + cc.*) — EXIGEM redeploy do `apps/api`** (as inscrições só existem no build novo); o `cc`, o `bank` e o `invest` não exigem (`consumes` vazio).
   - `0048_hr.sql` · `0049_shift.sql` · `0050_train.sql` · `0051_perf.sql` · `0052_pol.sql` — os cinco da Missão Oito, o Bloco de Pessoas (runbook §21). ⚠️ **Expor os schemas `hr`, `shift`, `train`, `perf`, `pol` na Data API** ao aplicar (o `0049` cria a extensão `btree_gist` — contrib, já usada pelo `spc`). ✅ **NENHUM consome evento — SEM redeploy do `apps/api` nesta onda** (todos com `consumes` vazio; guarda de CI confere). ⚠️ Dado de pessoa física: nome neutro, zero CPF/saúde/banco (Folha/Benefícios FORA).
-- ⚠️ **A lacuna `0015`/`0016` é proposital** e vem da main. A próxima numeração livre é **`0053`**.
+  - `0053_mall.sql` · `0054_lease.sql` · `0055_fund.sql` · `0056_park.sql` · `0057_sec.sql` — os cinco da Missão Nove, o Vertical Shopping Centers (runbook §22). ⚠️ **Expor os schemas `mall`, `lease`, `fund`, `park`, `sec` na Data API** ao aplicar. ✅ **NENHUM consome evento — SEM redeploy do `apps/api`** (camadas finas sobre os genéricos, id solto; guarda de CI confere). ⭐ São os PRIMEIROS cartões `vertical_key` (`shopping-centers`) — a Store gradua a galeria de Verticais. ⭐⭐ **42/42 — campanha das 6 Ondas COMPLETA.**
+- ⚠️ **A lacuna `0015`/`0016` é proposital** e vem da main. A próxima numeração livre é **`0058`**.
 - ⛔ **A limpeza do runbook §7.3 FOI EXECUTADA** em 28/07/2026: a concessão global de permissão de módulo **não existe mais em produção**. O tenant piloto tem papel próprio, com as permissões concedidas por `core.install_module()` — pela Store, com o clique do dono. Nunca volte a conceder permissão de módulo no seed.
 - `packages/workflow` é **o correio do Core** — o entregador da caixa de saída: idempotência por consumidor, backoff exponencial, `dead` sem apagar. **ENGINE, não módulo** (Taxonomia §4): não aparece na Store.
 - `apps/api` é **a COMPOSIÇÃO** — o único lugar do repositório onde os módulos se conhecem. Ele importa `workflow`, `marketing`, `finance-reconciliation`, `accounts-payable`, `accounts-receivable` e `billing`; **nenhum deles importa nenhum outro**. ⭐ Desde a Etapa 10 o mesmo pacote (`finance-reconciliation`) é PRODUTOR numa inscrição e CONSUMIDOR em outra — e continua sem conhecer ninguém. Traz a persistência real do correio (contra Postgres, com arrendamento e `skip locked`), os adaptadores dos consumidores, o endpoint protegido e a saúde da fila.
@@ -252,7 +260,7 @@ O Módulo 1 é o padrão. Os Módulos 2 a 7 obedeceram ao mesmo; o próximo tamb
 - **A Regra de Ouro (§5.3) é verificada no CI**, não só recomendada: se o motor de domínio for redeclarado em `apps/`, ou se a tela deixar de chamá-lo, o build falha.
 - **O instalador existe** (`0006_install.sql`): quem concede permissão de módulo é `core.install_module()`, num papel **DO TENANT**. Papel de sistema é recusado — ele vale em todos os tenants e faria o módulo vazar para quem não o instalou. **Nunca volte a conceder permissão de módulo no seed.**
 - **Desinstalar não apaga dado.** Corta acesso e revoga permissão; o que o módulo gravou continua no banco. Há teste no CI.
-- **Entregou peça? Atualize a linha dela** em `CORE-SPEC §5` e na spec do módulo — `MODULO-RECON-SPEC §7`, `MODULO-MARKETING-SPEC §6`, `MODULO-AP-SPEC §6`, `MODULO-CRM-SPEC §6`, `MODULO-AR-SPEC §5`, `MODULO-PO-SPEC §4`, `MODULO-OPS-SPEC §5`, `MODULO-INV-SPEC §7`, `MODULO-QUOTE-SPEC §6`, `MODULO-DEAL-SPEC §6`, `MODULO-EVT-SPEC §6`, `MODULO-DUN-SPEC §7`, `MODULO-CTR-SPEC §6`, `MODULO-CASH-SPEC §6`, `MODULO-CARE-SPEC §6`, `MODULO-OCC-SPEC §6`, `MODULO-MNT-SPEC §6`, `MODULO-PAT-SPEC §6`, `MODULO-CHK-SPEC §6`, `MODULO-SPC-SPEC §6`, `MODULO-VIS-SPEC §6`, `MODULO-LEAD-SPEC §6`, `MODULO-GOAL-SPEC §6`, `MODULO-COMM-SPEC §6`, `MODULO-EDCAL-SPEC §6`, `MODULO-MEDIA-SPEC §6`, `MODULO-NPS-SPEC §6`, `MODULO-CC-SPEC §6`, `MODULO-BUD-SPEC §6`, `MODULO-BANK-SPEC §6`, `MODULO-INVEST-SPEC §6`, `MODULO-DRE-SPEC §6`, `MODULO-HR-SPEC §6`, `MODULO-SHIFT-SPEC §6`, `MODULO-TRAIN-SPEC §6`, `MODULO-PERF-SPEC §6` e `MODULO-POL-SPEC §6`. São a fonte de estado, e o CI (`pnpm verificar:docs`) falha se um documento declarar **NÃO CONSTRUÍDO** algo que já existe no disco. Negar o que existe é a Lei 7 com o sinal trocado, e é o erro mais fácil de cometer: não exige escrever nada, basta não apagar.
+- **Entregou peça? Atualize a linha dela** em `CORE-SPEC §5` e na spec do módulo — `MODULO-RECON-SPEC §7`, `MODULO-MARKETING-SPEC §6`, `MODULO-AP-SPEC §6`, `MODULO-CRM-SPEC §6`, `MODULO-AR-SPEC §5`, `MODULO-PO-SPEC §4`, `MODULO-OPS-SPEC §5`, `MODULO-INV-SPEC §7`, `MODULO-QUOTE-SPEC §6`, `MODULO-DEAL-SPEC §6`, `MODULO-EVT-SPEC §6`, `MODULO-DUN-SPEC §7`, `MODULO-CTR-SPEC §6`, `MODULO-CASH-SPEC §6`, `MODULO-CARE-SPEC §6`, `MODULO-OCC-SPEC §6`, `MODULO-MNT-SPEC §6`, `MODULO-PAT-SPEC §6`, `MODULO-CHK-SPEC §6`, `MODULO-SPC-SPEC §6`, `MODULO-VIS-SPEC §6`, `MODULO-LEAD-SPEC §6`, `MODULO-GOAL-SPEC §6`, `MODULO-COMM-SPEC §6`, `MODULO-EDCAL-SPEC §6`, `MODULO-MEDIA-SPEC §6`, `MODULO-NPS-SPEC §6`, `MODULO-CC-SPEC §6`, `MODULO-BUD-SPEC §6`, `MODULO-BANK-SPEC §6`, `MODULO-INVEST-SPEC §6`, `MODULO-DRE-SPEC §6`, `MODULO-HR-SPEC §6`, `MODULO-SHIFT-SPEC §6`, `MODULO-TRAIN-SPEC §6`, `MODULO-PERF-SPEC §6` `MODULO-POL-SPEC §6`, `MODULO-MALL-SPEC §6`, `MODULO-LEASE-SPEC §6`, `MODULO-FUND-SPEC §6`, `MODULO-PARK-SPEC §6` e `MODULO-SEC-SPEC §6`. São a fonte de estado, e o CI (`pnpm verificar:docs`) falha se um documento declarar **NÃO CONSTRUÍDO** algo que já existe no disco. Negar o que existe é a Lei 7 com o sinal trocado, e é o erro mais fácil de cometer: não exige escrever nada, basta não apagar.
   ⚠️ **E conte as linhas ✅ da saída.** Na Etapa 15 descobriu-se que o rebase juntara a entrada do Módulo 6 com a do Módulo 7 no mesmo objeto literal do verificador: em JavaScript a segunda chave sobrescreve a primeira, o script seguiu verde e **deixou de conferir uma peça sem falhar nem acusar**.
 
 ---
@@ -279,6 +287,9 @@ docs/canon/            taxonomia · roadmap · core-spec · identidade-visual
                        · modulo-hr-spec · modulo-shift-spec
                        · modulo-train-spec · modulo-perf-spec
                        · modulo-pol-spec
+                       · modulo-mall-spec · modulo-lease-spec
+                       · modulo-fund-spec · modulo-park-spec
+                       · modulo-sec-spec
                                                         — leitura obrigatória
 docs/comercial/        VERTICAL-SHOPPING.md             — dossiê de venda
 docs/balancos/         tecnologia + supabase            — de onde minerar
@@ -303,7 +314,10 @@ supabase/migrations/   0001_core … 0014_ap_apply_recon_match
                        0048_hr · 0049_shift · 0050_train · 0051_perf
                        · 0052_pol                         — Missão Oito (Bloco
                                                             de Pessoas); apply do dono
-                       (lacuna 0015–0016 proposital; próxima livre: 0053)
+                       0053_mall · 0054_lease · 0055_fund · 0056_park
+                       · 0057_sec                         — Missão Nove (Vertical
+                                                            Shopping Centers); apply do dono
+                       (lacuna 0015–0016 proposital; próxima livre: 0058)
 supabase/seed/         0001_platform.sql                — catálogo, idempotente; zero tenant
 supabase/tests/        shim · isolamento · uso · consumo entre módulos
                        · instalador · triângulo · relacionamentos · a receber
@@ -323,6 +337,9 @@ supabase/tests/        shim · isolamento · uso · consumo entre módulos
                        · colaboradores (hr) · escalas (shift)
                        · treinamentos (train) · avaliação (perf)
                        · políticas (pol)
+                       · lojistas (mall) · locação (lease)
+                       · fundo de promoção (fund) · estacionamento (park)
+                       · segurança/rondas (sec)
                                                         — só CI; NUNCA no Supabase real
 docs/runbook/          APLICAR.md                       — o passo a passo do dono
 .github/scripts/       guarda de defasagem de documento — encanamento de CI
@@ -376,6 +393,11 @@ packages/              core auth organizations workflow billing
                        training                         — Módulo 35 (o treino: a identidade do evt)
                        performance                      — Módulo 36 (avaliador × avaliado, não o goal)
                        policies                         — Módulo 37 (a política tem versão: o DIVERGE do comm)
+                       mall                             — Módulo 38 (o primeiro vertical: o lojista volta)
+                       lease                            — Módulo 39 (camada comercial sobre o ctr)
+                       fund                             — Módulo 40 (o saldo nunca fica negativo)
+                       park                             — Módulo 41 (a identidade do vis no veículo)
+                       sec                              — Módulo 42 (só a ronda; o incidente é occ)
                        workflow (o correio) · billing (uso) · ai (a forja)
                                                         — Engines/capacidades do Core
 ```

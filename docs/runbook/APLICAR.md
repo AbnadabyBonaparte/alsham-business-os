@@ -1373,6 +1373,34 @@ de RH/jurídico de verdade). Nada muda no rito por isso; é lembrete de escopo.
 Nenhum agente aplica em produção. A conferência de segurança do PASSO 15
 (§ pós-apply) vale para os schemas novos.
 
+## PASSO 22 — A MISSÃO NOVE: o Vertical Shopping Centers (`0053` em diante) — a ÚLTIMA onda
+
+⭐ A **Onda 6 de 6** — e o **primeiro bloco VERTICAL** do catálogo. O rito é o
+mesmo — migration na ordem, seed, Data API, Store:
+
+1. **Aplicar a migration** no SQL Editor, na ordem:
+   - `0053_mall.sql` — Módulo 38, Gestão de Lojistas (schema `mall`)
+   - `0054_lease.sql` — Módulo 39, Locação de Lojistas (schema `lease`)
+   - `0055_fund.sql` — Módulo 40, Fundo de Promoção (schema `fund`)
+   - `0056_park.sql` — Módulo 41, Estacionamento (schema `park`)
+   - `0057_sec.sql` — Módulo 42, Segurança / Rondas (schema `sec`)
+2. **Reaplicar o seed** — os cinco cartões novos entram no catálogo. ⭐ São os
+   PRIMEIROS cartões com `vertical_key` (`shopping-centers`): a Store passa a
+   exibir a galeria "Verticais por Setor" com a seção viva de Shopping Centers.
+3. ⚠️ **Expor os schemas novos na Data API**: `mall`, `lease`, `fund`, `park`,
+   `sec`. Sem isso as telas carregam vazias, sem erro que diga o motivo.
+4. ✅ **SEM redeploy do `apps/api`** — os cinco têm `consumes` VAZIO (são
+   camadas finas sobre os Domains genéricos: o `lease` sobre o `ctr`, o `sec`
+   ao lado do `occ`, o `mall` referencia o `spc` — tudo por id solto, nenhum
+   handler novo). Guarda de CI confere.
+5. **Instalar cada módulo pela Store**, no tenant que o contratou.
+
+⭐ **Ao concluir este apply, o catálogo chega a 42 módulos publicados — a
+Campanha das 6 Ondas está COMPLETA.** (37 Domain + 5 Vertical.)
+
+Nenhum agente aplica em produção. A conferência de segurança do PASSO 15
+(§ pós-apply) vale para os schemas novos.
+
 ## O QUE AINDA NÃO EXISTE
 
 Honestidade de escopo, para você não procurar o que não foi construído:

@@ -2405,7 +2405,272 @@ on conflict (module_id) do update set
   status          = excluded.status,
   updated_at      = now();
 
--- ⛔ Trinta e sete módulos no catálogo, zero permissão concedida pelo seed.
+-- =============================================================================
+-- 4.38 O MÓDULO `mall` — o 38º cartão · ⭐ O PRIMEIRO VERTICAL (Missão Nove)
+-- -----------------------------------------------------------------------------
+-- Gestão de Lojistas. ⭐ `layer='vertical'`, `vertical_key='shopping-centers'`
+-- (VerticalKey do @alsham/core; a Store gradua a pill de Shopping Centers).
+-- Segmento texto livre; unidade física por id solto ao spc; active ↔ archived
+-- (o DIVERGE do hr). `consumes` vazio (Lei 7) — ver a spec §5.
+-- =============================================================================
+
+insert into core.module_registry (
+  module_id, name, version, summary,
+  layer, vertical_key,
+  capabilities, permissions, events_emits, events_consumes, agents,
+  requires_core, status
+)
+values (
+  'mall',
+  'Gestão de Lojistas',
+  '0.1.0',
+  'Os lojistas do shopping: segmento TEXTO LIVRE (nunca enum), a unidade física por id solto ao spc (não recria cadastro de espaço). O lojista é relação comercial que volta — active ↔ archived (o DIVERGE do hr).',
+  'vertical', 'shopping-centers',
+  '[
+     {"key":"store-tenants","canonicalName":"Lojistas"}
+   ]'::jsonb,
+  '[
+     {"key":"mall.store.manage","moduleId":"mall","description":"Cadastrar lojistas e editar dados (nome, segmento, unidade física por id solto)."},
+     {"key":"mall.store.decide","moduleId":"mall","description":"Arquivar ou reabrir um lojista — tira/põe no mapa do mall."}
+   ]'::jsonb,
+  '[
+     {"type":"mall.store.registered","version":1,"description":"Um lojista foi cadastrado — nome, segmento e a unidade pelo nome carimbado."},
+     {"type":"mall.store.updated","version":1,"description":"Os dados do lojista mudaram."},
+     {"type":"mall.store.archived","version":1,"description":"O lojista saiu do mapa do mall — reversível."},
+     {"type":"mall.store.reopened","version":1,"description":"O lojista voltou ao mapa — a mesma relação comercial."}
+   ]'::jsonb,
+  '[]'::jsonb,
+  '[]'::jsonb,
+  '0.0.x',
+  'published'
+)
+on conflict (module_id) do update set
+  name            = excluded.name,
+  version         = excluded.version,
+  summary         = excluded.summary,
+  layer           = excluded.layer,
+  domain_key      = excluded.domain_key,
+  vertical_key    = excluded.vertical_key,
+  capabilities    = excluded.capabilities,
+  permissions     = excluded.permissions,
+  events_emits    = excluded.events_emits,
+  events_consumes = excluded.events_consumes,
+  agents          = excluded.agents,
+  requires_core   = excluded.requires_core,
+  status          = excluded.status,
+  updated_at      = now();
+
+-- =============================================================================
+-- 4.39 O MÓDULO `lease` — o 39º cartão (Missão Nove) · vertical
+-- -----------------------------------------------------------------------------
+-- Locação de Lojistas. ⭐ CAMADA COMERCIAL sobre o `ctr` (a vigência/reajuste/
+-- renovação são do ctr, por id solto — não se reescreve). Registra o termo
+-- comercial sobre vendas (texto livre) e o relatório de vendas (ato imutável).
+-- `consumes` vazio (Lei 7) — ver a spec §5.
+-- =============================================================================
+
+insert into core.module_registry (
+  module_id, name, version, summary,
+  layer, vertical_key,
+  capabilities, permissions, events_emits, events_consumes, agents,
+  requires_core, status
+)
+values (
+  'lease',
+  'Locação de Lojistas',
+  '0.1.0',
+  'A camada comercial da locação do shopping: o contrato vive no ctr (id solto); aqui mora o termo comercial sobre vendas (percentual/regra em texto livre, dado do tenant) e o relatório mensal de vendas do lojista — ato imutável, registrado por gente (sem POS integrado).',
+  'vertical', 'shopping-centers',
+  '[
+     {"key":"lease-agreements","canonicalName":"Contratos de locação"}
+   ]'::jsonb,
+  '[
+     {"key":"lease.agreement.manage","moduleId":"lease","description":"Registrar a locação comercial (contrato por id solto, lojista por id solto, termo sobre vendas) e encerrá-la."},
+     {"key":"lease.report.manage","moduleId":"lease","description":"Registrar o relatório mensal de vendas do lojista — ato imutável."}
+   ]'::jsonb,
+  '[
+     {"type":"lease.agreement.registered","version":1,"description":"Uma locação comercial foi registrada — contrato e lojista por id solto, termo sobre vendas."},
+     {"type":"lease.agreement.ended","version":1,"description":"A locação comercial foi encerrada. Terminal."},
+     {"type":"lease.report.recorded","version":1,"description":"Um relatório de vendas do lojista foi registrado — ato imutável, com competência e valor."}
+   ]'::jsonb,
+  '[]'::jsonb,
+  '[]'::jsonb,
+  '0.0.x',
+  'published'
+)
+on conflict (module_id) do update set
+  name            = excluded.name,
+  version         = excluded.version,
+  summary         = excluded.summary,
+  layer           = excluded.layer,
+  domain_key      = excluded.domain_key,
+  vertical_key    = excluded.vertical_key,
+  capabilities    = excluded.capabilities,
+  permissions     = excluded.permissions,
+  events_emits    = excluded.events_emits,
+  events_consumes = excluded.events_consumes,
+  agents          = excluded.agents,
+  requires_core   = excluded.requires_core,
+  status          = excluded.status,
+  updated_at      = now();
+
+-- =============================================================================
+-- 4.40 O MÓDULO `fund` — o 40º cartão (Missão Nove) · vertical
+-- -----------------------------------------------------------------------------
+-- Fundo de Promoção. ⭐ Livro próprio de contribuições e gastos (autossuficiente
+-- — não importa o cc). ⭐⭐ O SALDO NUNCA fica negativo — o DIVERGE do bank/inv
+-- (que permitem): fundo é dinheiro coletivo de terceiros. `consumes` vazio.
+-- =============================================================================
+
+insert into core.module_registry (
+  module_id, name, version, summary,
+  layer, vertical_key,
+  capabilities, permissions, events_emits, events_consumes, agents,
+  requires_core, status
+)
+values (
+  'fund',
+  'Fundo de Promoção',
+  '0.1.0',
+  'O caixa coletivo do shopping: contribuições dos lojistas (id solto) e gastos com promoção — livro próprio, ato imutável. O saldo NUNCA fica negativo (o DIVERGE do bank/inv): gastar mais do que arrecadou não é produto financeiro, é descontrole — a constraint recusa.',
+  'vertical', 'shopping-centers',
+  '[
+     {"key":"promotion-fund","canonicalName":"Fundo de promoção"}
+   ]'::jsonb,
+  '[
+     {"key":"fund.contribution.manage","moduleId":"fund","description":"Registrar contribuições dos lojistas ao fundo — ato imutável."},
+     {"key":"fund.expense.manage","moduleId":"fund","description":"Registrar gastos do fundo (com razão) — recusados se estouram o saldo."}
+   ]'::jsonb,
+  '[
+     {"type":"fund.contribution.recorded","version":1,"description":"Uma contribuição ao fundo foi registrada — lojista por id solto, competência e valor."},
+     {"type":"fund.expense.recorded","version":1,"description":"Um gasto do fundo foi registrado — com razão; o saldo nunca fica negativo."}
+   ]'::jsonb,
+  '[]'::jsonb,
+  '[]'::jsonb,
+  '0.0.x',
+  'published'
+)
+on conflict (module_id) do update set
+  name            = excluded.name,
+  version         = excluded.version,
+  summary         = excluded.summary,
+  layer           = excluded.layer,
+  domain_key      = excluded.domain_key,
+  vertical_key    = excluded.vertical_key,
+  capabilities    = excluded.capabilities,
+  permissions     = excluded.permissions,
+  events_emits    = excluded.events_emits,
+  events_consumes = excluded.events_consumes,
+  agents          = excluded.agents,
+  requires_core   = excluded.requires_core,
+  status          = excluded.status,
+  updated_at      = now();
+
+-- =============================================================================
+-- 4.41 O MÓDULO `park` — o 41º cartão (Missão Nove) · vertical
+-- -----------------------------------------------------------------------------
+-- Estacionamento. ⭐ A identidade do `vis` (portaria): veículo neutro
+-- (placa/identificador texto livre), entrada e saída carimbadas PELO SERVIDOR;
+-- correção é registro novo. Tarifa opcional (texto). `consumes` vazio.
+-- =============================================================================
+
+insert into core.module_registry (
+  module_id, name, version, summary,
+  layer, vertical_key,
+  capabilities, permissions, events_emits, events_consumes, agents,
+  requires_core, status
+)
+values (
+  'park',
+  'Estacionamento',
+  '0.1.0',
+  'O livro do estacionamento do shopping: veículo NEUTRO (placa/identificador texto livre), entrada e saída carimbadas pelo servidor (nunca pela tela — a prudência do vis); correção é registro novo. Tarifa opcional em texto (o tenant decide se cobra). Sem cálculo de tarifa progressiva.',
+  'vertical', 'shopping-centers',
+  '[
+     {"key":"parking","canonicalName":"Estacionamento"}
+   ]'::jsonb,
+  '[
+     {"key":"park.entry.manage","moduleId":"park","description":"Registrar a ENTRADA de um veículo — o carimbo de entrada é do servidor."},
+     {"key":"park.entry.close","moduleId":"park","description":"Registrar a SAÍDA de um veículo — o carimbo de saída é do servidor."}
+   ]'::jsonb,
+  '[
+     {"type":"park.entry.registered","version":1,"description":"Um veículo entrou — placa/identificador e o carimbo de entrada do servidor."},
+     {"type":"park.entry.closed","version":1,"description":"Um veículo saiu — o carimbo de saída do servidor, sobre a mesma entrada."}
+   ]'::jsonb,
+  '[]'::jsonb,
+  '[]'::jsonb,
+  '0.0.x',
+  'published'
+)
+on conflict (module_id) do update set
+  name            = excluded.name,
+  version         = excluded.version,
+  summary         = excluded.summary,
+  layer           = excluded.layer,
+  domain_key      = excluded.domain_key,
+  vertical_key    = excluded.vertical_key,
+  capabilities    = excluded.capabilities,
+  permissions     = excluded.permissions,
+  events_emits    = excluded.events_emits,
+  events_consumes = excluded.events_consumes,
+  agents          = excluded.agents,
+  requires_core   = excluded.requires_core,
+  status          = excluded.status,
+  updated_at      = now();
+
+-- =============================================================================
+-- 4.42 O MÓDULO `sec` — o 42º cartão (Missão Nove) · ⭐ A ÚLTIMA PEÇA · vertical
+-- -----------------------------------------------------------------------------
+-- Segurança — Rondas. ⭐ NÃO reescreve o `occ` (o incidente é uma Ocorrência):
+-- este módulo é só a RONDA — o percurso verificado, ato pontual imutável.
+-- `consumes` vazio (Lei 7) — ver a spec §5. ⭐ 42/42 — campanha completa.
+-- =============================================================================
+
+insert into core.module_registry (
+  module_id, name, version, summary,
+  layer, vertical_key,
+  capabilities, permissions, events_emits, events_consumes, agents,
+  requires_core, status
+)
+values (
+  'sec',
+  'Segurança — Rondas',
+  '0.1.0',
+  'A ronda de segurança do shopping: postos de verificação (texto livre, desenho do tenant) e o livro de rondas — quando se passou por qual posto, ato pontual imutável carimbado pelo servidor. O incidente NÃO mora aqui: incidente é Ocorrência (occ), que já existe.',
+  'vertical', 'shopping-centers',
+  '[
+     {"key":"security-patrols","canonicalName":"Segurança"}
+   ]'::jsonb,
+  '[
+     {"key":"sec.checkpoint.manage","moduleId":"sec","description":"Desenhar os postos de verificação do tenant (texto livre; voltam do arquivo)."},
+     {"key":"sec.patrol.record","moduleId":"sec","description":"Registrar a passagem da ronda por um posto — ato imutável, carimbado pelo servidor."}
+   ]'::jsonb,
+  '[
+     {"type":"sec.patrol.recorded","version":1,"description":"A ronda passou por um posto — o carimbo do servidor, ato pontual imutável."}
+   ]'::jsonb,
+  '[]'::jsonb,
+  '[]'::jsonb,
+  '0.0.x',
+  'published'
+)
+on conflict (module_id) do update set
+  name            = excluded.name,
+  version         = excluded.version,
+  summary         = excluded.summary,
+  layer           = excluded.layer,
+  domain_key      = excluded.domain_key,
+  vertical_key    = excluded.vertical_key,
+  capabilities    = excluded.capabilities,
+  permissions     = excluded.permissions,
+  events_emits    = excluded.events_emits,
+  events_consumes = excluded.events_consumes,
+  agents          = excluded.agents,
+  requires_core   = excluded.requires_core,
+  status          = excluded.status,
+  updated_at      = now();
+
+-- ⛔ Quarenta e dois módulos no catálogo (37 domain + 5 vertical), zero
+-- permissão concedida pelo seed. ⭐ Campanha das 6 Ondas COMPLETA (30/07/2026).
 
 -- =============================================================================
 -- 5. PLANOS-BASE

@@ -487,6 +487,19 @@ importers:
         specifier: ^5.7.2
         version: 5.9.3
 
+  packages/fund:
+    dependencies:
+      '@alsham/core':
+        specifier: workspace:*
+        version: link:../core
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.2
+        version: 22.20.1
+      typescript:
+        specifier: ^5.7.2
+        version: 5.9.3
+
   packages/goals:
     dependencies:
       '@alsham/core':
@@ -552,7 +565,33 @@ importers:
         specifier: ^5.7.2
         version: 5.9.3
 
+  packages/lease:
+    dependencies:
+      '@alsham/core':
+        specifier: workspace:*
+        version: link:../core
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.2
+        version: 22.20.1
+      typescript:
+        specifier: ^5.7.2
+        version: 5.9.3
+
   packages/maintenance:
+    dependencies:
+      '@alsham/core':
+        specifier: workspace:*
+        version: link:../core
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.2
+        version: 22.20.1
+      typescript:
+        specifier: ^5.7.2
+        version: 5.9.3
+
+  packages/mall:
     dependencies:
       '@alsham/core':
         specifier: workspace:*
@@ -636,6 +675,19 @@ importers:
         specifier: ^5.7.2
         version: 5.9.3
 
+  packages/park:
+    dependencies:
+      '@alsham/core':
+        specifier: workspace:*
+        version: link:../core
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.2
+        version: 22.20.1
+      typescript:
+        specifier: ^5.7.2
+        version: 5.9.3
+
   packages/performance:
     dependencies:
       '@alsham/core':
@@ -689,6 +741,19 @@ importers:
         version: 5.9.3
 
   packages/quotes:
+    dependencies:
+      '@alsham/core':
+        specifier: workspace:*
+        version: link:../core
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.2
+        version: 22.20.1
+      typescript:
+        specifier: ^5.7.2
+        version: 5.9.3
+
+  packages/sec:
     dependencies:
       '@alsham/core':
         specifier: workspace:*
