@@ -1,10 +1,19 @@
-import type { AccountStatus, BankAccount, Movement, Problem, Validation } from './types.ts';
+import type { AccountStatus, BankAccount, Movement, MovementKind, Problem, Validation } from './types.ts';
 
 /**
  * O motor do Módulo 30 — Contas Bancárias.
  *
  * A tela consome; NUNCA decide (Regra de Ouro).
  */
+
+/**
+ * ⭐ O SINAL do movimento é FÍSICA do domínio — espelho da coluna gerada
+ * `signed_amount_cents` no `0045_bank.sql`: saída subtrai, entrada e ajuste
+ * seguem o sinal. Vive AQUI, no pacote, nunca na tela (Regra de Ouro).
+ */
+export function signedAmountCents(kind: MovementKind, amountCents: number): number {
+  return kind === 'out' ? -Math.abs(amountCents) : amountCents;
+}
 
 /**
  * ⭐ Espelho de `bank.allowed_transition()` no `0045_bank.sql` — há teste que

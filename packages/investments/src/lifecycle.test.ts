@@ -12,6 +12,7 @@ import {
   canTransition,
   orderHoldings,
   positionOf,
+  signedAmountCents,
 } from './investments.ts';
 import type { Holding, Movement } from './types.ts';
 
@@ -52,6 +53,12 @@ describe('a posição — soma dos atos, sem cotação', () => {
     assert.equal(positionOf([mov('application', 100000), mov('yield', 5000)]), 105000);
     assert.equal(positionOf([mov('application', 100000), mov('yield', 5000), mov('redemption', 30000)]), 75000);
     assert.equal(positionOf([]), 0);
+  });
+
+  test('⭐ o sinal do ato vive no pacote (Regra de Ouro) — resgate subtrai', () => {
+    assert.equal(signedAmountCents('application', 100000), 100000);
+    assert.equal(signedAmountCents('yield', 5000), 5000);
+    assert.equal(signedAmountCents('redemption', 30000), -30000);
   });
 });
 

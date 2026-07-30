@@ -1,3 +1,5 @@
+import { signedAmountCents } from '@alsham/investments';
+
 import type { HoldingRow, InvestPort, PositionRow } from './invest-port';
 
 const agora = () => new Date().toISOString();
@@ -27,7 +29,7 @@ function positions(): PositionRow[] {
   for (const h of holdings) {
     const movs = movements.filter((m) => m.holdingId === h.id);
     if (movs.length === 0) continue;
-    const signed = (m: MovMock) => (m.kind === 'redemption' ? -m.amountCents : m.amountCents);
+    const signed = (m: MovMock) => signedAmountCents(m.kind, m.amountCents);
     out.push({
       holdingId: h.id,
       holdingName: h.name,
@@ -69,7 +71,7 @@ export function createInvestMockPort(): InvestPort {
     async registerMovement(input) {
       if (input.kind === 'redemption') {
         const movs = movements.filter((m) => m.holdingId === input.holdingId);
-        const signed = (m: MovMock) => (m.kind === 'redemption' ? -m.amountCents : m.amountCents);
+        const signed = (m: MovMock) => signedAmountCents(m.kind, m.amountCents);
         const pos = movs.reduce((n, m) => n + signed(m), 0);
         if (input.amountCents > pos) throw new Error('resgate excede a posição');
       }

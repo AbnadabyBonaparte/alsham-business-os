@@ -15,6 +15,7 @@ export {
   canArchive,
   canRestore,
   positionOf,
+  signedAmountCents,
   canRedeem,
   orderHoldings,
   validateNewHolding,

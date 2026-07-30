@@ -12,6 +12,7 @@ import {
   canTransition,
   isOverdrawn,
   orderAccounts,
+  signedAmountCents,
 } from './bank-accounts.ts';
 import type { BankAccount, Movement } from './types.ts';
 
@@ -86,6 +87,13 @@ describe('o saldo — soma do livro, calculado', () => {
     assert.ok(!isOverdrawn(1));
     assert.ok(!isOverdrawn(0));
     assert.ok(isOverdrawn(-1));
+  });
+
+  test('⭐ o sinal do movimento vive no pacote (Regra de Ouro) — saída subtrai', () => {
+    assert.equal(signedAmountCents('in', 10000), 10000);
+    assert.equal(signedAmountCents('out', 10000), -10000);
+    assert.equal(signedAmountCents('adjustment', -500), -500);
+    assert.equal(signedAmountCents('adjustment', 500), 500);
   });
 });
 

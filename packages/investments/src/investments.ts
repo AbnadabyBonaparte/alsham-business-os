@@ -1,10 +1,19 @@
-import type { Holding, HoldingStatus, Movement, Problem, Validation } from './types.ts';
+import type { Holding, HoldingStatus, Movement, MovementKind, Problem, Validation } from './types.ts';
 
 /**
  * O motor do Módulo 31 — Investimentos.
  *
  * A tela consome; NUNCA decide (Regra de Ouro).
  */
+
+/**
+ * ⭐ O SINAL do ato é FÍSICA do domínio — espelho da coluna gerada
+ * `signed_amount_cents` no `0046_invest.sql`: resgate subtrai, aplicação e
+ * rendimento somam. Vive AQUI, no pacote, nunca na tela (Regra de Ouro).
+ */
+export function signedAmountCents(kind: MovementKind, amountCents: number): number {
+  return kind === 'redemption' ? -Math.abs(amountCents) : amountCents;
+}
 
 /**
  * ⭐ Espelho de `invest.allowed_transition()` no `0046_invest.sql` — há teste

@@ -1,4 +1,4 @@
-import { balanceOf } from '@alsham/bank-accounts';
+import { balanceOf, signedAmountCents } from '@alsham/bank-accounts';
 
 import type { AccountRow, BalanceRow, BankPort, MovementRow } from './bank-port';
 
@@ -69,7 +69,7 @@ export function createBankMockPort(): BankPort {
         accountId: input.accountId,
         kind: input.kind,
         amountCents: Math.abs(input.amountCents),
-        signedAmountCents: input.kind === 'out' ? -Math.abs(input.amountCents) : input.amountCents,
+        signedAmountCents: signedAmountCents(input.kind, Math.abs(input.amountCents)),
         currency: input.currency,
         description: input.description,
         reason: input.reason,
@@ -87,12 +87,12 @@ export function createBankMockPort(): BankPort {
       const currency = from?.currency ?? 'BRL';
       movements.unshift({
         id: `${transfer}-out`, accountId: input.fromAccountId, kind: 'out', amountCents: input.amountCents,
-        signedAmountCents: -input.amountCents, currency, description: input.description, reason: '',
+        signedAmountCents: signedAmountCents('out', input.amountCents), currency, description: input.description, reason: '',
         counterpartyName: to?.name ?? '', externalRef: null, transferId: transfer, occurredOn: input.occurredOn, createdAt: agora(),
       });
       movements.unshift({
         id: `${transfer}-in`, accountId: input.toAccountId, kind: 'in', amountCents: input.amountCents,
-        signedAmountCents: input.amountCents, currency, description: input.description, reason: '',
+        signedAmountCents: signedAmountCents('in', input.amountCents), currency, description: input.description, reason: '',
         counterpartyName: from?.name ?? '', externalRef: null, transferId: transfer, occurredOn: input.occurredOn, createdAt: agora(),
       });
     },

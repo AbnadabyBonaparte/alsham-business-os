@@ -17,6 +17,7 @@ export {
   canArchive,
   canRestore,
   balanceOf,
+  signedAmountCents,
   isOverdrawn,
   orderAccounts,
   validateNewAccount,
