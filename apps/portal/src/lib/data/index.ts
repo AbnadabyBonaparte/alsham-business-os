@@ -45,6 +45,16 @@ import { createVisMockPort } from './vis-mock';
 import { createVisSupabasePort } from './vis-supabase';
 import { createLeadMockPort } from './lead-mock';
 import { createLeadSupabasePort } from './lead-supabase';
+import { createGoalMockPort } from './goal-mock';
+import { createGoalSupabasePort } from './goal-supabase';
+import { createCommMockPort } from './comm-mock';
+import { createCommSupabasePort } from './comm-supabase';
+import { createEdcalMockPort } from './edcal-mock';
+import { createEdcalSupabasePort } from './edcal-supabase';
+import { createMediaMockPort } from './media-mock';
+import { createMediaSupabasePort } from './media-supabase';
+import { createNpsMockPort } from './nps-mock';
+import { createNpsSupabasePort } from './nps-supabase';
 import { createOccSupabasePort } from './occ-supabase';
 import { createCareSupabasePort } from './care-supabase';
 import { createCashSupabasePort } from './cash-supabase';
@@ -74,6 +84,11 @@ import type { ChkPort } from './chk-port';
 import type { SpcPort } from './spc-port';
 import type { VisPort } from './vis-port';
 import type { LeadPort } from './lead-port';
+import type { GoalPort } from './goal-port';
+import type { CommPort } from './comm-port';
+import type { EdcalPort } from './edcal-port';
+import type { MediaPort } from './media-port';
+import type { NpsPort } from './nps-port';
 import type { OpsPort } from './ops-port';
 import type { ForgePort } from './forge-port';
 import type { BrandPort } from './brand-port';
@@ -103,6 +118,11 @@ export type { ChkPort, ChkRunRow } from './chk-port';
 export type { SpcPort, ReservationRow } from './spc-port';
 export type { VisPort, VisitRow } from './vis-port';
 export type { LeadPort, LeadRow } from './lead-port';
+export type { GoalPort, GoalRow } from './goal-port';
+export type { CommPort, NoticeRow } from './comm-port';
+export type { EdcalPort, PieceRow } from './edcal-port';
+export type { MediaPort, AssetRowMedia } from './media-port';
+export type { NpsPort, SurveyRow } from './nps-port';
 export type { OpsPort, PipelineWithStages } from './ops-port';
 export type { ForgePort, GenerationResponse } from './forge-port';
 export type { BrandPort } from './brand-port';
@@ -434,6 +454,58 @@ export async function getLeadPort(): Promise<LeadPort> {
   if (!db) return createLeadMockPort();
 
   return createLeadSupabasePort(db, session.activeTenant.id);
+}
+
+export async function getGoalPort(): Promise<GoalPort> {
+  const session = await resolveSession();
+  if (session.mode !== 'authenticated') return createGoalMockPort();
+
+  const db = await createSupabaseServerClient();
+  if (!db) return createGoalMockPort();
+
+  return createGoalSupabasePort(db, session.activeTenant.id);
+}
+
+export async function getCommPort(): Promise<CommPort> {
+  const session = await resolveSession();
+  if (session.mode !== 'authenticated') return createCommMockPort();
+
+  const db = await createSupabaseServerClient();
+  if (!db) return createCommMockPort();
+
+  // ⭐ A porta leva o userId da SESSÃO: a tela precisa saber se a PRÓPRIA
+  // ciência já foi dada — e quem carimba a ciência é o gatilho, nunca a tela.
+  return createCommSupabasePort(db, session.activeTenant.id, session.userId);
+}
+
+export async function getEdcalPort(): Promise<EdcalPort> {
+  const session = await resolveSession();
+  if (session.mode !== 'authenticated') return createEdcalMockPort();
+
+  const db = await createSupabaseServerClient();
+  if (!db) return createEdcalMockPort();
+
+  return createEdcalSupabasePort(db, session.activeTenant.id);
+}
+
+export async function getMediaPort(): Promise<MediaPort> {
+  const session = await resolveSession();
+  if (session.mode !== 'authenticated') return createMediaMockPort();
+
+  const db = await createSupabaseServerClient();
+  if (!db) return createMediaMockPort();
+
+  return createMediaSupabasePort(db, session.activeTenant.id);
+}
+
+export async function getNpsPort(): Promise<NpsPort> {
+  const session = await resolveSession();
+  if (session.mode !== 'authenticated') return createNpsMockPort();
+
+  const db = await createSupabaseServerClient();
+  if (!db) return createNpsMockPort();
+
+  return createNpsSupabasePort(db, session.activeTenant.id);
 }
 
 /**

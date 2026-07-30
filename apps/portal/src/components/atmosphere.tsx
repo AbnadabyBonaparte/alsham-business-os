@@ -343,6 +343,78 @@ function OrnamentLead() {
   );
 }
 
+/** Metas — o alvo e a seta que sobe: o placar da ambição. */
+function OrnamentGoal() {
+  return (
+    <svg viewBox="0 0 400 400" aria-hidden {...stroke}>
+      <circle cx="240" cy="160" r="70" strokeOpacity="0.3" />
+      <circle cx="240" cy="160" r="42" strokeOpacity="0.22" />
+      <circle cx="240" cy="160" r="6" strokeOpacity="0.5" />
+      <path d="M90 310 L160 250 L200 272 L240 160" strokeOpacity="0.4" />
+      <path d="M240 160 l-20 6 m20 -6 l-4 20" strokeOpacity="0.45" />
+      <path d="M80 310 h250" strokeOpacity="0.18" strokeDasharray="2 8" />
+    </svg>
+  );
+}
+
+/** Comunicados — o sino do mural: a palavra dada, pendurada para todos. */
+function OrnamentComm() {
+  return (
+    <svg viewBox="0 0 400 400" aria-hidden {...stroke}>
+      <path d="M200 96 v14" strokeOpacity="0.35" />
+      <path d="M148 210 a52 52 0 0 1 104 0 v34 h-104 z" strokeOpacity="0.35" />
+      <path d="M132 244 h136" strokeOpacity="0.45" />
+      <path d="M188 262 a12 12 0 0 0 24 0" strokeOpacity="0.4" />
+      <path d="M120 160 q-16 18 -18 44 M280 160 q16 18 18 44" strokeOpacity="0.2" strokeDasharray="2 7" />
+      <path d="M96 316 h208" strokeOpacity="0.18" strokeDasharray="2 8" />
+    </svg>
+  );
+}
+
+/** Calendário Editorial — a grade dos dias e a pena que escreve neles. */
+function OrnamentEdcal() {
+  return (
+    <svg viewBox="0 0 400 400" aria-hidden {...stroke}>
+      <rect x="100" y="120" width="200" height="170" rx="10" strokeOpacity="0.32" />
+      <path d="M100 160 h200" strokeOpacity="0.3" />
+      <path d="M140 104 v32 M260 104 v32" strokeOpacity="0.4" />
+      <path d="M133 196 h28 M187 196 h28 M241 196 h28 M133 240 h28 M187 240 h28" strokeOpacity="0.2" />
+      <path d="M252 300 q34 -44 66 -104 l14 8 q-28 62 -64 104 l-20 10 z" strokeOpacity="0.4" />
+      <path d="M318 196 l14 8" strokeOpacity="0.45" />
+    </svg>
+  );
+}
+
+/** Biblioteca de Mídia — a prateleira do acervo: molduras e o rolo de filme. */
+function OrnamentMedia() {
+  return (
+    <svg viewBox="0 0 400 400" aria-hidden {...stroke}>
+      <path d="M92 150 h216 M92 236 h216" strokeOpacity="0.3" />
+      <rect x="110" y="104" width="52" height="40" rx="4" strokeOpacity="0.35" />
+      <rect x="178" y="96" width="44" height="48" rx="4" strokeOpacity="0.25" />
+      <circle cx="262" cy="122" r="22" strokeOpacity="0.35" />
+      <circle cx="262" cy="122" r="8" strokeOpacity="0.25" />
+      <rect x="124" y="190" width="60" height="40" rx="4" strokeOpacity="0.3" />
+      <rect x="204" y="182" width="48" height="48" rx="4" strokeOpacity="0.22" />
+      <path d="M110 300 q90 -34 180 0" strokeOpacity="0.18" strokeDasharray="2 8" />
+    </svg>
+  );
+}
+
+/** Pesquisas — a régua do método e a voz que sobe ao livro. */
+function OrnamentNps() {
+  return (
+    <svg viewBox="0 0 400 400" aria-hidden {...stroke}>
+      <path d="M84 220 h232" strokeOpacity="0.35" />
+      <path d="M84 212 v16 M142 214 v12 M200 214 v12 M258 214 v12 M316 212 v16" strokeOpacity="0.3" />
+      <circle cx="287" cy="220" r="9" strokeOpacity="0.5" />
+      <path d="M120 300 a12 12 0 1 1 24 0 M186 300 a12 12 0 1 1 24 0 M252 300 a12 12 0 1 1 24 0" strokeOpacity="0.2" />
+      <path d="M164 160 q36 -44 72 0" strokeOpacity="0.3" />
+      <path d="M176 150 q24 -26 48 0" strokeOpacity="0.2" strokeDasharray="2 6" />
+    </svg>
+  );
+}
+
 /** Ajustes / a marca — o selo do tabelionato modernizado (§5.3). */
 function OrnamentSeal() {
   return (
@@ -405,6 +477,11 @@ const SCENES: readonly (readonly [string, Scene])[] = [
   ['/espacos', { sun: '65% 0%', depth: '18% 100%', ornament: <OrnamentSpc />, ornamentClass: RIGHT }],
   ['/visitas', { sun: '15% 5%', depth: '85% 95%', ornament: <OrnamentVis />, ornamentClass: LEFT }],
   ['/leads', { sun: '50% 0%', depth: '20% 100%', ornament: <OrnamentLead />, ornamentClass: RIGHT }],
+  ['/metas', { sun: '80% 0%', depth: '15% 100%', ornament: <OrnamentGoal />, ornamentClass: RIGHT }],
+  ['/comunicados', { sun: '25% 0%', depth: '82% 100%', ornament: <OrnamentComm />, ornamentClass: RIGHT }],
+  ['/calendario', { sun: '72% 0%', depth: '18% 100%', ornament: <OrnamentEdcal />, ornamentClass: RIGHT }],
+  ['/midia', { sun: '18% 0%', depth: '85% 100%', ornament: <OrnamentMedia />, ornamentClass: LEFT }],
+  ['/pesquisas', { sun: '78% 0%', depth: '12% 100%', ornament: <OrnamentNps />, ornamentClass: RIGHT }],
   ['/ajustes', { sun: '50% 0%', depth: '50% 100%', ornament: <OrnamentSeal />, ornamentClass: RIGHT }],
   ['/login', { sun: '50% 12%', depth: '50% 100%', ornament: <OrnamentLogin />, ornamentClass: CENTER_LOW }],
   ['/', CORE_SCENE],

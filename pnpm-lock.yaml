@@ -84,6 +84,9 @@ importers:
       '@alsham/checklists':
         specifier: workspace:*
         version: link:../../packages/checklists
+      '@alsham/comms':
+        specifier: workspace:*
+        version: link:../../packages/comms
       '@alsham/config':
         specifier: workspace:*
         version: link:../../packages/config
@@ -102,12 +105,18 @@ importers:
       '@alsham/dunning':
         specifier: workspace:*
         version: link:../../packages/dunning
+      '@alsham/editorial':
+        specifier: workspace:*
+        version: link:../../packages/editorial
       '@alsham/event-management':
         specifier: workspace:*
         version: link:../../packages/event-management
       '@alsham/finance-reconciliation':
         specifier: workspace:*
         version: link:../../packages/finance-reconciliation
+      '@alsham/goals':
+        specifier: workspace:*
+        version: link:../../packages/goals
       '@alsham/inventory':
         specifier: workspace:*
         version: link:../../packages/inventory
@@ -120,6 +129,12 @@ importers:
       '@alsham/marketing':
         specifier: workspace:*
         version: link:../../packages/marketing
+      '@alsham/media':
+        specifier: workspace:*
+        version: link:../../packages/media
+      '@alsham/nps':
+        specifier: workspace:*
+        version: link:../../packages/nps
       '@alsham/occurrences':
         specifier: workspace:*
         version: link:../../packages/occurrences
@@ -283,6 +298,19 @@ importers:
         specifier: ^5.7.2
         version: 5.9.3
 
+  packages/comms:
+    dependencies:
+      '@alsham/core':
+        specifier: workspace:*
+        version: link:../core
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.2
+        version: 22.20.1
+      typescript:
+        specifier: ^5.7.2
+        version: 5.9.3
+
   packages/config:
     devDependencies:
       typescript:
@@ -347,6 +375,19 @@ importers:
         specifier: ^5.7.2
         version: 5.9.3
 
+  packages/editorial:
+    dependencies:
+      '@alsham/core':
+        specifier: workspace:*
+        version: link:../core
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.2
+        version: 22.20.1
+      typescript:
+        specifier: ^5.7.2
+        version: 5.9.3
+
   packages/event-management:
     dependencies:
       '@alsham/core':
@@ -361,6 +402,19 @@ importers:
         version: 5.9.3
 
   packages/finance-reconciliation:
+    dependencies:
+      '@alsham/core':
+        specifier: workspace:*
+        version: link:../core
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.2
+        version: 22.20.1
+      typescript:
+        specifier: ^5.7.2
+        version: 5.9.3
+
+  packages/goals:
     dependencies:
       '@alsham/core':
         specifier: workspace:*
@@ -424,6 +478,32 @@ importers:
       '@alsham/workflow':
         specifier: workspace:*
         version: link:../workflow
+      '@types/node':
+        specifier: ^22.10.2
+        version: 22.20.1
+      typescript:
+        specifier: ^5.7.2
+        version: 5.9.3
+
+  packages/media:
+    dependencies:
+      '@alsham/core':
+        specifier: workspace:*
+        version: link:../core
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.2
+        version: 22.20.1
+      typescript:
+        specifier: ^5.7.2
+        version: 5.9.3
+
+  packages/nps:
+    dependencies:
+      '@alsham/core':
+        specifier: workspace:*
+        version: link:../core
+    devDependencies:
       '@types/node':
         specifier: ^22.10.2
         version: 22.20.1

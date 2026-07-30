@@ -441,6 +441,66 @@ export const PECAS = [
     onde: 'packages/leads/',
   },
   {
+    nome: 'Módulo 23 — Metas',
+    detector: [
+      'packages/goals/src/manifest.ts',
+      'packages/goals/src/goals.ts',
+      'supabase/migrations/0038_goal.sql',
+    ],
+    // ⚠️ NUNCA "meta" solta: a palavra é prosa constante do canon (a meta
+    // disso, a meta daquilo). O padrão exige o NOME DA PEÇA.
+    padrao: /(m[óo]dulo 23|packages\/goals|@alsham\/goals|0038_goal)/i,
+    onde: 'packages/goals/',
+  },
+  {
+    nome: 'Módulo 24 — Comunicados',
+    detector: [
+      'packages/comms/src/manifest.ts',
+      'packages/comms/src/comms.ts',
+      'supabase/migrations/0039_comm.sql',
+    ],
+    // ⚠️ NUNCA "comunicado" solto: a palavra é prosa do canon (o que foi
+    // comunicado, comunicado ao dono). O padrão exige o NOME DA PEÇA.
+    padrao: /(m[óo]dulo 24|packages\/comms|@alsham\/comms|0039_comm)/i,
+    onde: 'packages/comms/',
+  },
+  {
+    nome: 'Módulo 25 — Calendário Editorial',
+    detector: [
+      'packages/editorial/src/manifest.ts',
+      'packages/editorial/src/editorial.ts',
+      'supabase/migrations/0040_edcal.sql',
+    ],
+    // ⚠️ NUNCA "calendário" solto: a palavra é prosa do canon (o calendário
+    // do apply, o calendário fiscal). O padrão exige o NOME DA PEÇA.
+    padrao: /(m[óo]dulo 25|packages\/editorial|@alsham\/editorial|0040_edcal)/i,
+    onde: 'packages/editorial/',
+  },
+  {
+    nome: 'Módulo 26 — Biblioteca de Mídia',
+    detector: [
+      'packages/media/src/manifest.ts',
+      'packages/media/src/media.ts',
+      'supabase/migrations/0041_media.sql',
+    ],
+    // ⚠️ NUNCA "mídia" solta: a palavra é prosa do canon (mídia paga, a
+    // mídia do vertical). O padrão exige o NOME DA PEÇA.
+    padrao: /(m[óo]dulo 26|packages\/media|@alsham\/media|0041_media)/i,
+    onde: 'packages/media/',
+  },
+  {
+    nome: 'Módulo 27 — Pesquisas',
+    detector: [
+      'packages/nps/src/manifest.ts',
+      'packages/nps/src/nps.ts',
+      'supabase/migrations/0042_nps.sql',
+    ],
+    // ⚠️ NUNCA "pesquisa" solta: a palavra é prosa do canon (pesquisa de
+    // mercado, pesquisar). O padrão exige o NOME DA PEÇA.
+    padrao: /(m[óo]dulo 27|packages\/nps|@alsham\/nps|0042_nps)/i,
+    onde: 'packages/nps/',
+  },
+  {
     nome: 'Menu filtrado por permissão',
     detector: ['packages/permissions/src/menu.ts'],
     // A dívida da Etapa 10 foi paga: os itens de menu não são mais escritos à

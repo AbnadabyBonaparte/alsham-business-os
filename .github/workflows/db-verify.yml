@@ -256,6 +256,37 @@ jobs:
       - name: aplicar 0037_lead.sql
         run: $PSQL -f supabase/migrations/0037_lead.sql
 
+      # ⭐ MISSÃO SEXTA — o Módulo 23: a ambição declarada — a trave congela
+      # na ativação, o andamento é livro imutável de check-ins, o progresso
+      # é o ÚLTIMO check-in (view), e fechar a época é decisão de gente com
+      # número na mesa.
+      - name: aplicar 0038_goal.sql
+        run: $PSQL -f supabase/migrations/0038_goal.sql
+
+      # ⭐ O Módulo 24: o mural do tenant — publicar congela a palavra dada,
+      # corrigir é comunicado novo com o título carimbado pelo servidor, a
+      # ciência é ato próprio/único/eterno e o arquivado é terminal.
+      - name: aplicar 0039_comm.sql
+        run: $PSQL -f supabase/migrations/0039_comm.sql
+
+      # ⭐ O Módulo 25: o calendário editorial — canal e fluxo do tenant
+      # (Lei das Etapas, 4ª aplicação), o plano que muda livre e o fim que
+      # congela com a data real do servidor ao lado da planejada.
+      - name: aplicar 0040_edcal.sql
+        run: $PSQL -f supabase/migrations/0040_edcal.sql
+
+      # ⭐ O Módulo 26: a biblioteca de mídia — CATÁLOGO, não cofre (o
+      # onde-vive em texto livre), o acervo que volta do arquivo (o DIVERGE
+      # do pat) e o livro de uso imutável com vínculo solto.
+      - name: aplicar 0041_media.sql
+        run: $PSQL -f supabase/migrations/0041_media.sql
+
+      # ⭐ O Módulo 27: as pesquisas — a régua 0-10 como física do método
+      # (CHECK argumentado), o placar como view calculada do livro, closed
+      # terminal (o DIVERGE do care) e anon sem grant nenhum.
+      - name: aplicar 0042_nps.sql
+        run: $PSQL -f supabase/migrations/0042_nps.sql
+
       # ---------------------------------------------------------------------
       # 2. SEED — e a prova de que reaplicar não muda nada
       # ---------------------------------------------------------------------
@@ -283,12 +314,12 @@ jobs:
           FALTA=$($PSQL -tAc "
             select coalesce(string_agg(n.nspname||'.'||c.relname, ', '), '')
               from pg_class c join pg_namespace n on n.oid = c.relnamespace
-             where n.nspname in ('core','recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt','dun','ctr','cash','care','occ','mnt','pat','chk','spc','vis','lead') and c.relkind = 'r'
+             where n.nspname in ('core','recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt','dun','ctr','cash','care','occ','mnt','pat','chk','spc','vis','lead','goal','comm','edcal','media','nps') and c.relkind = 'r'
                and (not c.relrowsecurity or not c.relforcerowsecurity);")
           [ -z "$FALTA" ] || { echo "::error::sem RLS enable+force: $FALTA"; exit 1; }
           $PSQL -c "select n.nspname as schema, count(*) as tabelas
                       from pg_class c join pg_namespace n on n.oid=c.relnamespace
-                     where n.nspname in ('core','recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt','dun','ctr','cash','care','occ','mnt','pat','chk','spc','vis','lead') and c.relkind='r'
+                     where n.nspname in ('core','recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt','dun','ctr','cash','care','occ','mnt','pat','chk','spc','vis','lead','goal','comm','edcal','media','nps') and c.relkind='r'
                      group by 1 order by 1;"
 
       - name: nenhuma policy USING (true)
@@ -298,7 +329,7 @@ jobs:
               from pg_policy p
               join pg_class c on c.oid = p.polrelid
               join pg_namespace n on n.oid = c.relnamespace
-             where n.nspname in ('core','recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt','dun','ctr','cash','care','occ','mnt','pat','chk','spc','vis','lead')
+             where n.nspname in ('core','recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt','dun','ctr','cash','care','occ','mnt','pat','chk','spc','vis','lead','goal','comm','edcal','media','nps')
                and pg_get_expr(p.polqual, p.polrelid) = 'true';")
           [ -z "$ABERTAS" ] || { echo "::error::policy aberta (lição paga do suna-core): $ABERTAS"; exit 1; }
 
@@ -309,7 +340,7 @@ jobs:
                              where n.nspname='public' and c.relkind='r';")
           [ "$PUB" = "0" ] || { echo "::error::$PUB tabela(s) em public — expostas via API"; exit 1; }
           ANON=$($PSQL -tAc "select count(*) from information_schema.role_table_grants
-                              where grantee='anon' and table_schema in ('core','recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt','dun','ctr','cash','care','occ','mnt','pat','chk','spc','vis','lead');")
+                              where grantee='anon' and table_schema in ('core','recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt','dun','ctr','cash','care','occ','mnt','pat','chk','spc','vis','lead','goal','comm','edcal','media','nps');")
           [ "$ANON" = "0" ] || { echo "::error::anon tem $ANON grant(s) no Business OS"; exit 1; }
 
       - name: o seed não semeou tenant nem usuário
@@ -1068,6 +1099,220 @@ jobs:
             exit 1; }
           echo "lead no catálogo com consumes vazio."
 
+      # ⭐ A PROVA DO MÓDULO 23 NO BANCO: trave congelada, livro eterno,
+      # época com número na mesa e o progresso vindo da view.
+      - name: teste de metas (goal)
+        run: $PSQL -f supabase/tests/28_goal_isolation.sql
+
+      # ⛔ O LIVRO DO ANDAMENTO NÃO SE REESCREVE — no banco aplicado.
+      - name: o livro de check-ins do goal é eterno
+        run: |
+          G=$($PSQL -tAc "select coalesce(string_agg(distinct privilege_type, ',' order by privilege_type), '')
+                            from information_schema.role_table_grants
+                           where table_schema='goal' and table_name='checkins'
+                             and grantee in ('anon','authenticated','PUBLIC');")
+          [ "$G" = "INSERT,SELECT" ] || { echo "::error::goal.checkins tem privilégios além de INSERT,SELECT: [$G]"; exit 1; }
+          SI=$($PSQL -tAc "select count(*) from pg_class c
+                             join pg_namespace n on n.oid=c.relnamespace
+                            where n.nspname='goal' and c.relname='goal_progress'
+                              and c.reloptions::text like '%security_invoker=true%';")
+          [ "$SI" = "1" ] || { echo "::error::goal.goal_progress perdeu security_invoker"; exit 1; }
+          # O progresso NÃO virou coluna.
+          C=$($PSQL -tAc "select count(*) from information_schema.columns
+                            where table_schema='goal' and table_name='goals'
+                              and column_name in ('progress','current_value','last_value');")
+          [ "$C" = "0" ] || { echo "::error::apareceu coluna de progresso em goal.goals — ele é calculado"; exit 1; }
+          # Nenhum enum: a métrica é texto livre.
+          E=$($PSQL -tAc "select count(*) from pg_type t
+                            join pg_namespace n on n.oid=t.typnamespace
+                           where n.nspname='goal' and t.typtype='e';")
+          [ "$E" = "0" ] || { echo "::error::apareceu enum no schema goal"; exit 1; }
+          D=$($PSQL -tAc "select count(*) from information_schema.role_table_grants
+                            where table_schema='goal' and privilege_type='DELETE'
+                              and grantee in ('anon','authenticated','PUBLIC');")
+          [ "$D" = "0" ] || { echo "::error::alguém concedeu DELETE no schema goal"; exit 1; }
+
+      - name: o vigésimo terceiro cartão (goal) tem consumes vazio
+        run: |
+          C=$($PSQL -tAc "select jsonb_array_length(events_consumes)
+                            from core.module_registry where module_id='goal';")
+          [ "$C" = "0" ] || {
+            echo "::error::o módulo goal declara $C consumo(s) — sem handler, sem promessa (Lei 7)"
+            exit 1; }
+          echo "goal no catálogo com consumes vazio."
+
+      # ⭐ A PROVA DO MÓDULO 24 NO BANCO: a palavra congelada, a ciência
+      # própria/única/eterna, o arquivo terminal e o corpo fora do envelope.
+      - name: teste de comunicados (comm)
+        run: $PSQL -f supabase/tests/29_comm_isolation.sql
+
+      # ⛔ A CIÊNCIA NÃO SE RETIRA — no banco aplicado.
+      - name: a ciência do comm é própria, única e eterna
+        run: |
+          G=$($PSQL -tAc "select coalesce(string_agg(distinct privilege_type, ',' order by privilege_type), '')
+                            from information_schema.role_table_grants
+                           where table_schema='comm' and table_name='acks'
+                             and grantee in ('anon','authenticated','PUBLIC');")
+          [ "$G" = "INSERT,SELECT" ] || { echo "::error::comm.acks tem privilégios além de INSERT,SELECT: [$G]"; exit 1; }
+          # A unicidade está em vigor: ciência não se dá duas vezes.
+          U=$($PSQL -tAc "select count(*) from information_schema.table_constraints
+                            where constraint_schema='comm' and constraint_name='comm_acks_once'
+                              and constraint_type='UNIQUE';")
+          [ "$U" = "1" ] || { echo "::error::sumiu a constraint comm_acks_once — a ciência em dobro entraria"; exit 1; }
+          # O corpo NÃO passeia no envelope.
+          P=$($PSQL -tAc "select prosrc from pg_proc p
+                            join pg_namespace n on n.oid=p.pronamespace
+                           where n.nspname='comm' and p.proname='notice_payload';")
+          echo "$P" | grep -q "p.title" || { echo "::error::o payload do comm perdeu o título"; exit 1; }
+          echo "$P" | grep -q "p.body" && { echo "::error::o payload do comm carrega o corpo — o envelope entrega o fato, não o mural"; exit 1; }
+          # Nenhum enum: a audiência é texto livre.
+          E=$($PSQL -tAc "select count(*) from pg_type t
+                            join pg_namespace n on n.oid=t.typnamespace
+                           where n.nspname='comm' and t.typtype='e';")
+          [ "$E" = "0" ] || { echo "::error::apareceu enum no schema comm"; exit 1; }
+          D=$($PSQL -tAc "select count(*) from information_schema.role_table_grants
+                            where table_schema='comm' and privilege_type='DELETE'
+                              and grantee in ('anon','authenticated','PUBLIC');")
+          [ "$D" = "0" ] || { echo "::error::alguém concedeu DELETE no schema comm"; exit 1; }
+
+      - name: o vigésimo quarto cartão (comm) tem consumes vazio
+        run: |
+          C=$($PSQL -tAc "select jsonb_array_length(events_consumes)
+                            from core.module_registry where module_id='comm';")
+          [ "$C" = "0" ] || {
+            echo "::error::o módulo comm declara $C consumo(s) — sem handler, sem promessa (Lei 7)"
+            exit 1; }
+          echo "comm no catálogo com consumes vazio."
+
+      # ⭐ A PROVA DO MÓDULO 25 NO BANCO: canal do tenant, fluxo desenhado,
+      # plano livre sem trilha, fato congelado com a data real.
+      - name: teste do calendário editorial (edcal)
+        run: $PSQL -f supabase/tests/30_edcal_isolation.sql
+
+      # ⛔ A TRILHA É DOS FATOS — no banco aplicado.
+      - name: a trilha do edcal só se lê; o desenho é do tenant
+        run: |
+          G=$($PSQL -tAc "select coalesce(string_agg(distinct privilege_type, ',' order by privilege_type), '')
+                            from information_schema.role_table_grants
+                           where table_schema='edcal' and table_name='piece_events'
+                             and grantee in ('anon','authenticated','PUBLIC');")
+          [ "$G" = "SELECT" ] || { echo "::error::edcal.piece_events tem privilégios além de SELECT: [$G]"; exit 1; }
+          # A ÚNICA porta de DELETE é a das etapas (o desenho é do tenant).
+          D=$($PSQL -tAc "select coalesce(string_agg(distinct table_name, ',' order by table_name), '')
+                            from information_schema.role_table_grants
+                           where table_schema='edcal' and privilege_type='DELETE'
+                             and grantee in ('anon','authenticated','PUBLIC');")
+          [ "$D" = "stages" ] || { echo "::error::a porta de DELETE do edcal deveria ser só stages: [$D]"; exit 1; }
+          # O texto de trabalho NÃO passeia no envelope.
+          P=$($PSQL -tAc "select prosrc from pg_proc p
+                            join pg_namespace n on n.oid=p.pronamespace
+                           where n.nspname='edcal' and p.proname='piece_payload';")
+          echo "$P" | grep -q "p.title" || { echo "::error::o payload do edcal perdeu o título"; exit 1; }
+          echo "$P" | grep -q "p.brief" && { echo "::error::o payload do edcal carrega o texto de trabalho — o envelope entrega o fato, não a redação"; exit 1; }
+          # Nenhum enum: canal e etapa são DADO do tenant.
+          E=$($PSQL -tAc "select count(*) from pg_type t
+                            join pg_namespace n on n.oid=t.typnamespace
+                           where n.nspname='edcal' and t.typtype='e';")
+          [ "$E" = "0" ] || { echo "::error::apareceu enum no schema edcal"; exit 1; }
+          # A flag de aprovação do ops NÃO veio — decisão de canon.
+          A=$($PSQL -tAc "select count(*) from information_schema.columns
+                            where table_schema='edcal' and column_name='requires_approval';")
+          [ "$A" = "0" ] || { echo "::error::requires_approval apareceu no edcal — a decisão era NÃO trazê-la (spec §0)"; exit 1; }
+
+      - name: o vigésimo quinto cartão (edcal) tem consumes vazio
+        run: |
+          C=$($PSQL -tAc "select jsonb_array_length(events_consumes)
+                            from core.module_registry where module_id='edcal';")
+          [ "$C" = "0" ] || {
+            echo "::error::o módulo edcal declara $C consumo(s) — sem handler, sem promessa (Lei 7)"
+            exit 1; }
+          echo "edcal no catálogo com consumes vazio."
+
+      # ⭐ A PROVA DO MÓDULO 26 NO BANCO: catálogo honesto, etiqueta viva,
+      # livro eterno e a obra que volta do arquivo.
+      - name: teste da biblioteca de mídia (media)
+        run: $PSQL -f supabase/tests/31_media_isolation.sql
+
+      # ⛔ O LIVRO DE USO NÃO SE RASURA — no banco aplicado.
+      - name: o livro do media é eterno; só a etiqueta se desfaz
+        run: |
+          G=$($PSQL -tAc "select coalesce(string_agg(distinct privilege_type, ',' order by privilege_type), '')
+                            from information_schema.role_table_grants
+                           where table_schema='media' and table_name='usages'
+                             and grantee in ('anon','authenticated','PUBLIC');")
+          [ "$G" = "INSERT,SELECT" ] || { echo "::error::media.usages tem privilégios além de INSERT,SELECT: [$G]"; exit 1; }
+          # As ÚNICAS portas de DELETE são as etiquetas (metadado vivo).
+          D=$($PSQL -tAc "select coalesce(string_agg(distinct table_name, ',' order by table_name), '')
+                            from information_schema.role_table_grants
+                           where table_schema='media' and privilege_type='DELETE'
+                             and grantee in ('anon','authenticated','PUBLIC');")
+          [ "$D" = "asset_tags,tags" ] || { echo "::error::a porta de DELETE do media deveria ser só asset_tags,tags: [$D]"; exit 1; }
+          # O vínculo do uso é SOLTO: reference_id sem FK.
+          F=$($PSQL -tAc "select count(*) from information_schema.key_column_usage
+                            where table_schema='media' and table_name='usages'
+                              and column_name='reference_id';")
+          [ "$F" = "0" ] || { echo "::error::reference_id ganhou FK — o vínculo do uso é solto"; exit 1; }
+          # Nenhum enum: tipo é texto livre; etiqueta é tabela do tenant.
+          E=$($PSQL -tAc "select count(*) from pg_type t
+                            join pg_namespace n on n.oid=t.typnamespace
+                           where n.nspname='media' and t.typtype='e';")
+          [ "$E" = "0" ] || { echo "::error::apareceu enum no schema media"; exit 1; }
+
+      - name: o vigésimo sexto cartão (media) tem consumes vazio
+        run: |
+          C=$($PSQL -tAc "select jsonb_array_length(events_consumes)
+                            from core.module_registry where module_id='media';")
+          [ "$C" = "0" ] || {
+            echo "::error::o módulo media declara $C consumo(s) — sem handler, sem promessa (Lei 7)"
+            exit 1; }
+          echo "media no catálogo com consumes vazio."
+
+      # ⭐ A PROVA DO MÓDULO 27 NO BANCO: régua do método, pergunta
+      # congelada, livro eterno, placar calculado e anon do lado de fora.
+      - name: teste de pesquisas (nps)
+        run: $PSQL -f supabase/tests/32_nps_isolation.sql
+
+      # ⛔ A OPINIÃO DADA É A OPINIÃO DADA — no banco aplicado.
+      - name: o livro do nps é eterno; o placar é view; anon = nada
+        run: |
+          G=$($PSQL -tAc "select coalesce(string_agg(distinct privilege_type, ',' order by privilege_type), '')
+                            from information_schema.role_table_grants
+                           where table_schema='nps' and table_name='responses'
+                             and grantee in ('anon','authenticated','PUBLIC');")
+          [ "$G" = "INSERT,SELECT" ] || { echo "::error::nps.responses tem privilégios além de INSERT,SELECT: [$G]"; exit 1; }
+          # O placar é VIEW com security_invoker — e NÃO virou coluna.
+          SI=$($PSQL -tAc "select count(*) from pg_class c
+                             join pg_namespace n on n.oid=c.relnamespace
+                            where n.nspname='nps' and c.relname='survey_score'
+                              and c.reloptions::text like '%security_invoker=true%';")
+          [ "$SI" = "1" ] || { echo "::error::nps.survey_score perdeu security_invoker"; exit 1; }
+          C=$($PSQL -tAc "select count(*) from information_schema.columns
+                            where table_schema='nps' and table_name='surveys'
+                              and column_name in ('score','nps','average_score');")
+          [ "$C" = "0" ] || { echo "::error::apareceu coluna de placar em nps.surveys — ele é calculado"; exit 1; }
+          # ⛔ anon = NADA: nenhum grant de nada no schema inteiro.
+          A=$($PSQL -tAc "select count(*) from information_schema.role_table_grants
+                            where table_schema='nps' and grantee='anon';")
+          [ "$A" = "0" ] || { echo "::error::anon ganhou grant no schema nps — o link público é integração futura, não um grant"; exit 1; }
+          # Nenhum enum: a régua é CHECK argumentado; a pergunta é do tenant.
+          E=$($PSQL -tAc "select count(*) from pg_type t
+                            join pg_namespace n on n.oid=t.typnamespace
+                           where n.nspname='nps' and t.typtype='e';")
+          [ "$E" = "0" ] || { echo "::error::apareceu enum no schema nps"; exit 1; }
+          D=$($PSQL -tAc "select count(*) from information_schema.role_table_grants
+                            where table_schema='nps' and privilege_type='DELETE'
+                              and grantee in ('anon','authenticated','PUBLIC');")
+          [ "$D" = "0" ] || { echo "::error::alguém concedeu DELETE no schema nps"; exit 1; }
+
+      - name: o vigésimo sétimo cartão (nps) tem consumes vazio
+        run: |
+          C=$($PSQL -tAc "select jsonb_array_length(events_consumes)
+                            from core.module_registry where module_id='nps';")
+          [ "$C" = "0" ] || {
+            echo "::error::o módulo nps declara $C consumo(s) — sem handler, sem promessa (Lei 7)"
+            exit 1; }
+          echo "nps no catálogo com consumes vazio."
+
       - name: nenhuma porta de DELETE em quote.proposals
         run: |
           G=$($PSQL -tAc "select count(*) from information_schema.role_table_grants
@@ -1256,8 +1501,8 @@ jobs:
           # Só apareceu porque os números foram conferidos contra o banco.
           N=$($PSQL -tAc "select count(*) from core.module_registry
                            where status='published'
-                             and module_id in ('recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt','dun','ctr','cash','care','occ','mnt','pat','chk','spc','vis','lead');")
-          [ "$N" = "22" ] || { echo "::error::o catálogo tem $N dos 22 módulos reais publicados"; exit 1; }
+                             and module_id in ('recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt','dun','ctr','cash','care','occ','mnt','pat','chk','spc','vis','lead','goal','comm','edcal','media','nps');")
+          [ "$N" = "27" ] || { echo "::error::o catálogo tem $N dos 27 módulos reais publicados"; exit 1; }
           C=$($PSQL -tAc "select jsonb_array_length(events_consumes)
                             from core.module_registry where module_id='crm';")
           [ "$C" = "0" ] || {
@@ -1396,7 +1641,7 @@ jobs:
           ABERTAS=$($PSQL -tAc "
             select coalesce(string_agg(n.nspname||'.'||p.proname, ', ' order by p.proname), '')
               from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-             where n.nspname in ('core','recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt','dun','ctr','cash','care','occ','mnt','pat','chk','spc','vis','lead')
+             where n.nspname in ('core','recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt','dun','ctr','cash','care','occ','mnt','pat','chk','spc','vis','lead','goal','comm','edcal','media','nps')
                and has_function_privilege('anon', p.oid, 'execute');")
           [ -z "$ABERTAS" ] || { echo "::error::função executável por anon: $ABERTAS"; exit 1; }
 
@@ -1407,7 +1652,7 @@ jobs:
             OK=$($PSQL -tAc "
               select count(*) from pg_proc p join pg_namespace n on n.oid = p.pronamespace
                where p.proname = '$FN'
-                 and n.nspname in ('core','recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt','dun','ctr','cash','care','occ','mnt','pat','chk','spc','vis','lead')
+                 and n.nspname in ('core','recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt','dun','ctr','cash','care','occ','mnt','pat','chk','spc','vis','lead','goal','comm','edcal','media','nps')
                  and has_function_privilege('authenticated', p.oid, 'execute');")
             [ "$OK" -ge 1 ] || { echo "::error::$FN() deixou de ser chamável pelo portal"; exit 1; }
           done
@@ -1516,6 +1761,11 @@ jobs:
           $PSQL -q -f supabase/migrations/0035_spc.sql
           $PSQL -q -f supabase/migrations/0036_vis.sql
           $PSQL -q -f supabase/migrations/0037_lead.sql
+          $PSQL -q -f supabase/migrations/0038_goal.sql
+          $PSQL -q -f supabase/migrations/0039_comm.sql
+          $PSQL -q -f supabase/migrations/0040_edcal.sql
+          $PSQL -q -f supabase/migrations/0041_media.sql
+          $PSQL -q -f supabase/migrations/0042_nps.sql
           $PSQL -q -f supabase/seed/0001_platform.sql
 
       # ⚠️ Sem `DATABASE_URL` os testes do store se PULAM — de propósito, para
@@ -2063,7 +2313,7 @@ jobs:
       - name: módulo não conhece módulo
         run: |
           FALHOU=0
-          MODULOS="finance-reconciliation marketing accounts-payable crm accounts-receivable purchase-orders ops inventory quotes deals event-management dunning contracts cashflow care occurrences maintenance assets checklists spaces visits leads"
+          MODULOS="finance-reconciliation marketing accounts-payable crm accounts-receivable purchase-orders ops inventory quotes deals event-management dunning contracts cashflow care occurrences maintenance assets checklists spaces visits leads goals comms editorial media nps"
 
           # 1. Nenhum módulo importa outro módulo, em nenhuma forma.
           for MOD in $MODULOS; do
@@ -2130,6 +2380,11 @@ jobs:
             [0035_spc.sql]=spc
             [0036_vis.sql]=vis
             [0037_lead.sql]=lead
+            [0038_goal.sql]=goal
+            [0039_comm.sql]=comm
+            [0040_edcal.sql]=edcal
+            [0041_media.sql]=media
+            [0042_nps.sql]=nps
           )
           for ARQUIVO in "${!SCHEMA_DE[@]}"; do
             DONO="${SCHEMA_DE[$ARQUIVO]}"

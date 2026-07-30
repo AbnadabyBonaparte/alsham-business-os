@@ -1553,7 +1553,290 @@ on conflict (module_id) do update set
   status          = excluded.status,
   updated_at      = now();
 
--- ⛔ Vinte e dois módulos no catálogo, zero permissão concedida pelo seed.
+-- -----------------------------------------------------------------------------
+-- 4.21 O MÓDULO `goal` NO CATÁLOGO DA STORE — o 23º cartão
+-- -----------------------------------------------------------------------------
+-- Metas (Domain bi — capacidade *Metas*). O alvo congela na ativação; o
+-- progresso é o último check-in (view, nunca coluna); bater ou perder é
+-- decisão de gente com número na mesa; os fins são terminais.
+-- `consumes` vazio por decisão de canon (Lei 7) — ver a spec §5.
+-- =============================================================================
+
+insert into core.module_registry (
+  module_id, name, version, summary,
+  layer, domain_key,
+  capabilities, permissions, events_emits, events_consumes, agents,
+  requires_core, status
+)
+values (
+  'goal',
+  'Metas',
+  '0.1.0',
+  'A ambição declarada do tenant: métrica em texto livre, alvo opcional que congela na ativação, check-ins como atos imutáveis — e o progresso sempre como o último check-in, calculado. Bater ou perder é decisão de gente, carimbada.',
+  'domain', 'bi',
+  '[
+     {"key":"goals","canonicalName":"Metas"}
+   ]'::jsonb,
+  '[
+     {"key":"goal.goal.manage","moduleId":"goal","description":"Declarar metas, editar o rascunho, ativar e atribuir dono."},
+     {"key":"goal.goal.report","moduleId":"goal","description":"Registrar check-ins — o número na mesa, ato carimbado e imutável."},
+     {"key":"goal.goal.decide","moduleId":"goal","description":"Fechar a época: batida, perdida (com check-in na mesa) ou cancelada com razão."}
+   ]'::jsonb,
+  '[
+     {"type":"goal.goal.opened","version":1,"description":"Uma ambição foi declarada — no rascunho, ainda sem correr."},
+     {"type":"goal.goal.activated","version":1,"description":"A meta passou a correr — alvo, métrica e período congelaram."},
+     {"type":"goal.goal.updated","version":1,"description":"A meta mudou no que segue vivo: título, dono, descrição."},
+     {"type":"goal.goal.reported","version":1,"description":"Um check-in entrou no livro — o número, a nota e o carimbo."},
+     {"type":"goal.goal.achieved","version":1,"description":"A época fechou BATIDA — decisão de gente, com número na mesa. Terminal."},
+     {"type":"goal.goal.missed","version":1,"description":"A época fechou PERDIDA — decisão de gente, com número na mesa. Terminal."},
+     {"type":"goal.goal.cancelled","version":1,"description":"A ambição foi desistida — com a razão escrita. Terminal."}
+   ]'::jsonb,
+  '[]'::jsonb,
+  '[]'::jsonb,
+  '0.0.x',
+  'published'
+)
+on conflict (module_id) do update set
+  name            = excluded.name,
+  version         = excluded.version,
+  summary         = excluded.summary,
+  layer           = excluded.layer,
+  domain_key      = excluded.domain_key,
+  vertical_key    = excluded.vertical_key,
+  capabilities    = excluded.capabilities,
+  permissions     = excluded.permissions,
+  events_emits    = excluded.events_emits,
+  events_consumes = excluded.events_consumes,
+  agents          = excluded.agents,
+  requires_core   = excluded.requires_core,
+  status          = excluded.status,
+  updated_at      = now();
+
+-- -----------------------------------------------------------------------------
+-- 4.22 O MÓDULO `comm` NO CATÁLOGO DA STORE — o 24º cartão
+-- -----------------------------------------------------------------------------
+-- Comunicados (Domain hr — comunicação interna; o vertical Condomínios
+-- nomeia o recorte). Publicar congela a palavra dada; corrigir é comunicado
+-- novo; a ciência é ato próprio, único e eterno; arquivado é terminal.
+-- `consumes` vazio por decisão de canon (Lei 7) — ver a spec §5.
+-- =============================================================================
+
+insert into core.module_registry (
+  module_id, name, version, summary,
+  layer, domain_key,
+  capabilities, permissions, events_emits, events_consumes, agents,
+  requires_core, status
+)
+values (
+  'comm',
+  'Comunicados',
+  '0.1.0',
+  'O mural oficial do tenant: publicar congela a palavra dada; corrigir é comunicado novo referenciando o antigo; a ciência é ato próprio, único e eterno — e a cobertura conta quem leu enquanto a palavra esteve de pé.',
+  'domain', 'hr',
+  '[
+     {"key":"notices","canonicalName":"Comunicados"}
+   ]'::jsonb,
+  '[
+     {"key":"comm.notice.manage","moduleId":"comm","description":"Redigir rascunhos, publicar (dar a palavra) e arquivar comunicados."},
+     {"key":"comm.notice.ack","moduleId":"comm","description":"Dar a PRÓPRIA ciência em comunicado publicado — ato único, carimbado, que não se retira."}
+   ]'::jsonb,
+  '[
+     {"type":"comm.notice.drafted","version":1,"description":"Um comunicado nasceu no rascunho — ainda sem dar a palavra."},
+     {"type":"comm.notice.published","version":1,"description":"A palavra foi dada — título e audiência no envelope; o corpo mora no mural."},
+     {"type":"comm.notice.archived","version":1,"description":"Saiu do mural — a história e as ciências ficam. Terminal."},
+     {"type":"comm.notice.acked","version":1,"description":"Um membro deu ciência — ato próprio, único, carimbado."}
+   ]'::jsonb,
+  '[]'::jsonb,
+  '[]'::jsonb,
+  '0.0.x',
+  'published'
+)
+on conflict (module_id) do update set
+  name            = excluded.name,
+  version         = excluded.version,
+  summary         = excluded.summary,
+  layer           = excluded.layer,
+  domain_key      = excluded.domain_key,
+  vertical_key    = excluded.vertical_key,
+  capabilities    = excluded.capabilities,
+  permissions     = excluded.permissions,
+  events_emits    = excluded.events_emits,
+  events_consumes = excluded.events_consumes,
+  agents          = excluded.agents,
+  requires_core   = excluded.requires_core,
+  status          = excluded.status,
+  updated_at      = now();
+
+-- =============================================================================
+-- 4.23 O MÓDULO `edcal` NO CATÁLOGO DA STORE — o 25º cartão
+-- -----------------------------------------------------------------------------
+-- Calendário Editorial (Domain marketing — capacidade *Calendário*, a
+-- leitura editorial). Canal é dado do tenant; o fluxo é desenho do tenant
+-- (Lei das Etapas, 4ª aplicação); a pauta carrega o par de datas — a
+-- planejada (plano) e a real (carimbo do servidor); os dois fins terminais.
+-- `consumes` vazio por decisão de canon (Lei 7) — ver a spec §5.
+-- =============================================================================
+
+insert into core.module_registry (
+  module_id, name, version, summary,
+  layer, domain_key,
+  capabilities, permissions, events_emits, events_consumes, agents,
+  requires_core, status
+)
+values (
+  'edcal',
+  'Calendário Editorial',
+  '0.1.0',
+  'O calendário da produção de conteúdo: canal como dado do tenant, fluxo editorial como desenho do tenant (Lei das Etapas), a pauta com o par de datas — planejada × real — e dois fins terminais: publicada (ato registrado, data do servidor) ou descartada (com razão).',
+  'domain', 'marketing',
+  '[
+     {"key":"editorial-calendar","canonicalName":"Calendário"}
+   ]'::jsonb,
+  '[
+     {"key":"edcal.design.manage","moduleId":"edcal","description":"Desenhar o calendário do tenant: canais (criar, arquivar, devolver) e etapas do fluxo editorial."},
+     {"key":"edcal.piece.manage","moduleId":"edcal","description":"Planejar pautas, editar e reagendar o plano, e mover a pauta pelo fluxo (com trilha)."},
+     {"key":"edcal.piece.decide","moduleId":"edcal","description":"Registrar o fim da pauta: publicada (a data real é do servidor) ou descartada (com razão). Terminal."}
+   ]'::jsonb,
+  '[
+     {"type":"edcal.piece.planned","version":1,"description":"Uma pauta nasceu no calendário — canal, etapa e data planejada no envelope."},
+     {"type":"edcal.piece.moved","version":1,"description":"A pauta mudou de etapa no fluxo do tenant — de/para pelo NOME carimbado."},
+     {"type":"edcal.piece.published","version":1,"description":"O ATO de ter ido ao ar foi registrado — a data real ao lado da planejada. Terminal."},
+     {"type":"edcal.piece.dropped","version":1,"description":"A pauta morreu, com a razão escrita. Terminal."}
+   ]'::jsonb,
+  '[]'::jsonb,
+  '[]'::jsonb,
+  '0.0.x',
+  'published'
+)
+on conflict (module_id) do update set
+  name            = excluded.name,
+  version         = excluded.version,
+  summary         = excluded.summary,
+  layer           = excluded.layer,
+  domain_key      = excluded.domain_key,
+  vertical_key    = excluded.vertical_key,
+  capabilities    = excluded.capabilities,
+  permissions     = excluded.permissions,
+  events_emits    = excluded.events_emits,
+  events_consumes = excluded.events_consumes,
+  agents          = excluded.agents,
+  requires_core   = excluded.requires_core,
+  status          = excluded.status,
+  updated_at      = now();
+
+-- =============================================================================
+-- 4.24 O MÓDULO `media` NO CATÁLOGO DA STORE — o 26º cartão
+-- -----------------------------------------------------------------------------
+-- Biblioteca de Mídia (Domain marketing — capacidade *Mídia*). CATÁLOGO,
+-- não cofre: o ativo diz onde a obra vive (texto livre — Storage do Core
+-- não construído); o acervo volta do arquivo (o DIVERGE assinado do pat);
+-- o uso é livro imutável com vínculo solto.
+-- `consumes` vazio por decisão de canon (Lei 7) — ver a spec §5.
+-- =============================================================================
+
+insert into core.module_registry (
+  module_id, name, version, summary,
+  layer, domain_key,
+  capabilities, permissions, events_emits, events_consumes, agents,
+  requires_core, status
+)
+values (
+  'media',
+  'Biblioteca de Mídia',
+  '0.1.0',
+  'O catálogo do acervo de mídia: cada ativo é um registro que diz onde a obra vive (texto livre — catálogo, não cofre), com tipo livre e etiquetas do tenant; o acervo volta do arquivo; e o uso é livro imutável, carimbado, com vínculo solto.',
+  'domain', 'marketing',
+  '[
+     {"key":"media-library","canonicalName":"Mídia"}
+   ]'::jsonb,
+  '[
+     {"key":"media.asset.manage","moduleId":"media","description":"Catalogar ativos, editar o registro, etiquetar, arquivar e devolver ao acervo."},
+     {"key":"media.usage.record","moduleId":"media","description":"Registrar um USO do ativo — ato imutável, carimbado pelo servidor, com vínculo solto opcional."}
+   ]'::jsonb,
+  '[
+     {"type":"media.asset.cataloged","version":1,"description":"Uma obra entrou no acervo — título, tipo e o onde-vive no envelope."},
+     {"type":"media.asset.archived","version":1,"description":"A obra saiu do acervo vivo — o catálogo e o livro de usos ficam."},
+     {"type":"media.asset.restored","version":1,"description":"A obra voltou ao acervo — a MESMA obra, com a história inteira (o DIVERGE do pat)."},
+     {"type":"media.usage.recorded","version":1,"description":"Um uso foi registrado no livro — em quê, quando e por quem, com vínculo solto."}
+   ]'::jsonb,
+  '[]'::jsonb,
+  '[]'::jsonb,
+  '0.0.x',
+  'published'
+)
+on conflict (module_id) do update set
+  name            = excluded.name,
+  version         = excluded.version,
+  summary         = excluded.summary,
+  layer           = excluded.layer,
+  domain_key      = excluded.domain_key,
+  vertical_key    = excluded.vertical_key,
+  capabilities    = excluded.capabilities,
+  permissions     = excluded.permissions,
+  events_emits    = excluded.events_emits,
+  events_consumes = excluded.events_consumes,
+  agents          = excluded.agents,
+  requires_core   = excluded.requires_core,
+  status          = excluded.status,
+  updated_at      = now();
+
+-- =============================================================================
+-- 4.25 O MÓDULO `nps` NO CATÁLOGO DA STORE — o 27º cartão
+-- -----------------------------------------------------------------------------
+-- Pesquisas (Domain cx — capacidade *Pesquisas NPS/CSAT*). A régua 0-10 é
+-- física do método (CHECK argumentado); o placar é view calculada do
+-- livro; abrir congela a pergunta; closed é terminal (o DIVERGE assinado
+-- do care); anon não recebe nada — o link público é integração futura.
+-- `consumes` vazio por decisão de canon (Lei 7) — ver a spec §5.
+-- =============================================================================
+
+insert into core.module_registry (
+  module_id, name, version, summary,
+  layer, domain_key,
+  capabilities, permissions, events_emits, events_consumes, agents,
+  requires_core, status
+)
+values (
+  'nps',
+  'Pesquisas',
+  '0.1.0',
+  'A voz do cliente em rodadas de medição: a pergunta é do tenant e a régua 0–10 é do método; cada resposta é ato imutável no livro; o placar (%promotores − %detratores) é sempre calculado, nunca guardado; e a rodada fechada não reabre — a que volta é pesquisa nova.',
+  'domain', 'cx',
+  '[
+     {"key":"surveys","canonicalName":"Pesquisas NPS/CSAT"}
+   ]'::jsonb,
+  '[
+     {"key":"nps.survey.manage","moduleId":"nps","description":"Redigir rodadas, abrir a coleta (congela a pergunta) e encerrar a medição. Terminal."},
+     {"key":"nps.response.record","moduleId":"nps","description":"Registrar uma resposta na rodada ABERTA — ato imutável, nota 0–10, carimbado pelo servidor."}
+   ]'::jsonb,
+  '[
+     {"type":"nps.survey.drafted","version":1,"description":"Uma rodada nasceu no rascunho — a pergunta ainda é plano."},
+     {"type":"nps.survey.opened","version":1,"description":"A coleta abriu — a pergunta congelou."},
+     {"type":"nps.survey.closed","version":1,"description":"A medição encerrou — o placar está lido. Terminal."},
+     {"type":"nps.response.recorded","version":1,"description":"Uma voz entrou no livro — a NOTA no envelope; comentário e respondente ficam em casa."}
+   ]'::jsonb,
+  '[]'::jsonb,
+  '[]'::jsonb,
+  '0.0.x',
+  'published'
+)
+on conflict (module_id) do update set
+  name            = excluded.name,
+  version         = excluded.version,
+  summary         = excluded.summary,
+  layer           = excluded.layer,
+  domain_key      = excluded.domain_key,
+  vertical_key    = excluded.vertical_key,
+  capabilities    = excluded.capabilities,
+  permissions     = excluded.permissions,
+  events_emits    = excluded.events_emits,
+  events_consumes = excluded.events_consumes,
+  agents          = excluded.agents,
+  requires_core   = excluded.requires_core,
+  status          = excluded.status,
+  updated_at      = now();
+
+-- ⛔ Vinte e sete módulos no catálogo, zero permissão concedida pelo seed.
 
 -- =============================================================================
 -- 5. PLANOS-BASE

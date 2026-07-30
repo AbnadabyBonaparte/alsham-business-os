@@ -1290,6 +1290,28 @@ Store:
 Nenhum agente aplica em produção. A conferência de segurança do PASSO 15
 (§ pós-apply) vale para os schemas novos.
 
+## PASSO 19 — A MISSÃO SEXTA: os módulos seguintes (`0038` em diante)
+
+O rito é o mesmo dos Passos 16–18 — migration na ordem, seed, Data API,
+Store:
+
+1. **Aplicar a migration** no SQL Editor, na ordem:
+   - `0038_goal.sql` — Módulo 23, Metas (schema `goal`)
+   - `0039_comm.sql` — Módulo 24, Comunicados (schema `comm`)
+   - `0040_edcal.sql` — Módulo 25, Calendário Editorial (schema `edcal`)
+   - `0041_media.sql` — Módulo 26, Biblioteca de Mídia (schema `media`)
+   - `0042_nps.sql` — Módulo 27, Pesquisas (schema `nps`)
+2. **Reaplicar o seed** — os cartões novos entram no catálogo.
+3. ⚠️ **Expor os schemas novos na Data API**: `goal`, `comm`, `edcal`, `media`, `nps`. Sem isso as telas
+   carregam vazias, sem erro que diga o motivo.
+4. **Instalar cada módulo pela Store**, no tenant que o contratou.
+5. Nenhum módulo desta onda consome evento — **não há redeploy obrigatório
+   do `apps/api`**. (⛔ E o `nps` não ganha exceção de `anon`: o link
+   público de resposta é integração futura via API com chave.)
+
+Nenhum agente aplica em produção. A conferência de segurança do PASSO 15
+(§ pós-apply) vale para os schemas novos.
+
 ## O QUE AINDA NÃO EXISTE
 
 Honestidade de escopo, para você não procurar o que não foi construído:

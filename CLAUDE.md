@@ -169,13 +169,19 @@ Onde vai cada coisa:
   - `packages/spaces` é o **Módulo 20 — Reserva de Espaços** (`spc`, Domain `operations`, a leitura universal de *Facilities*): ⭐ **a física mora na CONSTRAINT** — EXCLUSION (gist, `btree_gist` criado na migration, argumentado) sobre (espaço, período), meio-aberto, **PARCIAL**: a cancelada libera o período SOZINHA. ⭐ **Reserva no PASSADO é PERMITIDA** — o DIVERGE consciente do `cash` (registrar o uso ocorrido é fato consumado; a agenda que recusa o passado mente sobre a ocupação), assinado em teste. Cancelar exige razão e é terminal; o ESPAÇO volta do arquivo (o argumento do crm). Ver `MODULO-SPC-SPEC`.
   - `packages/visits` é o **Módulo 21 — Visitas** (`vis`, Domain `operations` — a portaria é operação; a *Visitas* do CRM é a do vendedor, e o homônimo está declarado): ⭐ **a QUARTA identidade** — a visita é o EVENTO DE PRESENÇA e NÃO volta de fim nenhum (contraste triplo crm×care×vis assinado em teste); os dois carimbos são do SERVIDOR (a hora digitada é descartada); check-out sem check-in não existe; depois do check-in o registro CONGELA — corrigir é registro novo apontando o errado. ⭐ **O documento não passeia pelo correio** (envelope sem `visitor_document`/`visitor_contact`, provado no payload real + guarda de CI). ⛔ Lista negra fora POR LEI (LGPD). Ver `MODULO-VIS-SPEC`.
   - `packages/leads` é o **Módulo 22 — Leads** (`lead`, Domain `crm`, capacidade *Leads*): ⭐ **a QUINTA identidade** — o lead é a MANIFESTAÇÃO DE INTERESSE, um evento comercial datado com ORIGEM PRÓPRIA (texto livre — a lição do canal do crm valendo dobrado): `qualified`/`discarded` TERMINAIS (quem volta é lead novo, com origem nova), com a volta à fila permitida (`in_contact → new`). ⭐ Qualificar carimba VÍNCULOS SOLTOS (`party_id`+nome, `opportunity_id`+título) pela TELA, nunca por evento (Lei 7); constraint recusa vínculo na fila viva. Descartar exige razão (deal.lost, assinado). O contato não passeia pelo correio. Ver `MODULO-LEAD-SPEC`.
+- ⭐ **A MISSÃO SEXTA entregou os Módulos 23–27 num PR só, um commit por módulo** (migrations `0038`–`0042`, ARQUIVO — apply do dono, runbook §19), a Onda 3 de 6 da campanha:
+  - `packages/goals` é o **Módulo 23 — Metas** (`goal`, Domain `bi` — o bloco da LEITURA do negócio, com os homônimos CRM·Metas e RH·OKRs declarados e ancorados em teste): ⭐ **o progresso é o ÚLTIMO check-in do livro — view, nunca coluna**; a trave CONGELA na ativação; check-in só em meta ATIVA (o sistema não mede nada sozinho — quem reporta é gente); fechar a época é decisão carimbada que EXIGE ≥1 check-in (sem número na mesa é achismo); os três fins terminais. Ver `MODULO-GOAL-SPEC`.
+  - `packages/comms` é o **Módulo 24 — Comunicados** (`comm`, Domain `hr` — o mural fala com MEMBROS; o vertical Condomínios nomeia o recorte): ⭐ **publicar CONGELA a palavra dada** (e exige corpo); corrigir é comunicado NOVO com o título do antigo carimbado pelo SERVIDOR; ⭐ **a ciência é ato PRÓPRIO (o gatilho força auth.uid), ÚNICO (unique) e ETERNO** — e só o publicado a recebe (rascunho não comunicou; arquivado saiu do mural, e archived é terminal). O corpo não passeia no envelope. Ver `MODULO-COMM-SPEC`.
+  - `packages/editorial` é o **Módulo 25 — Calendário Editorial** (`edcal`, Domain `marketing`, capacidade *Calendário*): canal como TABELA do tenant (volta do arquivo); ⭐ **a Lei das Etapas na QUARTA aplicação** — e o DIVERGE assinado do ops: `requires_approval` NÃO veio (guarda de CI barra a volta). ⭐ **Reagendar é UPDATE honesto SEM trilha** (o calendário é plano; a trilha é dos FATOS) — a honestidade mora no PAR planned_on × published_at, com a data real do servidor; os dois fins terminais e congelados. Ver `MODULO-EDCAL-SPEC`.
+  - `packages/media` é o **Módulo 26 — Biblioteca de Mídia** (`media`, Domain `marketing`, capacidade *Mídia*): ⭐ **CATÁLOGO, não cofre** — o Storage do Core não existe e o módulo não finge: o ativo diz ONDE a obra vive (texto livre, pronto para o Storage futuro sem migration corretiva). ⭐ **O acervo VOLTA do arquivo — o DIVERGE assinado do pat** (identidade de OBRA × identidade fiscal, teste de contraste pat×crm×media); o uso é LIVRO imutável com vínculo SOLTO; etiquetas N:N do tenant com as únicas portas de DELETE (metadado vivo). Ver `MODULO-MEDIA-SPEC`.
+  - `packages/nps` é o **Módulo 27 — Pesquisas** (`nps`, Domain `cx`, capacidade *Pesquisas NPS/CSAT*): ⭐ **a régua 0–10 é CHECK argumentado** — física do MÉTODO, a segunda da onda (precedente: mnt), com a pergunta em texto do tenant e ABRIR que a congela; ⭐ **o placar é VIEW calculada do livro** (%promotores − %detratores) e pesquisa sem resposta NÃO tem linha (Lei 7); ⭐ **closed é TERMINAL — o DIVERGE assinado do care** (a rodada que volta é pesquisa nova); ⛔ **ANON = NADA, sem exceção** (o link público é integração futura via API com chave, padrão Forja) — provado com o papel `anon` no teste. Ver `MODULO-NPS-SPEC`.
 - ⛔ **Função nasce ABERTA a `PUBLIC` no PostgreSQL** — diferente de tabela. Toda função criada depois do `revoke ... on all functions` do seu schema herda esse privilégio, e o `grant` escrito logo abaixo vira decoração. Oito funções `security definer` eram chamáveis por `anon` até o `0022_revoke_public_execute.sql`. **Escreveu `create function` em schema já revogado? Revogue de novo antes de conceder.**
 - ⭐ **Copiar sem pensar e divergir sem escrever são o mesmo erro.** Módulo novo que espelha um existente: re-pergunte cada decisão e escreva a resposta — inclusive as que se mantêm.
 - ⭐ **A origem de um fato vem SEMPRE do envelope** (`producedBy`), nunca de constante no consumidor. Com ela chumbada, um segundo produtor do mesmo formato entraria disfarçado do primeiro e a trilha mentiria sem nunca dar erro. Há guarda no CI que reprova as três formas de chumbar.
 - `apps/store` e `apps/admin` e os demais 12 pacotes continuam **só com `README.md`** — status NÃO INICIADO. (`packages/finance` segue NÃO INICIADO: os módulos financeiros nascem em pastas próprias, como manda §6.)
 - ⚠️ **O seed é a FONTE do catálogo, não só a semente dele.** Desde a Etapa 10 os blocos de `core.module_registry` são `on conflict do update`, não `do nothing`: uma linha existente precisou mudar (o `recon` passou a escutar `ap.*`) e `do nothing` deixaria a Store exibindo o catálogo antigo para sempre, sem erro nenhum. Consequência: reaplicar o seed **desfaz edição feita à mão** no catálogo. Depreciar um módulo se faz mudando o arquivo.
 - ⚠️ **Schema novo precisa ser EXPOSTO na Data API do Supabase pelo dono** (Project Settings → API → Exposed schemas). Lição paga na Etapa 9 e repetida nas 10, 11 e 12: sem isso as telas carregam vazias, sem erro que diga o motivo. Está no runbook §10.0. ⭐ **A Forja e o Painel não pedem schema novo** — os dois são Core e escrevem/leem em `core`, que já está exposto.
-- **As migrations são provadas no CI:** `0001` → … → `0014` + `0017` → `0037` + seed (duas vezes) aplicam de verdade num Postgres 17 limpo e passam nos **vinte e sete** testes de isolamento com usuário real (`supabase/tests/`), a cada mudança.
+- **As migrations são provadas no CI:** `0001` → … → `0014` + `0017` → `0042` + seed (duas vezes) aplicam de verdade num Postgres 17 limpo e passam nos **trinta e dois** testes de isolamento com usuário real (`supabase/tests/`), a cada mudança.
 
 #### ⛔ 5.4.1 O apply de produção já aconteceu — `0001` a `0014` estão CONGELADAS
 
@@ -195,7 +201,8 @@ A consequência é operacional e não é opinião:
   - `0023_inv.sql` · `0024_quote.sql` · `0025_deal.sql` · `0026_evt.sql` · `0027_dun.sql` — os cinco da Missão Trina (runbook §16). ⚠️ **Expor os schemas `inv`, `quote`, `deal`, `evt`, `dun` na Data API** ao aplicar — e **redeployar o `apps/api`** (a inscrição da régua só existe no build novo).
   - `0028_ctr.sql` · `0029_cash.sql` · `0030_care.sql` · `0031_occ.sql` · `0032_mnt.sql` — os cinco da Missão Quadra (runbook §17). ⚠️ **Expor os schemas `ctr`, `cash`, `care`, `occ`, `mnt` na Data API** ao aplicar. Nenhum consome evento — não há redeploy obrigatório do `apps/api` nesta onda.
   - `0033_pat.sql` · `0034_chk.sql` · `0035_spc.sql` · `0036_vis.sql` · `0037_lead.sql` — os cinco da Missão Penta (runbook §18). ⚠️ **Expor os schemas `pat`, `chk`, `spc`, `vis`, `lead` na Data API** ao aplicar (o `0035` cria a extensão `btree_gist` — contrib, presente em todo Supabase). Nenhum consome evento — não há redeploy obrigatório do `apps/api` nesta onda.
-- ⚠️ **A lacuna `0015`/`0016` é proposital** e vem da main. A próxima numeração livre é **`0038`**.
+  - `0038_goal.sql` · `0039_comm.sql` · `0040_edcal.sql` · `0041_media.sql` · `0042_nps.sql` — os cinco da Missão Sexta (runbook §19). ⚠️ **Expor os schemas `goal`, `comm`, `edcal`, `media`, `nps` na Data API** ao aplicar. Nenhum consome evento — não há redeploy obrigatório do `apps/api` nesta onda. ⛔ E o `nps` não ganha exceção de `anon`: o link público de resposta é integração futura.
+- ⚠️ **A lacuna `0015`/`0016` é proposital** e vem da main. A próxima numeração livre é **`0043`**.
 - ⛔ **A limpeza do runbook §7.3 FOI EXECUTADA** em 28/07/2026: a concessão global de permissão de módulo **não existe mais em produção**. O tenant piloto tem papel próprio, com as permissões concedidas por `core.install_module()` — pela Store, com o clique do dono. Nunca volte a conceder permissão de módulo no seed.
 - `packages/workflow` é **o correio do Core** — o entregador da caixa de saída: idempotência por consumidor, backoff exponencial, `dead` sem apagar. **ENGINE, não módulo** (Taxonomia §4): não aparece na Store.
 - `apps/api` é **a COMPOSIÇÃO** — o único lugar do repositório onde os módulos se conhecem. Ele importa `workflow`, `marketing`, `finance-reconciliation`, `accounts-payable`, `accounts-receivable` e `billing`; **nenhum deles importa nenhum outro**. ⭐ Desde a Etapa 10 o mesmo pacote (`finance-reconciliation`) é PRODUTOR numa inscrição e CONSUMIDOR em outra — e continua sem conhecer ninguém. Traz a persistência real do correio (contra Postgres, com arrendamento e `skip locked`), os adaptadores dos consumidores, o endpoint protegido e a saúde da fila.
@@ -231,7 +238,7 @@ O Módulo 1 é o padrão. Os Módulos 2 a 7 obedeceram ao mesmo; o próximo tamb
 - **A Regra de Ouro (§5.3) é verificada no CI**, não só recomendada: se o motor de domínio for redeclarado em `apps/`, ou se a tela deixar de chamá-lo, o build falha.
 - **O instalador existe** (`0006_install.sql`): quem concede permissão de módulo é `core.install_module()`, num papel **DO TENANT**. Papel de sistema é recusado — ele vale em todos os tenants e faria o módulo vazar para quem não o instalou. **Nunca volte a conceder permissão de módulo no seed.**
 - **Desinstalar não apaga dado.** Corta acesso e revoga permissão; o que o módulo gravou continua no banco. Há teste no CI.
-- **Entregou peça? Atualize a linha dela** em `CORE-SPEC §5` e na spec do módulo — `MODULO-RECON-SPEC §7`, `MODULO-MARKETING-SPEC §6`, `MODULO-AP-SPEC §6`, `MODULO-CRM-SPEC §6`, `MODULO-AR-SPEC §5`, `MODULO-PO-SPEC §4`, `MODULO-OPS-SPEC §5`, `MODULO-INV-SPEC §7`, `MODULO-QUOTE-SPEC §6`, `MODULO-DEAL-SPEC §6`, `MODULO-EVT-SPEC §6`, `MODULO-DUN-SPEC §7`, `MODULO-CTR-SPEC §6`, `MODULO-CASH-SPEC §6`, `MODULO-CARE-SPEC §6`, `MODULO-OCC-SPEC §6`, `MODULO-MNT-SPEC §6`, `MODULO-PAT-SPEC §6`, `MODULO-CHK-SPEC §6`, `MODULO-SPC-SPEC §6`, `MODULO-VIS-SPEC §6` e `MODULO-LEAD-SPEC §6`. São a fonte de estado, e o CI (`pnpm verificar:docs`) falha se um documento declarar **NÃO CONSTRUÍDO** algo que já existe no disco. Negar o que existe é a Lei 7 com o sinal trocado, e é o erro mais fácil de cometer: não exige escrever nada, basta não apagar.
+- **Entregou peça? Atualize a linha dela** em `CORE-SPEC §5` e na spec do módulo — `MODULO-RECON-SPEC §7`, `MODULO-MARKETING-SPEC §6`, `MODULO-AP-SPEC §6`, `MODULO-CRM-SPEC §6`, `MODULO-AR-SPEC §5`, `MODULO-PO-SPEC §4`, `MODULO-OPS-SPEC §5`, `MODULO-INV-SPEC §7`, `MODULO-QUOTE-SPEC §6`, `MODULO-DEAL-SPEC §6`, `MODULO-EVT-SPEC §6`, `MODULO-DUN-SPEC §7`, `MODULO-CTR-SPEC §6`, `MODULO-CASH-SPEC §6`, `MODULO-CARE-SPEC §6`, `MODULO-OCC-SPEC §6`, `MODULO-MNT-SPEC §6`, `MODULO-PAT-SPEC §6`, `MODULO-CHK-SPEC §6`, `MODULO-SPC-SPEC §6`, `MODULO-VIS-SPEC §6`, `MODULO-LEAD-SPEC §6`, `MODULO-GOAL-SPEC §6`, `MODULO-COMM-SPEC §6`, `MODULO-EDCAL-SPEC §6`, `MODULO-MEDIA-SPEC §6` e `MODULO-NPS-SPEC §6`. São a fonte de estado, e o CI (`pnpm verificar:docs`) falha se um documento declarar **NÃO CONSTRUÍDO** algo que já existe no disco. Negar o que existe é a Lei 7 com o sinal trocado, e é o erro mais fácil de cometer: não exige escrever nada, basta não apagar.
   ⚠️ **E conte as linhas ✅ da saída.** Na Etapa 15 descobriu-se que o rebase juntara a entrada do Módulo 6 com a do Módulo 7 no mesmo objeto literal do verificador: em JavaScript a segunda chave sobrescreve a primeira, o script seguiu verde e **deixou de conferir uma peça sem falhar nem acusar**.
 
 ---
@@ -250,6 +257,9 @@ docs/canon/            taxonomia · roadmap · core-spec · identidade-visual
                        · modulo-mnt-spec · modulo-pat-spec
                        · modulo-chk-spec · modulo-spc-spec
                        · modulo-vis-spec · modulo-lead-spec
+                       · modulo-goal-spec · modulo-comm-spec
+                       · modulo-edcal-spec · modulo-media-spec
+                       · modulo-nps-spec
                                                         — leitura obrigatória
 docs/comercial/        VERTICAL-SHOPPING.md             — dossiê de venda
 docs/balancos/         tecnologia + supabase            — de onde minerar
@@ -266,7 +276,9 @@ supabase/migrations/   0001_core … 0014_ap_apply_recon_match
                        · 0032_mnt                        — Missão Quadra; apply do dono
                        0033_pat · 0034_chk · 0035_spc · 0036_vis
                        · 0037_lead                       — Missão Penta; apply do dono
-                       (lacuna 0015–0016 proposital; próxima livre: 0038)
+                       0038_goal · 0039_comm · 0040_edcal · 0041_media
+                       · 0042_nps                        — Missão Sexta; apply do dono
+                       (lacuna 0015–0016 proposital; próxima livre: 0043)
 supabase/seed/         0001_platform.sql                — catálogo, idempotente; zero tenant
 supabase/tests/        shim · isolamento · uso · consumo entre módulos
                        · instalador · triângulo · relacionamentos · a receber
@@ -277,7 +289,9 @@ supabase/tests/        shim · isolamento · uso · consumo entre módulos
                        · contratos (ctr) · caixa (cash) · atendimento (care)
                        · ocorrências (occ) · manutenção (mnt)
                        · patrimônio (pat) · checklists (chk) · espaços (spc)
-                       · visitas (vis) · leads (lead)
+                       · visitas (vis) · leads (lead) · metas (goal)
+                       · comunicados (comm) · calendário editorial (edcal)
+                       · biblioteca de mídia (media) · pesquisas (nps)
                                                         — só CI; NUNCA no Supabase real
 docs/runbook/          APLICAR.md                       — o passo a passo do dono
 .github/scripts/       guarda de defasagem de documento — encanamento de CI
@@ -316,6 +330,11 @@ packages/              core auth organizations workflow billing
                        spaces                           — Módulo 20 (a física na constraint)
                        visits                           — Módulo 21 (a passagem única)
                        leads                            — Módulo 22 (o interesse com origem)
+                       goals                            — Módulo 23 (o alvo informa, o dono decide)
+                       comms                            — Módulo 24 (a palavra dada que congela)
+                       editorial                        — Módulo 25 (o plano muda, o fato fica)
+                       media                            — Módulo 26 (catálogo, não cofre)
+                       nps                              — Módulo 27 (a régua do método)
                        workflow (o correio) · billing (uso) · ai (a forja)
                                                         — Engines/capacidades do Core
 ```
