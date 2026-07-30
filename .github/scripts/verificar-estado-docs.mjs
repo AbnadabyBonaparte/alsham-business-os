@@ -320,6 +320,65 @@ export const PECAS = [
     onde: 'packages/dunning/',
   },
   {
+    nome: 'Módulo 13 — Contratos',
+    detector: [
+      'packages/contracts/src/manifest.ts',
+      'packages/contracts/src/contract.ts',
+      'supabase/migrations/0028_ctr.sql',
+    ],
+    // ⚠️ NUNCA a palavra "contrato" solta: ela é vocabulário do CORAÇÃO do
+    // canon (o CONTRATO do Lego, contrato puro, contrato público). O padrão
+    // exige o NOME DA PEÇA.
+    padrao: /(m[óo]dulo 13|packages\/contracts|@alsham\/contracts|0028_ctr)/i,
+    onde: 'packages/contracts/',
+  },
+  {
+    nome: 'Módulo 14 — Fluxo de Caixa',
+    detector: [
+      'packages/cashflow/src/manifest.ts',
+      'packages/cashflow/src/cashflow.ts',
+      'supabase/migrations/0029_cash.sql',
+    ],
+    // ⚠️ NUNCA a palavra "caixa" solta: ela mora em "caixa de saída" (o
+    // outbox do Core) e em "livro-caixa" do billing. O padrão exige o NOME
+    // DA PEÇA.
+    padrao: /(m[óo]dulo 14|packages\/cashflow|@alsham\/cashflow|0029_cash)/i,
+    onde: 'packages/cashflow/',
+  },
+  {
+    nome: 'Módulo 15 — Atendimento',
+    detector: [
+      'packages/care/src/manifest.ts',
+      'packages/care/src/care.ts',
+      'supabase/migrations/0030_care.sql',
+    ],
+    padrao: /(m[óo]dulo 15|packages\/care|@alsham\/care|0030_care)/i,
+    onde: 'packages/care/',
+  },
+  {
+    nome: 'Módulo 16 — Ocorrências',
+    detector: [
+      'packages/occurrences/src/manifest.ts',
+      'packages/occurrences/src/occurrence.ts',
+      'supabase/migrations/0031_occ.sql',
+    ],
+    padrao: /(m[óo]dulo 16|packages\/occurrences|@alsham\/occurrences|0031_occ)/i,
+    onde: 'packages/occurrences/',
+  },
+  {
+    nome: 'Módulo 17 — Manutenção',
+    detector: [
+      'packages/maintenance/src/manifest.ts',
+      'packages/maintenance/src/maintenance.ts',
+      'supabase/migrations/0032_mnt.sql',
+    ],
+    // ⚠️ NUNCA a palavra "manutenção" solta: o canon usa "manutenção
+    // predial" como EXEMPLO de esteira do ops desde a Etapa 12. O padrão
+    // exige o NOME DA PEÇA.
+    padrao: /(m[óo]dulo 17|packages\/maintenance|@alsham\/maintenance|0032_mnt)/i,
+    onde: 'packages/maintenance/',
+  },
+  {
     nome: 'Menu filtrado por permissão',
     detector: ['packages/permissions/src/menu.ts'],
     // A dívida da Etapa 10 foi paga: os itens de menu não são mais escritos à
@@ -429,6 +488,11 @@ const SECOES = [
   { arquivo: 'docs/canon/MODULO-DEAL-SPEC.md', titulo: '## 6. ESTADO DA OBRA' },
   { arquivo: 'docs/canon/MODULO-EVT-SPEC.md', titulo: '## 6. ESTADO DA OBRA' },
   { arquivo: 'docs/canon/MODULO-DUN-SPEC.md', titulo: '## 7. ESTADO DA OBRA' },
+  { arquivo: 'docs/canon/MODULO-CTR-SPEC.md', titulo: '## 6. ESTADO DA OBRA' },
+  { arquivo: 'docs/canon/MODULO-CASH-SPEC.md', titulo: '## 6. ESTADO DA OBRA' },
+  { arquivo: 'docs/canon/MODULO-CARE-SPEC.md', titulo: '## 6. ESTADO DA OBRA' },
+  { arquivo: 'docs/canon/MODULO-OCC-SPEC.md', titulo: '## 6. ESTADO DA OBRA' },
+  { arquivo: 'docs/canon/MODULO-MNT-SPEC.md', titulo: '## 6. ESTADO DA OBRA' },
 ];
 
 /**

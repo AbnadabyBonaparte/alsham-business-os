@@ -991,7 +991,294 @@ on conflict (module_id) do update set
   status          = excluded.status,
   updated_at      = now();
 
--- ⛔ Doze módulos no catálogo, zero permissão concedida pelo seed.
+-- -----------------------------------------------------------------------------
+-- 4.11 O MÓDULO `ctr` NO CATÁLOGO DA STORE — o 13º cartão
+-- -----------------------------------------------------------------------------
+-- Contratos (Domain legal — capacidade *Contratos*). Os termos originais
+-- congelam em vigor; o VIGENTE é calculado dos atos imutáveis (reajuste com
+-- índice em texto livre, renovação que estende o MESMO contrato). `consumes`
+-- vazio por decisão de canon (Lei 7) — ver a spec §5.
+-- =============================================================================
+
+insert into core.module_registry (
+  module_id, name, version, summary,
+  layer, domain_key,
+  capabilities, permissions, events_emits, events_consumes, agents,
+  requires_core, status
+)
+values (
+  'ctr',
+  'Contratos',
+  '0.1.0',
+  'A carteira de contratos do tenant: vigência, valor e partes com os termos originais congelados em vigor — o vigente é calculado dos atos registrados (reajuste, renovação). Rescindir exige razão; encerrar exige calendário.',
+  'domain', 'legal',
+  '[
+     {"key":"contracts","canonicalName":"Contratos"}
+   ]'::jsonb,
+  '[
+     {"key":"ctr.contract.manage","moduleId":"ctr","description":"Registrar e editar contratos em rascunho, e pô-los em vigor."},
+     {"key":"ctr.contract.amend","moduleId":"ctr","description":"Registrar reajuste (índice em texto livre, valor novo) e renovação (estender a vigência) — atos imutáveis no mesmo contrato."},
+     {"key":"ctr.contract.decide","moduleId":"ctr","description":"Encerrar por prazo vencido ou rescindir com razão — o desfecho é terminal e carimbado pelo servidor."}
+   ]'::jsonb,
+  '[
+     {"type":"ctr.contract.registered","version":1,"description":"Um contrato nasceu (rascunho), com as partes pelo nome."},
+     {"type":"ctr.contract.updated","version":1,"description":"O rascunho mudou no que é FATO: termos, partes, vigência."},
+     {"type":"ctr.contract.activated","version":1,"description":"O contrato entrou em vigor — a partir daqui os termos mudam só por ato."},
+     {"type":"ctr.contract.adjusted","version":1,"description":"Reajuste registrado: índice em texto livre, valor anterior e novo. O sistema registra; quem calcula é gente."},
+     {"type":"ctr.contract.renewed","version":1,"description":"A vigência foi estendida por renovação — o MESMO contrato, prazo novo."},
+     {"type":"ctr.contract.ended","version":1,"description":"Fim natural: a vigência venceu e o encerramento foi registrado."},
+     {"type":"ctr.contract.terminated","version":1,"description":"Rescisão: ato com razão obrigatória, carimbado pelo servidor."},
+     {"type":"ctr.contract.cancelled","version":1,"description":"O rascunho foi cancelado antes de entrar em vigor."}
+   ]'::jsonb,
+  '[]'::jsonb,
+  '[]'::jsonb,
+  '0.0.x',
+  'published'
+)
+on conflict (module_id) do update set
+  name            = excluded.name,
+  version         = excluded.version,
+  summary         = excluded.summary,
+  layer           = excluded.layer,
+  domain_key      = excluded.domain_key,
+  vertical_key    = excluded.vertical_key,
+  capabilities    = excluded.capabilities,
+  permissions     = excluded.permissions,
+  events_emits    = excluded.events_emits,
+  events_consumes = excluded.events_consumes,
+  agents          = excluded.agents,
+  requires_core   = excluded.requires_core,
+  status          = excluded.status,
+  updated_at      = now();
+
+-- -----------------------------------------------------------------------------
+-- 4.12 O MÓDULO `cash` NO CATÁLOGO DA STORE — o 14º cartão
+-- -----------------------------------------------------------------------------
+-- Fluxo de Caixa (Domain finance — capacidade *Fluxo de caixa*). O livro do
+-- inv no dinheiro: lançamentos imutáveis, categoria do tenant, saldo em view,
+-- CAIXA realizado (o futuro é recusado — previsão é Orçamento). `consumes`
+-- vazio pela decisão contra a DUPLA CONTAGEM — ver a spec §5.
+-- =============================================================================
+
+insert into core.module_registry (
+  module_id, name, version, summary,
+  layer, domain_key,
+  capabilities, permissions, events_emits, events_consumes, agents,
+  requires_core, status
+)
+values (
+  'cash',
+  'Fluxo de Caixa',
+  '0.1.0',
+  'O livro-caixa do tenant: lançamentos imutáveis (entrada, saída, ajuste com razão), categoria desenhada pelo tenant e saldo sempre calculado. Registra o realizado — previsão é Orçamento.',
+  'domain', 'finance',
+  '[
+     {"key":"cash-flow","canonicalName":"Fluxo de caixa"}
+   ]'::jsonb,
+  '[
+     {"key":"cash.entry.register","moduleId":"cash","description":"Lançar entradas e saídas no livro-caixa — o sinal vem do tipo, nunca do operador."},
+     {"key":"cash.entry.adjust","moduleId":"cash","description":"Lançar AJUSTE com razão obrigatória — o movimento que reescreve a conta."},
+     {"key":"cash.category.manage","moduleId":"cash","description":"Desenhar as categorias do tenant: criar, renomear, arquivar e reativar."}
+   ]'::jsonb,
+  '[
+     {"type":"cash.entry.registered","version":1,"description":"Um lançamento entrou no livro — com o sinal do tipo, a categoria pelo nome e o dia em que o dinheiro moveu."},
+     {"type":"cash.category.registered","version":1,"description":"Uma categoria nasceu no desenho do tenant."},
+     {"type":"cash.category.updated","version":1,"description":"A categoria mudou (nome, ou reativação — que não é fato novo, é a mesma)."},
+     {"type":"cash.category.archived","version":1,"description":"A categoria saiu de uso — o livro dela continua inteiro."}
+   ]'::jsonb,
+  '[]'::jsonb,
+  '[]'::jsonb,
+  '0.0.x',
+  'published'
+)
+on conflict (module_id) do update set
+  name            = excluded.name,
+  version         = excluded.version,
+  summary         = excluded.summary,
+  layer           = excluded.layer,
+  domain_key      = excluded.domain_key,
+  vertical_key    = excluded.vertical_key,
+  capabilities    = excluded.capabilities,
+  permissions     = excluded.permissions,
+  events_emits    = excluded.events_emits,
+  events_consumes = excluded.events_consumes,
+  agents          = excluded.agents,
+  requires_core   = excluded.requires_core,
+  status          = excluded.status,
+  updated_at      = now();
+
+-- -----------------------------------------------------------------------------
+-- 4.13 O MÓDULO `care` NO CATÁLOGO DA STORE — o 15º cartão
+-- -----------------------------------------------------------------------------
+-- Atendimento (Domain cx — capacidade *SAC*). O caso tem identidade pelo
+-- PEDIDO: reabre de resolved (o mesmo caso), closed é terminal. Categoria e
+-- prioridade são dado do tenant; a conversa é imutável. `consumes` vazio por
+-- decisão de canon (Lei 7) — ver a spec §5.
+-- =============================================================================
+
+insert into core.module_registry (
+  module_id, name, version, summary,
+  layer, domain_key,
+  capabilities, permissions, events_emits, events_consumes, agents,
+  requires_core, status
+)
+values (
+  'care',
+  'Atendimento',
+  '0.1.0',
+  'O balcão de atendimento do tenant: casos com solicitante neutro, categoria e prioridade desenhadas pelo tenant, conversa imutável, resolução carimbada — e reabertura honesta: o caso que volta é o mesmo caso.',
+  'domain', 'cx',
+  '[
+     {"key":"service-desk","canonicalName":"SAC"}
+   ]'::jsonb,
+  '[
+     {"key":"care.ticket.manage","moduleId":"care","description":"Abrir, editar, atribuir, mover e reabrir casos; registrar interações."},
+     {"key":"care.ticket.resolve","moduleId":"care","description":"Resolver e fechar casos — o ato fica carimbado com quem e quando, pelo servidor."},
+     {"key":"care.setup.manage","moduleId":"care","description":"Desenhar categorias e prioridades do tenant — nome livre, nunca enum do produto."}
+   ]'::jsonb,
+  '[
+     {"type":"care.ticket.opened","version":1,"description":"Um caso nasceu — solicitante, classificação pelo nome, prazo se houver."},
+     {"type":"care.ticket.updated","version":1,"description":"O caso mudou no que é FATO: assunto, classificação, responsável, prazo, andamento."},
+     {"type":"care.ticket.resolved","version":1,"description":"O caso foi dado por resolvido — ato carimbado, com a nota de resolução."},
+     {"type":"care.ticket.reopened","version":1,"description":"O MESMO caso voltou: o solicitante disse que não resolveu. O carimbo anterior fica na trilha."},
+     {"type":"care.ticket.closed","version":1,"description":"O caso fechou — terminal. Quem volta depois é caso novo."},
+     {"type":"care.interaction.recorded","version":1,"description":"Uma interação entrou na conversa — imutável, com canal em texto livre."}
+   ]'::jsonb,
+  '[]'::jsonb,
+  '[]'::jsonb,
+  '0.0.x',
+  'published'
+)
+on conflict (module_id) do update set
+  name            = excluded.name,
+  version         = excluded.version,
+  summary         = excluded.summary,
+  layer           = excluded.layer,
+  domain_key      = excluded.domain_key,
+  vertical_key    = excluded.vertical_key,
+  capabilities    = excluded.capabilities,
+  permissions     = excluded.permissions,
+  events_emits    = excluded.events_emits,
+  events_consumes = excluded.events_consumes,
+  agents          = excluded.agents,
+  requires_core   = excluded.requires_core,
+  status          = excluded.status,
+  updated_at      = now();
+
+-- -----------------------------------------------------------------------------
+-- 4.14 O MÓDULO `occ` NO CATÁLOGO DA STORE — o 16º cartão
+-- -----------------------------------------------------------------------------
+-- Ocorrências (Domain operations — capacidade *Ocorrências*). O livro do
+-- fato consumado: registro imutável desde o nascimento (a física que diverge
+-- do care), tratativa em atos eternos, encerramento com desfecho — terminal.
+-- `consumes` vazio por decisão de canon (Lei 7) — ver a spec §5.
+-- =============================================================================
+
+insert into core.module_registry (
+  module_id, name, version, summary,
+  layer, domain_key,
+  capabilities, permissions, events_emits, events_consumes, agents,
+  requires_core, status
+)
+values (
+  'occ',
+  'Ocorrências',
+  '0.1.0',
+  'O livro do que aconteceu: registro imutável do fato consumado, gravidade desenhada pelo tenant, tratativa em atos eternos e encerramento com desfecho escrito — terminal.',
+  'domain', 'operations',
+  '[
+     {"key":"incident-log","canonicalName":"Ocorrências"}
+   ]'::jsonb,
+  '[
+     {"key":"occ.occurrence.register","moduleId":"occ","description":"Registrar o fato consumado — o registro nasce imutável."},
+     {"key":"occ.occurrence.treat","moduleId":"occ","description":"Registrar tratativas — a cadeia de atos eternos sobre a ocorrência aberta."},
+     {"key":"occ.occurrence.close","moduleId":"occ","description":"Encerrar com o desfecho escrito — ato carimbado e terminal."},
+     {"key":"occ.setup.manage","moduleId":"occ","description":"Desenhar a régua de gravidade do tenant — nome livre e posição, nunca enum."}
+   ]'::jsonb,
+  '[
+     {"type":"occ.occurrence.registered","version":1,"description":"Um fato foi registrado — relato, local, envolvidos e gravidade pelo nome."},
+     {"type":"occ.occurrence.treated","version":1,"description":"Uma tratativa entrou na cadeia — o que foi feito, por quem, quando."},
+     {"type":"occ.occurrence.closed","version":1,"description":"A ocorrência foi encerrada — ato carimbado, com o desfecho escrito. Terminal."}
+   ]'::jsonb,
+  '[]'::jsonb,
+  '[]'::jsonb,
+  '0.0.x',
+  'published'
+)
+on conflict (module_id) do update set
+  name            = excluded.name,
+  version         = excluded.version,
+  summary         = excluded.summary,
+  layer           = excluded.layer,
+  domain_key      = excluded.domain_key,
+  vertical_key    = excluded.vertical_key,
+  capabilities    = excluded.capabilities,
+  permissions     = excluded.permissions,
+  events_emits    = excluded.events_emits,
+  events_consumes = excluded.events_consumes,
+  agents          = excluded.agents,
+  requires_core   = excluded.requires_core,
+  status          = excluded.status,
+  updated_at      = now();
+
+-- -----------------------------------------------------------------------------
+-- 4.15 O MÓDULO `mnt` NO CATÁLOGO DA STORE — o 17º cartão
+-- -----------------------------------------------------------------------------
+-- Manutenção (Domain operations — capacidade *Manutenção*). Corretiva e
+-- preventiva (física do domínio); done volta (trabalho tem identidade por
+-- serviço); recorrência do tenant com a próxima devida calculada por data.
+-- `consumes` vazio por decisão de canon (Lei 7) — ver a spec §5.
+-- =============================================================================
+
+insert into core.module_registry (
+  module_id, name, version, summary,
+  layer, domain_key,
+  capabilities, permissions, events_emits, events_consumes, agents,
+  requires_core, status
+)
+values (
+  'mnt',
+  'Manutenção',
+  '0.1.0',
+  'As ordens de manutenção do tenant: corretiva e preventiva, alvo em texto livre, prioridade desenhada pelo tenant, conclusão com relato carimbado — e a preventiva com recorrência e a próxima devida sempre calculada.',
+  'domain', 'operations',
+  '[
+     {"key":"maintenance","canonicalName":"Manutenção"}
+   ]'::jsonb,
+  '[
+     {"key":"mnt.order.manage","moduleId":"mnt","description":"Abrir, editar, atribuir e mover ordens de manutenção."},
+     {"key":"mnt.order.complete","moduleId":"mnt","description":"Concluir (com o relato do que foi feito) e cancelar ordens — atos carimbados."},
+     {"key":"mnt.setup.manage","moduleId":"mnt","description":"Desenhar a régua de prioridade do tenant — nome livre e posição, nunca enum."}
+   ]'::jsonb,
+  '[
+     {"type":"mnt.order.opened","version":1,"description":"Uma ordem nasceu — corretiva ou preventiva, com o alvo em texto."},
+     {"type":"mnt.order.updated","version":1,"description":"A ordem mudou no que é FATO: alvo, prioridade, responsável, custo, andamento."},
+     {"type":"mnt.order.completed","version":1,"description":"O serviço foi concluído — com o relato do que foi feito, carimbado."},
+     {"type":"mnt.order.reopened","version":1,"description":"O MESMO serviço voltou à bancada — a vistoria reprovou o reparo."},
+     {"type":"mnt.order.cancelled","version":1,"description":"A ordem foi cancelada — terminal. A falha nova é ordem nova."}
+   ]'::jsonb,
+  '[]'::jsonb,
+  '[]'::jsonb,
+  '0.0.x',
+  'published'
+)
+on conflict (module_id) do update set
+  name            = excluded.name,
+  version         = excluded.version,
+  summary         = excluded.summary,
+  layer           = excluded.layer,
+  domain_key      = excluded.domain_key,
+  vertical_key    = excluded.vertical_key,
+  capabilities    = excluded.capabilities,
+  permissions     = excluded.permissions,
+  events_emits    = excluded.events_emits,
+  events_consumes = excluded.events_consumes,
+  agents          = excluded.agents,
+  requires_core   = excluded.requires_core,
+  status          = excluded.status,
+  updated_at      = now();
+
+-- ⛔ Dezessete módulos no catálogo, zero permissão concedida pelo seed.
 
 -- =============================================================================
 -- 5. PLANOS-BASE

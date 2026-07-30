@@ -1250,6 +1250,24 @@ ordem das migrations. Para cada um, o rito é o mesmo de sempre:
 Nenhum agente aplica em produção. Depois do apply, a conferência de
 segurança do PASSO 15 (§ pós-apply) vale para os cinco schemas novos.
 
+## PASSO 17 — A MISSÃO QUADRA: os módulos seguintes (`0028` em diante)
+
+O rito é o mesmo do Passo 16 — migration na ordem, seed, Data API, Store:
+
+1. **Aplicar a migration** no SQL Editor, na ordem:
+   - `0028_ctr.sql` — Módulo 13, Contratos (schema `ctr`)
+   - `0029_cash.sql` — Módulo 14, Fluxo de Caixa (schema `cash`)
+   - `0030_care.sql` — Módulo 15, Atendimento (schema `care`)
+   - `0031_occ.sql` — Módulo 16, Ocorrências (schema `occ`)
+   - `0032_mnt.sql` — Módulo 17, Manutenção (schema `mnt`)
+2. **Reaplicar o seed** — os cartões novos entram no catálogo.
+3. ⚠️ **Expor os schemas novos na Data API**: `ctr`, `cash`, `care`, `occ`, `mnt`. Sem isso as telas
+   carregam vazias, sem erro que diga o motivo.
+4. **Instalar cada módulo pela Store**, no tenant que o contratou.
+
+Nenhum agente aplica em produção. A conferência de segurança do PASSO 15
+(§ pós-apply) vale para os schemas novos.
+
 ## O QUE AINDA NÃO EXISTE
 
 Honestidade de escopo, para você não procurar o que não foi construído:

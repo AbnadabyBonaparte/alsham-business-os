@@ -29,6 +29,16 @@ import { createDealSupabasePort } from './deal-supabase';
 import { createEvtMockPort } from './evt-mock';
 import { createEvtSupabasePort } from './evt-supabase';
 import { createDunMockPort } from './dun-mock';
+import { createCtrMockPort } from './ctr-mock';
+import { createCashMockPort } from './cash-mock';
+import { createCareMockPort } from './care-mock';
+import { createOccMockPort } from './occ-mock';
+import { createMntMockPort } from './mnt-mock';
+import { createMntSupabasePort } from './mnt-supabase';
+import { createOccSupabasePort } from './occ-supabase';
+import { createCareSupabasePort } from './care-supabase';
+import { createCashSupabasePort } from './cash-supabase';
+import { createCtrSupabasePort } from './ctr-supabase';
 import { createDunSupabasePort } from './dun-supabase';
 import { createSupabaseServerClient } from '../supabase/server';
 import { resolveSession } from '../session';
@@ -44,6 +54,11 @@ import type { QuotePort } from './quote-port';
 import type { DealPort } from './deal-port';
 import type { EvtPort } from './evt-port';
 import type { DunPort } from './dun-port';
+import type { CtrPort } from './ctr-port';
+import type { CashPort } from './cash-port';
+import type { CarePort } from './care-port';
+import type { OccPort } from './occ-port';
+import type { MntPort } from './mnt-port';
 import type { OpsPort } from './ops-port';
 import type { ForgePort } from './forge-port';
 import type { BrandPort } from './brand-port';
@@ -63,6 +78,11 @@ export type { QuotePort, ProposalRow } from './quote-port';
 export type { DealPort, FunnelWithStages, OpportunityRow } from './deal-port';
 export type { EvtPort, EventRow, RegistrationRow } from './evt-port';
 export type { DunPort, RulerWithSteps, DunTitleRow } from './dun-port';
+export type { CtrPort, ContractRow } from './ctr-port';
+export type { CashPort, EntryRow } from './cash-port';
+export type { CarePort, TicketRow } from './care-port';
+export type { OccPort, OccurrenceRow } from './occ-port';
+export type { MntPort, MntOrderRow } from './mnt-port';
 export type { OpsPort, PipelineWithStages } from './ops-port';
 export type { ForgePort, GenerationResponse } from './forge-port';
 export type { BrandPort } from './brand-port';
@@ -294,6 +314,56 @@ export async function getDunPort(): Promise<DunPort> {
   if (!db) return createDunMockPort();
 
   return createDunSupabasePort(db, session.activeTenant.id);
+}
+
+export async function getCtrPort(): Promise<CtrPort> {
+  const session = await resolveSession();
+  if (session.mode !== 'authenticated') return createCtrMockPort();
+
+  const db = await createSupabaseServerClient();
+  if (!db) return createCtrMockPort();
+
+  return createCtrSupabasePort(db, session.activeTenant.id);
+}
+
+export async function getCashPort(): Promise<CashPort> {
+  const session = await resolveSession();
+  if (session.mode !== 'authenticated') return createCashMockPort();
+
+  const db = await createSupabaseServerClient();
+  if (!db) return createCashMockPort();
+
+  return createCashSupabasePort(db, session.activeTenant.id);
+}
+
+export async function getCarePort(): Promise<CarePort> {
+  const session = await resolveSession();
+  if (session.mode !== 'authenticated') return createCareMockPort();
+
+  const db = await createSupabaseServerClient();
+  if (!db) return createCareMockPort();
+
+  return createCareSupabasePort(db, session.activeTenant.id);
+}
+
+export async function getOccPort(): Promise<OccPort> {
+  const session = await resolveSession();
+  if (session.mode !== 'authenticated') return createOccMockPort();
+
+  const db = await createSupabaseServerClient();
+  if (!db) return createOccMockPort();
+
+  return createOccSupabasePort(db, session.activeTenant.id);
+}
+
+export async function getMntPort(): Promise<MntPort> {
+  const session = await resolveSession();
+  if (session.mode !== 'authenticated') return createMntMockPort();
+
+  const db = await createSupabaseServerClient();
+  if (!db) return createMntMockPort();
+
+  return createMntSupabasePort(db, session.activeTenant.id);
 }
 
 /**
