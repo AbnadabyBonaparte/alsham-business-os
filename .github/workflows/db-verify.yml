@@ -207,6 +207,12 @@ jobs:
       - name: aplicar 0029_cash.sql
         run: $PSQL -f supabase/migrations/0029_cash.sql
 
+      # ⭐ O Módulo 15: o caso que reabre do resolvido (identidade pelo
+      # PEDIDO — a terceira resposta, entre ops e quote), fechado terminal,
+      # conversa imutável, categoria E prioridade como dado do tenant.
+      - name: aplicar 0030_care.sql
+        run: $PSQL -f supabase/migrations/0030_care.sql
+
       # ---------------------------------------------------------------------
       # 2. SEED — e a prova de que reaplicar não muda nada
       # ---------------------------------------------------------------------
@@ -234,12 +240,12 @@ jobs:
           FALTA=$($PSQL -tAc "
             select coalesce(string_agg(n.nspname||'.'||c.relname, ', '), '')
               from pg_class c join pg_namespace n on n.oid = c.relnamespace
-             where n.nspname in ('core','recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt','dun','ctr','cash') and c.relkind = 'r'
+             where n.nspname in ('core','recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt','dun','ctr','cash','care') and c.relkind = 'r'
                and (not c.relrowsecurity or not c.relforcerowsecurity);")
           [ -z "$FALTA" ] || { echo "::error::sem RLS enable+force: $FALTA"; exit 1; }
           $PSQL -c "select n.nspname as schema, count(*) as tabelas
                       from pg_class c join pg_namespace n on n.oid=c.relnamespace
-                     where n.nspname in ('core','recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt','dun','ctr','cash') and c.relkind='r'
+                     where n.nspname in ('core','recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt','dun','ctr','cash','care') and c.relkind='r'
                      group by 1 order by 1;"
 
       - name: nenhuma policy USING (true)
@@ -249,7 +255,7 @@ jobs:
               from pg_policy p
               join pg_class c on c.oid = p.polrelid
               join pg_namespace n on n.oid = c.relnamespace
-             where n.nspname in ('core','recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt','dun','ctr','cash')
+             where n.nspname in ('core','recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt','dun','ctr','cash','care')
                and pg_get_expr(p.polqual, p.polrelid) = 'true';")
           [ -z "$ABERTAS" ] || { echo "::error::policy aberta (lição paga do suna-core): $ABERTAS"; exit 1; }
 
@@ -260,7 +266,7 @@ jobs:
                              where n.nspname='public' and c.relkind='r';")
           [ "$PUB" = "0" ] || { echo "::error::$PUB tabela(s) em public — expostas via API"; exit 1; }
           ANON=$($PSQL -tAc "select count(*) from information_schema.role_table_grants
-                              where grantee='anon' and table_schema in ('core','recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt','dun','ctr','cash');")
+                              where grantee='anon' and table_schema in ('core','recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt','dun','ctr','cash','care');")
           [ "$ANON" = "0" ] || { echo "::error::anon tem $ANON grant(s) no Business OS"; exit 1; }
 
       - name: o seed não semeou tenant nem usuário
@@ -705,6 +711,43 @@ jobs:
             exit 1; }
           echo "cash no catálogo com consumes vazio."
 
+      # ⭐ A PROVA DO MÓDULO 15 NO BANCO: reabre do resolvido, fecha de vez,
+      # conversa eterna, carimbo do servidor.
+      - name: teste de atendimento (care)
+        run: $PSQL -f supabase/tests/20_care_isolation.sql
+
+      # ⛔ A CONVERSA NÃO TEM PORTA DE EDIÇÃO — no banco aplicado.
+      - name: a conversa do caso não se edita
+        run: |
+          G=$($PSQL -tAc "select coalesce(string_agg(distinct privilege_type, ',' order by privilege_type), '')
+                            from information_schema.role_table_grants
+                           where table_schema='care' and table_name='interactions'
+                             and grantee in ('anon','authenticated','PUBLIC');")
+          [ "$G" = "INSERT,SELECT" ] || { echo "::error::care.interactions tem privilégios além de INSERT,SELECT: [$G]"; exit 1; }
+          SI=$($PSQL -tAc "select count(*) from pg_class c
+                             join pg_namespace n on n.oid=c.relnamespace
+                            where n.nspname='care' and c.relname='overdue'
+                              and c.reloptions::text like '%security_invoker=true%';")
+          [ "$SI" = "1" ] || { echo "::error::care.overdue perdeu security_invoker"; exit 1; }
+          # Nenhum enum: categoria e prioridade são tabelas do tenant.
+          E=$($PSQL -tAc "select count(*) from pg_type t
+                            join pg_namespace n on n.oid=t.typnamespace
+                           where n.nspname='care' and t.typtype='e';")
+          [ "$E" = "0" ] || { echo "::error::apareceu enum no schema care — o vocabulário é do tenant"; exit 1; }
+          D=$($PSQL -tAc "select count(*) from information_schema.role_table_grants
+                            where table_schema='care' and privilege_type='DELETE'
+                              and grantee in ('anon','authenticated','PUBLIC');")
+          [ "$D" = "0" ] || { echo "::error::alguém concedeu DELETE no schema care"; exit 1; }
+
+      - name: o décimo quinto cartão (care) tem consumes vazio
+        run: |
+          C=$($PSQL -tAc "select jsonb_array_length(events_consumes)
+                            from core.module_registry where module_id='care';")
+          [ "$C" = "0" ] || {
+            echo "::error::o módulo care declara $C consumo(s) — sem handler, sem promessa (Lei 7)"
+            exit 1; }
+          echo "care no catálogo com consumes vazio."
+
       - name: nenhuma porta de DELETE em quote.proposals
         run: |
           G=$($PSQL -tAc "select count(*) from information_schema.role_table_grants
@@ -893,8 +936,8 @@ jobs:
           # Só apareceu porque os números foram conferidos contra o banco.
           N=$($PSQL -tAc "select count(*) from core.module_registry
                            where status='published'
-                             and module_id in ('recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt','dun','ctr','cash');")
-          [ "$N" = "14" ] || { echo "::error::o catálogo tem $N dos 14 módulos reais publicados"; exit 1; }
+                             and module_id in ('recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt','dun','ctr','cash','care');")
+          [ "$N" = "15" ] || { echo "::error::o catálogo tem $N dos 15 módulos reais publicados"; exit 1; }
           C=$($PSQL -tAc "select jsonb_array_length(events_consumes)
                             from core.module_registry where module_id='crm';")
           [ "$C" = "0" ] || {
@@ -1033,7 +1076,7 @@ jobs:
           ABERTAS=$($PSQL -tAc "
             select coalesce(string_agg(n.nspname||'.'||p.proname, ', ' order by p.proname), '')
               from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-             where n.nspname in ('core','recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt','dun','ctr','cash')
+             where n.nspname in ('core','recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt','dun','ctr','cash','care')
                and has_function_privilege('anon', p.oid, 'execute');")
           [ -z "$ABERTAS" ] || { echo "::error::função executável por anon: $ABERTAS"; exit 1; }
 
@@ -1044,7 +1087,7 @@ jobs:
             OK=$($PSQL -tAc "
               select count(*) from pg_proc p join pg_namespace n on n.oid = p.pronamespace
                where p.proname = '$FN'
-                 and n.nspname in ('core','recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt','dun','ctr','cash')
+                 and n.nspname in ('core','recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt','dun','ctr','cash','care')
                  and has_function_privilege('authenticated', p.oid, 'execute');")
             [ "$OK" -ge 1 ] || { echo "::error::$FN() deixou de ser chamável pelo portal"; exit 1; }
           done
@@ -1145,6 +1188,7 @@ jobs:
           $PSQL -q -f supabase/migrations/0027_dun.sql
           $PSQL -q -f supabase/migrations/0028_ctr.sql
           $PSQL -q -f supabase/migrations/0029_cash.sql
+          $PSQL -q -f supabase/migrations/0030_care.sql
           $PSQL -q -f supabase/seed/0001_platform.sql
 
       # ⚠️ Sem `DATABASE_URL` os testes do store se PULAM — de propósito, para
@@ -1606,6 +1650,31 @@ jobs:
             echo "$SOMA"; exit 1
           fi
 
+          # Módulo 15: a ORDEM da fila e o atraso são DECISÃO. As armadilhas:
+          # ordenar por prioridade na tela, ou um `dueAt <` comparado com
+          # agora num componente.
+          if grep -rInE 'function (orderTickets|isOverdue|canReopen|canResolve|canClose|canStart|canEditTicket|canInteract|validateNewTicket|validateInteraction|summarizeTickets)' \
+               apps --include='*.ts' --include='*.tsx'; then
+            echo "::error::o domínio do atendimento foi redeclarado em apps/"; exit 1
+          fi
+          CR=$(grep -Ev '^\s*(\*|//|/\*)' apps/portal/src/app/care-actions.ts)
+          for FN in validateNewTicket validateInteraction canResolve canClose canReopen canInteract; do
+            echo "$CR" | grep -Eq "\b$FN\(" \
+              || { echo "::error::a ação do atendimento deixou de chamar $FN() do pacote"; exit 1; }
+          done
+          CQ=$(grep -Ev '^\s*(\*|//|/\*)' apps/portal/src/components/care-queue.tsx)
+          for FN in orderTickets isOverdue canResolve canReopen canClose; do
+            echo "$CQ" | grep -Eq "\b$FN\(" \
+              || { echo "::error::a fila do atendimento deixou de usar $FN() do pacote"; exit 1; }
+          done
+          FILA=$(grep -rIn -E 'dueAt\s*[<>]=?\s*(now|hoje|today)|sort\([^)]*position' \
+                 apps/portal/src/components/care-queue.tsx apps/portal/src/app/atendimento 2>/dev/null \
+                 | grep -Ev '^[^:]+:[0-9]+:\s*(\*|//|/\*)' || true)
+          if [ -n "$FILA" ]; then
+            echo "::error::a fila/atraso foi decidida na tela — é orderTickets()/isOverdue(), no pacote"
+            echo "$FILA"; exit 1
+          fi
+
       # ⭐⭐ A LEI DO LEGO, VERIFICADA (CLAUDE.md §5.5, regras 3 e 5).
       #
       # A Etapa 7 pôs dois módulos conversando. A tese inteira da plataforma é
@@ -1618,7 +1687,7 @@ jobs:
       - name: módulo não conhece módulo
         run: |
           FALHOU=0
-          MODULOS="finance-reconciliation marketing accounts-payable crm accounts-receivable purchase-orders ops inventory quotes deals event-management dunning contracts cashflow"
+          MODULOS="finance-reconciliation marketing accounts-payable crm accounts-receivable purchase-orders ops inventory quotes deals event-management dunning contracts cashflow care"
 
           # 1. Nenhum módulo importa outro módulo, em nenhuma forma.
           for MOD in $MODULOS; do
@@ -1636,7 +1705,7 @@ jobs:
           #    `devDependencies` de teste também não vale — se o teste precisa
           #    do outro módulo, o acoplamento é real.
           for MOD in $MODULOS; do
-            if grep -qE '"@alsham/(finance-reconciliation|marketing|accounts-payable|crm|accounts-receivable|purchase-orders|ops|inventory|quotes|deals|event-management|dunning|contracts|cashflow)"' \
+            if grep -qE '"@alsham/(finance-reconciliation|marketing|accounts-payable|crm|accounts-receivable|purchase-orders|ops|inventory|quotes|deals|event-management|dunning|contracts|cashflow|care)"' \
                  <(grep -v "\"@alsham/$MOD\"" "packages/$MOD/package.json"); then
               echo "::error::packages/$MOD declara outro módulo como dependência"
               FALHOU=1
@@ -1677,6 +1746,7 @@ jobs:
             [0027_dun.sql]=dun
             [0028_ctr.sql]=ctr
             [0029_cash.sql]=cash
+            [0030_care.sql]=care
           )
           for ARQUIVO in "${!SCHEMA_DE[@]}"; do
             DONO="${SCHEMA_DE[$ARQUIVO]}"
@@ -1695,7 +1765,7 @@ jobs:
           #    produz o evento. Ela recebe TUDO por argumento, do payload — que
           #    o produtor monta autossuficiente exatamente por isso.
           PROJ=$(sed 's/--.*//' supabase/migrations/0008_recon_ap_projection.sql)
-          if echo "$PROJ" | grep -qE "\b(ap|marketing|crm|ar|ops|inv|quote|deal|evt|dun|ctr|cash)\."; then
+          if echo "$PROJ" | grep -qE "\b(ap|marketing|crm|ar|ops|inv|quote|deal|evt|dun|ctr|cash|care)\."; then
             echo "::error::a projeção lê o schema de outro módulo — ela só pode ler o payload"
             FALHOU=1
           fi

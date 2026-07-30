@@ -346,6 +346,16 @@ export const PECAS = [
     onde: 'packages/cashflow/',
   },
   {
+    nome: 'Módulo 15 — Atendimento',
+    detector: [
+      'packages/care/src/manifest.ts',
+      'packages/care/src/care.ts',
+      'supabase/migrations/0030_care.sql',
+    ],
+    padrao: /(m[óo]dulo 15|packages\/care|@alsham\/care|0030_care)/i,
+    onde: 'packages/care/',
+  },
+  {
     nome: 'Menu filtrado por permissão',
     detector: ['packages/permissions/src/menu.ts'],
     // A dívida da Etapa 10 foi paga: os itens de menu não são mais escritos à
@@ -457,6 +467,7 @@ const SECOES = [
   { arquivo: 'docs/canon/MODULO-DUN-SPEC.md', titulo: '## 7. ESTADO DA OBRA' },
   { arquivo: 'docs/canon/MODULO-CTR-SPEC.md', titulo: '## 6. ESTADO DA OBRA' },
   { arquivo: 'docs/canon/MODULO-CASH-SPEC.md', titulo: '## 6. ESTADO DA OBRA' },
+  { arquivo: 'docs/canon/MODULO-CARE-SPEC.md', titulo: '## 6. ESTADO DA OBRA' },
 ];
 
 /**

@@ -61,6 +61,7 @@ const MENU: readonly MenuItem[] = [
   { href: '/cobranca', label: 'Cobrança', moduleId: 'dun' },
   { href: '/contratos', label: 'Contratos', moduleId: 'ctr' },
   { href: '/caixa', label: 'Caixa', moduleId: 'cash' },
+  { href: '/atendimento', label: 'Atendimento', moduleId: 'care' },
   { href: '/store', label: 'Store', moduleId: null },
   { href: '/ajustes', label: 'Ajustes', moduleId: null },
 ];

@@ -1107,7 +1107,65 @@ on conflict (module_id) do update set
   status          = excluded.status,
   updated_at      = now();
 
--- ⛔ Catorze módulos no catálogo, zero permissão concedida pelo seed.
+-- -----------------------------------------------------------------------------
+-- 4.13 O MÓDULO `care` NO CATÁLOGO DA STORE — o 15º cartão
+-- -----------------------------------------------------------------------------
+-- Atendimento (Domain cx — capacidade *SAC*). O caso tem identidade pelo
+-- PEDIDO: reabre de resolved (o mesmo caso), closed é terminal. Categoria e
+-- prioridade são dado do tenant; a conversa é imutável. `consumes` vazio por
+-- decisão de canon (Lei 7) — ver a spec §5.
+-- =============================================================================
+
+insert into core.module_registry (
+  module_id, name, version, summary,
+  layer, domain_key,
+  capabilities, permissions, events_emits, events_consumes, agents,
+  requires_core, status
+)
+values (
+  'care',
+  'Atendimento',
+  '0.1.0',
+  'O balcão de atendimento do tenant: casos com solicitante neutro, categoria e prioridade desenhadas pelo tenant, conversa imutável, resolução carimbada — e reabertura honesta: o caso que volta é o mesmo caso.',
+  'domain', 'cx',
+  '[
+     {"key":"service-desk","canonicalName":"SAC"}
+   ]'::jsonb,
+  '[
+     {"key":"care.ticket.manage","moduleId":"care","description":"Abrir, editar, atribuir, mover e reabrir casos; registrar interações."},
+     {"key":"care.ticket.resolve","moduleId":"care","description":"Resolver e fechar casos — o ato fica carimbado com quem e quando, pelo servidor."},
+     {"key":"care.setup.manage","moduleId":"care","description":"Desenhar categorias e prioridades do tenant — nome livre, nunca enum do produto."}
+   ]'::jsonb,
+  '[
+     {"type":"care.ticket.opened","version":1,"description":"Um caso nasceu — solicitante, classificação pelo nome, prazo se houver."},
+     {"type":"care.ticket.updated","version":1,"description":"O caso mudou no que é FATO: assunto, classificação, responsável, prazo, andamento."},
+     {"type":"care.ticket.resolved","version":1,"description":"O caso foi dado por resolvido — ato carimbado, com a nota de resolução."},
+     {"type":"care.ticket.reopened","version":1,"description":"O MESMO caso voltou: o solicitante disse que não resolveu. O carimbo anterior fica na trilha."},
+     {"type":"care.ticket.closed","version":1,"description":"O caso fechou — terminal. Quem volta depois é caso novo."},
+     {"type":"care.interaction.recorded","version":1,"description":"Uma interação entrou na conversa — imutável, com canal em texto livre."}
+   ]'::jsonb,
+  '[]'::jsonb,
+  '[]'::jsonb,
+  '0.0.x',
+  'published'
+)
+on conflict (module_id) do update set
+  name            = excluded.name,
+  version         = excluded.version,
+  summary         = excluded.summary,
+  layer           = excluded.layer,
+  domain_key      = excluded.domain_key,
+  vertical_key    = excluded.vertical_key,
+  capabilities    = excluded.capabilities,
+  permissions     = excluded.permissions,
+  events_emits    = excluded.events_emits,
+  events_consumes = excluded.events_consumes,
+  agents          = excluded.agents,
+  requires_core   = excluded.requires_core,
+  status          = excluded.status,
+  updated_at      = now();
+
+-- ⛔ Quinze módulos no catálogo, zero permissão concedida pelo seed.
 
 -- =============================================================================
 -- 5. PLANOS-BASE

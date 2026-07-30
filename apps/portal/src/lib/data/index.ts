@@ -31,6 +31,8 @@ import { createEvtSupabasePort } from './evt-supabase';
 import { createDunMockPort } from './dun-mock';
 import { createCtrMockPort } from './ctr-mock';
 import { createCashMockPort } from './cash-mock';
+import { createCareMockPort } from './care-mock';
+import { createCareSupabasePort } from './care-supabase';
 import { createCashSupabasePort } from './cash-supabase';
 import { createCtrSupabasePort } from './ctr-supabase';
 import { createDunSupabasePort } from './dun-supabase';
@@ -50,6 +52,7 @@ import type { EvtPort } from './evt-port';
 import type { DunPort } from './dun-port';
 import type { CtrPort } from './ctr-port';
 import type { CashPort } from './cash-port';
+import type { CarePort } from './care-port';
 import type { OpsPort } from './ops-port';
 import type { ForgePort } from './forge-port';
 import type { BrandPort } from './brand-port';
@@ -71,6 +74,7 @@ export type { EvtPort, EventRow, RegistrationRow } from './evt-port';
 export type { DunPort, RulerWithSteps, DunTitleRow } from './dun-port';
 export type { CtrPort, ContractRow } from './ctr-port';
 export type { CashPort, EntryRow } from './cash-port';
+export type { CarePort, TicketRow } from './care-port';
 export type { OpsPort, PipelineWithStages } from './ops-port';
 export type { ForgePort, GenerationResponse } from './forge-port';
 export type { BrandPort } from './brand-port';
@@ -322,6 +326,16 @@ export async function getCashPort(): Promise<CashPort> {
   if (!db) return createCashMockPort();
 
   return createCashSupabasePort(db, session.activeTenant.id);
+}
+
+export async function getCarePort(): Promise<CarePort> {
+  const session = await resolveSession();
+  if (session.mode !== 'authenticated') return createCareMockPort();
+
+  const db = await createSupabaseServerClient();
+  if (!db) return createCareMockPort();
+
+  return createCareSupabasePort(db, session.activeTenant.id);
 }
 
 /**
