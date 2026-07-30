@@ -366,6 +366,19 @@ export const PECAS = [
     onde: 'packages/occurrences/',
   },
   {
+    nome: 'Módulo 17 — Manutenção',
+    detector: [
+      'packages/maintenance/src/manifest.ts',
+      'packages/maintenance/src/maintenance.ts',
+      'supabase/migrations/0032_mnt.sql',
+    ],
+    // ⚠️ NUNCA a palavra "manutenção" solta: o canon usa "manutenção
+    // predial" como EXEMPLO de esteira do ops desde a Etapa 12. O padrão
+    // exige o NOME DA PEÇA.
+    padrao: /(m[óo]dulo 17|packages\/maintenance|@alsham\/maintenance|0032_mnt)/i,
+    onde: 'packages/maintenance/',
+  },
+  {
     nome: 'Menu filtrado por permissão',
     detector: ['packages/permissions/src/menu.ts'],
     // A dívida da Etapa 10 foi paga: os itens de menu não são mais escritos à
@@ -479,6 +492,7 @@ const SECOES = [
   { arquivo: 'docs/canon/MODULO-CASH-SPEC.md', titulo: '## 6. ESTADO DA OBRA' },
   { arquivo: 'docs/canon/MODULO-CARE-SPEC.md', titulo: '## 6. ESTADO DA OBRA' },
   { arquivo: 'docs/canon/MODULO-OCC-SPEC.md', titulo: '## 6. ESTADO DA OBRA' },
+  { arquivo: 'docs/canon/MODULO-MNT-SPEC.md', titulo: '## 6. ESTADO DA OBRA' },
 ];
 
 /**

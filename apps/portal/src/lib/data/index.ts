@@ -33,6 +33,8 @@ import { createCtrMockPort } from './ctr-mock';
 import { createCashMockPort } from './cash-mock';
 import { createCareMockPort } from './care-mock';
 import { createOccMockPort } from './occ-mock';
+import { createMntMockPort } from './mnt-mock';
+import { createMntSupabasePort } from './mnt-supabase';
 import { createOccSupabasePort } from './occ-supabase';
 import { createCareSupabasePort } from './care-supabase';
 import { createCashSupabasePort } from './cash-supabase';
@@ -56,6 +58,7 @@ import type { CtrPort } from './ctr-port';
 import type { CashPort } from './cash-port';
 import type { CarePort } from './care-port';
 import type { OccPort } from './occ-port';
+import type { MntPort } from './mnt-port';
 import type { OpsPort } from './ops-port';
 import type { ForgePort } from './forge-port';
 import type { BrandPort } from './brand-port';
@@ -79,6 +82,7 @@ export type { CtrPort, ContractRow } from './ctr-port';
 export type { CashPort, EntryRow } from './cash-port';
 export type { CarePort, TicketRow } from './care-port';
 export type { OccPort, OccurrenceRow } from './occ-port';
+export type { MntPort, MntOrderRow } from './mnt-port';
 export type { OpsPort, PipelineWithStages } from './ops-port';
 export type { ForgePort, GenerationResponse } from './forge-port';
 export type { BrandPort } from './brand-port';
@@ -350,6 +354,16 @@ export async function getOccPort(): Promise<OccPort> {
   if (!db) return createOccMockPort();
 
   return createOccSupabasePort(db, session.activeTenant.id);
+}
+
+export async function getMntPort(): Promise<MntPort> {
+  const session = await resolveSession();
+  if (session.mode !== 'authenticated') return createMntMockPort();
+
+  const db = await createSupabaseServerClient();
+  if (!db) return createMntMockPort();
+
+  return createMntSupabasePort(db, session.activeTenant.id);
 }
 
 /**

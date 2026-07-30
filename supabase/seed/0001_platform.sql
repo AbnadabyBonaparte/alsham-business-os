@@ -1221,7 +1221,64 @@ on conflict (module_id) do update set
   status          = excluded.status,
   updated_at      = now();
 
--- ⛔ Dezesseis módulos no catálogo, zero permissão concedida pelo seed.
+-- -----------------------------------------------------------------------------
+-- 4.15 O MÓDULO `mnt` NO CATÁLOGO DA STORE — o 17º cartão
+-- -----------------------------------------------------------------------------
+-- Manutenção (Domain operations — capacidade *Manutenção*). Corretiva e
+-- preventiva (física do domínio); done volta (trabalho tem identidade por
+-- serviço); recorrência do tenant com a próxima devida calculada por data.
+-- `consumes` vazio por decisão de canon (Lei 7) — ver a spec §5.
+-- =============================================================================
+
+insert into core.module_registry (
+  module_id, name, version, summary,
+  layer, domain_key,
+  capabilities, permissions, events_emits, events_consumes, agents,
+  requires_core, status
+)
+values (
+  'mnt',
+  'Manutenção',
+  '0.1.0',
+  'As ordens de manutenção do tenant: corretiva e preventiva, alvo em texto livre, prioridade desenhada pelo tenant, conclusão com relato carimbado — e a preventiva com recorrência e a próxima devida sempre calculada.',
+  'domain', 'operations',
+  '[
+     {"key":"maintenance","canonicalName":"Manutenção"}
+   ]'::jsonb,
+  '[
+     {"key":"mnt.order.manage","moduleId":"mnt","description":"Abrir, editar, atribuir e mover ordens de manutenção."},
+     {"key":"mnt.order.complete","moduleId":"mnt","description":"Concluir (com o relato do que foi feito) e cancelar ordens — atos carimbados."},
+     {"key":"mnt.setup.manage","moduleId":"mnt","description":"Desenhar a régua de prioridade do tenant — nome livre e posição, nunca enum."}
+   ]'::jsonb,
+  '[
+     {"type":"mnt.order.opened","version":1,"description":"Uma ordem nasceu — corretiva ou preventiva, com o alvo em texto."},
+     {"type":"mnt.order.updated","version":1,"description":"A ordem mudou no que é FATO: alvo, prioridade, responsável, custo, andamento."},
+     {"type":"mnt.order.completed","version":1,"description":"O serviço foi concluído — com o relato do que foi feito, carimbado."},
+     {"type":"mnt.order.reopened","version":1,"description":"O MESMO serviço voltou à bancada — a vistoria reprovou o reparo."},
+     {"type":"mnt.order.cancelled","version":1,"description":"A ordem foi cancelada — terminal. A falha nova é ordem nova."}
+   ]'::jsonb,
+  '[]'::jsonb,
+  '[]'::jsonb,
+  '0.0.x',
+  'published'
+)
+on conflict (module_id) do update set
+  name            = excluded.name,
+  version         = excluded.version,
+  summary         = excluded.summary,
+  layer           = excluded.layer,
+  domain_key      = excluded.domain_key,
+  vertical_key    = excluded.vertical_key,
+  capabilities    = excluded.capabilities,
+  permissions     = excluded.permissions,
+  events_emits    = excluded.events_emits,
+  events_consumes = excluded.events_consumes,
+  agents          = excluded.agents,
+  requires_core   = excluded.requires_core,
+  status          = excluded.status,
+  updated_at      = now();
+
+-- ⛔ Dezessete módulos no catálogo, zero permissão concedida pelo seed.
 
 -- =============================================================================
 -- 5. PLANOS-BASE

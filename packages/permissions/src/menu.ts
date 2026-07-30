@@ -63,6 +63,7 @@ const MENU: readonly MenuItem[] = [
   { href: '/caixa', label: 'Caixa', moduleId: 'cash' },
   { href: '/atendimento', label: 'Atendimento', moduleId: 'care' },
   { href: '/ocorrencias', label: 'Ocorrências', moduleId: 'occ' },
+  { href: '/manutencao', label: 'Manutenção', moduleId: 'mnt' },
   { href: '/store', label: 'Store', moduleId: null },
   { href: '/ajustes', label: 'Ajustes', moduleId: null },
 ];
