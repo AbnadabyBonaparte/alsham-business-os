@@ -181,13 +181,19 @@ Onde vai cada coisa:
   - `packages/bank-accounts` é o **Módulo 30 — Contas Bancárias** (`bank`, Domain `finance`): ⭐ **SOL ÚNICO: a conciliação é do recon — NÃO se refaz** (é o cadastro de contas + livro por conta, a capacidade *Bancos* que o cash deixou de fora). ⭐⭐ **o saldo é VIEW e PODE ser negativo (cheque especial) — o DIVERGE assinado do inv**; a transferência é ATÔMICA (duas pernas, um transfer_id, uma transação). `consumes` vazio. Ver `MODULO-BANK-SPEC`.
   - `packages/investments` é o **Módulo 31 — Investimentos** (`invest`, Domain `finance`): ⭐ **a posição é a soma dos atos (VIEW), SEM cotação de mercado** (Lei 3/7 — o rendimento é ato de gente, não taxa). ⭐⭐ **resgatar mais que a posição é RECUSADO — a TERCEIRA resposta, assinada** (o `ar` permite overpay, o `inv` permite negativo, o `invest` recusa; teste lê as três migrations). `consumes` vazio. Ver `MODULO-INVEST-SPEC`.
   - `packages/dre` é o **Módulo 32 — DRE Gerencial** (`dre`, Domain `finance`): ⛔ **gerencial, NÃO fiscal (Lei 3 garrafal)** — SPED/ECD/ECF são integração. O plano de linhas é do tenant (a natureza receita/custo/despesa é o ÚNICO enum, CHECK argumentado). ⭐⭐ **os valores nascem dos livros: `consumes` cash.entry.registered E cc.rateio.executed — o SEXTO consumidor e o PRIMEIRO com DOIS produtores** (handler `realized.ts`, duas inscrições, mesmo consumer id, padrões disjuntos). ⚠️ EXIGE redeploy do `apps/api`. ⭐ Linha sem lançamento NÃO aparece (INNER JOIN, a lição do nps); totais são VIEWS. Ver `MODULO-DRE-SPEC`.
+- ⭐ **A MISSÃO OITO entregou os Módulos 33–37 num PR só, um commit por módulo** (migrations `0048`–`0052`, ARQUIVO — apply do dono, runbook §21), a Onda 5 de 6 da campanha — **o BLOCO DE PESSOAS (Domain RH)**. ⚠️ **Dado de pessoa física:** o NOME é neutro (texto livre); ⛔ **zero CPF, saúde ou banco** — Folha e Benefícios ficam DECLARADOS FORA. Os CINCO têm **`consumes` VAZIO** — sem redeploy do `apps/api`:
+  - `packages/hr` é o **Módulo 33 — Cadastro de Colaboradores** (`hr`, Domain `hr`): cargo/departamento TEXTO LIVRE (nunca enum). ⭐ **`on_leave` volta; `terminated` é TERMINAL — o DIVERGE do crm** (quem retorna assina contrato novo: admissão nova, registro novo, com vínculo SOLTO ao anterior); desligar exige razão E `hr.employee.decide`. Contraste interno assinado: dois "parar", uma só definitiva. Ver `MODULO-HR-SPEC`.
+  - `packages/shift-scheduling` é o **Módulo 34 — Escalas** (`shift`, Domain `hr`): turno TEXTO LIVRE; vínculo com `hr` por id SOLTO + nome carimbado pela tela. ⭐ **A física do `spc` reaproveitada para a PESSOA:** EXCLUSION (gist) sobre (colaborador, período), meio-aberto, PARCIAL — a cancelada libera sozinha. ⭐ **Passado permitido — o DIVERGE do cash**, assinado. Cancelar exige razão E `shift.schedule.decide`. Ver `MODULO-SHIFT-SPEC`.
+  - `packages/training` é o **Módulo 35 — Treinamentos** (`train`, Domain `hr`): programas + turmas + inscrições. ⭐ **A identidade do `evt` aplicada ao treino:** turma publicada abre inscrição, lotação recusa clara, presença é ato IMUTÁVEL carimbado pelo servidor; turma concluída/cancelada terminal. Colaborador por id solto. ⛔ Certificado (Storage do Core) declarado FORA. Ver `MODULO-TRAIN-SPEC`.
+  - `packages/performance` é o **Módulo 36 — Avaliação de Desempenho** (`perf`, Domain `hr`): ⭐ **NÃO é o goal — avaliador × avaliado, dois papéis** (o goal mede a PRÓPRIA ambição com check-in; perf é o julgamento de OUTRA pessoa). Ciclo TEXTO LIVRE; a avaliação é ato IMUTÁVEL com o avaliador carimbado pelo servidor; o ciclo fechado é TERMINAL. OKRs estruturados FORA. Ver `MODULO-PERF-SPEC`.
+  - `packages/policies` é o **Módulo 37 — Políticas** (`pol`, Domain `hr` — a *Políticas* de GRC é o HOMÔNIMO declarado): ⭐⭐ **o DIVERGE do `comm`: política tem VERSÃO — a ciência é por (política, versão)**, então versão nova exige ciência de novo (unique `version_id,user_id`). Publicar CONGELA o corpo; versão arquivada terminal (o congelamento do quote); a ciência é ato próprio, único por versão e eterno. Ver `MODULO-POL-SPEC`.
 - ⛔ **Função nasce ABERTA a `PUBLIC` no PostgreSQL** — diferente de tabela. Toda função criada depois do `revoke ... on all functions` do seu schema herda esse privilégio, e o `grant` escrito logo abaixo vira decoração. Oito funções `security definer` eram chamáveis por `anon` até o `0022_revoke_public_execute.sql`. **Escreveu `create function` em schema já revogado? Revogue de novo antes de conceder.**
 - ⭐ **Copiar sem pensar e divergir sem escrever são o mesmo erro.** Módulo novo que espelha um existente: re-pergunte cada decisão e escreva a resposta — inclusive as que se mantêm.
 - ⭐ **A origem de um fato vem SEMPRE do envelope** (`producedBy`), nunca de constante no consumidor. Com ela chumbada, um segundo produtor do mesmo formato entraria disfarçado do primeiro e a trilha mentiria sem nunca dar erro. Há guarda no CI que reprova as três formas de chumbar.
 - `apps/store` e `apps/admin` e os demais 12 pacotes continuam **só com `README.md`** — status NÃO INICIADO. (`packages/finance` segue NÃO INICIADO: os módulos financeiros nascem em pastas próprias, como manda §6.)
 - ⚠️ **O seed é a FONTE do catálogo, não só a semente dele.** Desde a Etapa 10 os blocos de `core.module_registry` são `on conflict do update`, não `do nothing`: uma linha existente precisou mudar (o `recon` passou a escutar `ap.*`) e `do nothing` deixaria a Store exibindo o catálogo antigo para sempre, sem erro nenhum. Consequência: reaplicar o seed **desfaz edição feita à mão** no catálogo. Depreciar um módulo se faz mudando o arquivo.
 - ⚠️ **Schema novo precisa ser EXPOSTO na Data API do Supabase pelo dono** (Project Settings → API → Exposed schemas). Lição paga na Etapa 9 e repetida nas 10, 11 e 12: sem isso as telas carregam vazias, sem erro que diga o motivo. Está no runbook §10.0. ⭐ **A Forja e o Painel não pedem schema novo** — os dois são Core e escrevem/leem em `core`, que já está exposto.
-- **As migrations são provadas no CI:** `0001` → … → `0014` + `0017` → `0047` + seed (duas vezes) aplicam de verdade num Postgres 17 limpo e passam nos **trinta e sete** testes de isolamento com usuário real (`supabase/tests/`), a cada mudança.
+- **As migrations são provadas no CI:** `0001` → … → `0014` + `0017` → `0052` + seed (duas vezes) aplicam de verdade num Postgres 17 limpo e passam nos **quarenta e dois** testes de isolamento com usuário real (`supabase/tests/`), a cada mudança.
 
 #### ⛔ 5.4.1 O apply de produção já aconteceu — `0001` a `0014` estão CONGELADAS
 
@@ -209,7 +215,8 @@ A consequência é operacional e não é opinião:
   - `0033_pat.sql` · `0034_chk.sql` · `0035_spc.sql` · `0036_vis.sql` · `0037_lead.sql` — os cinco da Missão Penta (runbook §18). ⚠️ **Expor os schemas `pat`, `chk`, `spc`, `vis`, `lead` na Data API** ao aplicar (o `0035` cria a extensão `btree_gist` — contrib, presente em todo Supabase). Nenhum consome evento — não há redeploy obrigatório do `apps/api` nesta onda.
   - `0038_goal.sql` · `0039_comm.sql` · `0040_edcal.sql` · `0041_media.sql` · `0042_nps.sql` — os cinco da Missão Sexta (runbook §19). ⚠️ **Expor os schemas `goal`, `comm`, `edcal`, `media`, `nps` na Data API** ao aplicar. Nenhum consome evento — não há redeploy obrigatório do `apps/api` nesta onda. ⛔ E o `nps` não ganha exceção de `anon`: o link público de resposta é integração futura.
   - `0043_cc.sql` · `0044_bud.sql` · `0045_bank.sql` · `0046_invest.sql` · `0047_dre.sql` — os cinco da Missão Sete, o Bloco Financeiro (runbook §20). ⚠️ **Expor os schemas `cc`, `bud`, `bank`, `invest`, `dre` na Data API** ao aplicar. ⛔🔴 **DOIS consumidores nesta onda — o `bud` (cash.*) e o `dre` (cash.* + cc.*) — EXIGEM redeploy do `apps/api`** (as inscrições só existem no build novo); o `cc`, o `bank` e o `invest` não exigem (`consumes` vazio).
-- ⚠️ **A lacuna `0015`/`0016` é proposital** e vem da main. A próxima numeração livre é **`0048`**.
+  - `0048_hr.sql` · `0049_shift.sql` · `0050_train.sql` · `0051_perf.sql` · `0052_pol.sql` — os cinco da Missão Oito, o Bloco de Pessoas (runbook §21). ⚠️ **Expor os schemas `hr`, `shift`, `train`, `perf`, `pol` na Data API** ao aplicar (o `0049` cria a extensão `btree_gist` — contrib, já usada pelo `spc`). ✅ **NENHUM consome evento — SEM redeploy do `apps/api` nesta onda** (todos com `consumes` vazio; guarda de CI confere). ⚠️ Dado de pessoa física: nome neutro, zero CPF/saúde/banco (Folha/Benefícios FORA).
+- ⚠️ **A lacuna `0015`/`0016` é proposital** e vem da main. A próxima numeração livre é **`0053`**.
 - ⛔ **A limpeza do runbook §7.3 FOI EXECUTADA** em 28/07/2026: a concessão global de permissão de módulo **não existe mais em produção**. O tenant piloto tem papel próprio, com as permissões concedidas por `core.install_module()` — pela Store, com o clique do dono. Nunca volte a conceder permissão de módulo no seed.
 - `packages/workflow` é **o correio do Core** — o entregador da caixa de saída: idempotência por consumidor, backoff exponencial, `dead` sem apagar. **ENGINE, não módulo** (Taxonomia §4): não aparece na Store.
 - `apps/api` é **a COMPOSIÇÃO** — o único lugar do repositório onde os módulos se conhecem. Ele importa `workflow`, `marketing`, `finance-reconciliation`, `accounts-payable`, `accounts-receivable` e `billing`; **nenhum deles importa nenhum outro**. ⭐ Desde a Etapa 10 o mesmo pacote (`finance-reconciliation`) é PRODUTOR numa inscrição e CONSUMIDOR em outra — e continua sem conhecer ninguém. Traz a persistência real do correio (contra Postgres, com arrendamento e `skip locked`), os adaptadores dos consumidores, o endpoint protegido e a saúde da fila.
@@ -245,7 +252,7 @@ O Módulo 1 é o padrão. Os Módulos 2 a 7 obedeceram ao mesmo; o próximo tamb
 - **A Regra de Ouro (§5.3) é verificada no CI**, não só recomendada: se o motor de domínio for redeclarado em `apps/`, ou se a tela deixar de chamá-lo, o build falha.
 - **O instalador existe** (`0006_install.sql`): quem concede permissão de módulo é `core.install_module()`, num papel **DO TENANT**. Papel de sistema é recusado — ele vale em todos os tenants e faria o módulo vazar para quem não o instalou. **Nunca volte a conceder permissão de módulo no seed.**
 - **Desinstalar não apaga dado.** Corta acesso e revoga permissão; o que o módulo gravou continua no banco. Há teste no CI.
-- **Entregou peça? Atualize a linha dela** em `CORE-SPEC §5` e na spec do módulo — `MODULO-RECON-SPEC §7`, `MODULO-MARKETING-SPEC §6`, `MODULO-AP-SPEC §6`, `MODULO-CRM-SPEC §6`, `MODULO-AR-SPEC §5`, `MODULO-PO-SPEC §4`, `MODULO-OPS-SPEC §5`, `MODULO-INV-SPEC §7`, `MODULO-QUOTE-SPEC §6`, `MODULO-DEAL-SPEC §6`, `MODULO-EVT-SPEC §6`, `MODULO-DUN-SPEC §7`, `MODULO-CTR-SPEC §6`, `MODULO-CASH-SPEC §6`, `MODULO-CARE-SPEC §6`, `MODULO-OCC-SPEC §6`, `MODULO-MNT-SPEC §6`, `MODULO-PAT-SPEC §6`, `MODULO-CHK-SPEC §6`, `MODULO-SPC-SPEC §6`, `MODULO-VIS-SPEC §6`, `MODULO-LEAD-SPEC §6`, `MODULO-GOAL-SPEC §6`, `MODULO-COMM-SPEC §6`, `MODULO-EDCAL-SPEC §6`, `MODULO-MEDIA-SPEC §6`, `MODULO-NPS-SPEC §6`, `MODULO-CC-SPEC §6`, `MODULO-BUD-SPEC §6`, `MODULO-BANK-SPEC §6`, `MODULO-INVEST-SPEC §6` e `MODULO-DRE-SPEC §6`. São a fonte de estado, e o CI (`pnpm verificar:docs`) falha se um documento declarar **NÃO CONSTRUÍDO** algo que já existe no disco. Negar o que existe é a Lei 7 com o sinal trocado, e é o erro mais fácil de cometer: não exige escrever nada, basta não apagar.
+- **Entregou peça? Atualize a linha dela** em `CORE-SPEC §5` e na spec do módulo — `MODULO-RECON-SPEC §7`, `MODULO-MARKETING-SPEC §6`, `MODULO-AP-SPEC §6`, `MODULO-CRM-SPEC §6`, `MODULO-AR-SPEC §5`, `MODULO-PO-SPEC §4`, `MODULO-OPS-SPEC §5`, `MODULO-INV-SPEC §7`, `MODULO-QUOTE-SPEC §6`, `MODULO-DEAL-SPEC §6`, `MODULO-EVT-SPEC §6`, `MODULO-DUN-SPEC §7`, `MODULO-CTR-SPEC §6`, `MODULO-CASH-SPEC §6`, `MODULO-CARE-SPEC §6`, `MODULO-OCC-SPEC §6`, `MODULO-MNT-SPEC §6`, `MODULO-PAT-SPEC §6`, `MODULO-CHK-SPEC §6`, `MODULO-SPC-SPEC §6`, `MODULO-VIS-SPEC §6`, `MODULO-LEAD-SPEC §6`, `MODULO-GOAL-SPEC §6`, `MODULO-COMM-SPEC §6`, `MODULO-EDCAL-SPEC §6`, `MODULO-MEDIA-SPEC §6`, `MODULO-NPS-SPEC §6`, `MODULO-CC-SPEC §6`, `MODULO-BUD-SPEC §6`, `MODULO-BANK-SPEC §6`, `MODULO-INVEST-SPEC §6`, `MODULO-DRE-SPEC §6`, `MODULO-HR-SPEC §6`, `MODULO-SHIFT-SPEC §6`, `MODULO-TRAIN-SPEC §6`, `MODULO-PERF-SPEC §6` e `MODULO-POL-SPEC §6`. São a fonte de estado, e o CI (`pnpm verificar:docs`) falha se um documento declarar **NÃO CONSTRUÍDO** algo que já existe no disco. Negar o que existe é a Lei 7 com o sinal trocado, e é o erro mais fácil de cometer: não exige escrever nada, basta não apagar.
   ⚠️ **E conte as linhas ✅ da saída.** Na Etapa 15 descobriu-se que o rebase juntara a entrada do Módulo 6 com a do Módulo 7 no mesmo objeto literal do verificador: em JavaScript a segunda chave sobrescreve a primeira, o script seguiu verde e **deixou de conferir uma peça sem falhar nem acusar**.
 
 ---
@@ -269,6 +276,9 @@ docs/canon/            taxonomia · roadmap · core-spec · identidade-visual
                        · modulo-nps-spec · modulo-cc-spec
                        · modulo-bud-spec · modulo-bank-spec
                        · modulo-invest-spec · modulo-dre-spec
+                       · modulo-hr-spec · modulo-shift-spec
+                       · modulo-train-spec · modulo-perf-spec
+                       · modulo-pol-spec
                                                         — leitura obrigatória
 docs/comercial/        VERTICAL-SHOPPING.md             — dossiê de venda
 docs/balancos/         tecnologia + supabase            — de onde minerar
@@ -290,7 +300,10 @@ supabase/migrations/   0001_core … 0014_ap_apply_recon_match
                        0043_cc · 0044_bud · 0045_bank · 0046_invest
                        · 0047_dre                         — Missão Sete (Bloco
                                                             Financeiro); apply do dono
-                       (lacuna 0015–0016 proposital; próxima livre: 0048)
+                       0048_hr · 0049_shift · 0050_train · 0051_perf
+                       · 0052_pol                         — Missão Oito (Bloco
+                                                            de Pessoas); apply do dono
+                       (lacuna 0015–0016 proposital; próxima livre: 0053)
 supabase/seed/         0001_platform.sql                — catálogo, idempotente; zero tenant
 supabase/tests/        shim · isolamento · uso · consumo entre módulos
                        · instalador · triângulo · relacionamentos · a receber
@@ -307,6 +320,9 @@ supabase/tests/        shim · isolamento · uso · consumo entre módulos
                        · centros de custo (cc) · orçamentos (bud)
                        · contas bancárias (bank) · investimentos (invest)
                        · DRE gerencial (dre)
+                       · colaboradores (hr) · escalas (shift)
+                       · treinamentos (train) · avaliação (perf)
+                       · políticas (pol)
                                                         — só CI; NUNCA no Supabase real
 docs/runbook/          APLICAR.md                       — o passo a passo do dono
 .github/scripts/       guarda de defasagem de documento — encanamento de CI
@@ -355,6 +371,11 @@ packages/              core auth organizations workflow billing
                        bank-accounts                    — Módulo 30 (o livro por conta)
                        investments                      — Módulo 31 (a terceira resposta)
                        dre                              — Módulo 32 (o resultado dos livros)
+                       hr                               — Módulo 33 (o roster: on_leave volta, terminated não)
+                       shift-scheduling                 — Módulo 34 (a escala: a física do spc na pessoa)
+                       training                         — Módulo 35 (o treino: a identidade do evt)
+                       performance                      — Módulo 36 (avaliador × avaliado, não o goal)
+                       policies                         — Módulo 37 (a política tem versão: o DIVERGE do comm)
                        workflow (o correio) · billing (uso) · ai (a forja)
                                                         — Engines/capacidades do Core
 ```

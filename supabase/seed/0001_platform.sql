@@ -2127,7 +2127,285 @@ on conflict (module_id) do update set
   status          = excluded.status,
   updated_at      = now();
 
--- ⛔ Trinta e dois módulos no catálogo, zero permissão concedida pelo seed.
+-- =============================================================================
+-- 4.33 O MÓDULO `hr` NO CATÁLOGO DA STORE — o 33º cartão (Missão Oito)
+-- -----------------------------------------------------------------------------
+-- Cadastro de Colaboradores (Domain RH). Cargo/departamento texto livre;
+-- on_leave volta, terminated é terminal com razão. Sem dado sensível.
+-- `consumes` vazio por decisão de canon (Lei 7) — ver a spec §5.
+-- =============================================================================
+
+insert into core.module_registry (
+  module_id, name, version, summary,
+  layer, domain_key,
+  capabilities, permissions, events_emits, events_consumes, agents,
+  requires_core, status
+)
+values (
+  'hr',
+  'Cadastro de Colaboradores',
+  '0.1.0',
+  'Quem trabalha na empresa: cargo e departamento TEXTO LIVRE (nunca enum). O afastamento (on_leave) volta; o desligamento (terminated) é TERMINAL e exige razão escrita — quem retorna é admissão nova, com vínculo solto ao registro anterior. Sem dado sensível.',
+  'domain', 'hr',
+  '[
+     {"key":"admission","canonicalName":"Admissão"},
+     {"key":"termination","canonicalName":"Demissão"}
+   ]'::jsonb,
+  '[
+     {"key":"hr.employee.manage","moduleId":"hr","description":"Cadastrar colaboradores, editar dados e afastar/reintegrar (on_leave ↔ active)."},
+     {"key":"hr.employee.decide","moduleId":"hr","description":"Desligar um colaborador — ato terminal, com razão escrita e carimbo do servidor."}
+   ]'::jsonb,
+  '[
+     {"type":"hr.employee.hired","version":1,"description":"Um colaborador foi admitido — nome (dado neutro), cargo e data no envelope."},
+     {"type":"hr.employee.updated","version":1,"description":"Os dados do colaborador mudaram (nome, cargo, departamento, admissão)."},
+     {"type":"hr.employee.suspended","version":1,"description":"O colaborador foi afastado (on_leave) — reversível."},
+     {"type":"hr.employee.reinstated","version":1,"description":"O colaborador afastado voltou (active)."},
+     {"type":"hr.employee.terminated","version":1,"description":"O colaborador foi desligado — terminal, com a razão escrita."}
+   ]'::jsonb,
+  '[]'::jsonb,
+  '[]'::jsonb,
+  '0.0.x',
+  'published'
+)
+on conflict (module_id) do update set
+  name            = excluded.name,
+  version         = excluded.version,
+  summary         = excluded.summary,
+  layer           = excluded.layer,
+  domain_key      = excluded.domain_key,
+  vertical_key    = excluded.vertical_key,
+  capabilities    = excluded.capabilities,
+  permissions     = excluded.permissions,
+  events_emits    = excluded.events_emits,
+  events_consumes = excluded.events_consumes,
+  agents          = excluded.agents,
+  requires_core   = excluded.requires_core,
+  status          = excluded.status,
+  updated_at      = now();
+
+-- =============================================================================
+-- 4.34 O MÓDULO `shift` NO CATÁLOGO DA STORE — o 34º cartão (Missão Oito)
+-- -----------------------------------------------------------------------------
+-- Escalas (Domain RH). Turno texto livre; vínculo com hr por id SOLTO + nome
+-- carimbado. A física do spc reaproveitada: duas escalas não ocupam o MESMO
+-- colaborador no MESMO período (exclusion constraint, parcial). Passado
+-- permitido. `consumes` vazio (Lei 7) — ver a spec §5.
+-- =============================================================================
+
+insert into core.module_registry (
+  module_id, name, version, summary,
+  layer, domain_key,
+  capabilities, permissions, events_emits, events_consumes, agents,
+  requires_core, status
+)
+values (
+  'shift',
+  'Escalas',
+  '0.1.0',
+  'A escala de trabalho do tenant: turno TEXTO LIVRE, vínculo com o colaborador por id solto + nome carimbado. Duas escalas não ocupam o mesmo colaborador no mesmo período — o conflito é recusado pelo BANCO (exclusion constraint; a cancelada libera sozinha). O passado é permitido (fato consumado).',
+  'domain', 'hr',
+  '[
+     {"key":"schedules","canonicalName":"Escalas"}
+   ]'::jsonb,
+  '[
+     {"key":"shift.schedule.manage","moduleId":"shift","description":"Escalar colaboradores em turnos e períodos, e remarcar enquanto não rodou."},
+     {"key":"shift.schedule.decide","moduleId":"shift","description":"Cancelar uma escala — ato terminal, com razão escrita e carimbo do servidor."}
+   ]'::jsonb,
+  '[
+     {"type":"shift.schedule.scheduled","version":1,"description":"Um turno foi escalado — colaborador (id solto + nome), turno e período no envelope."},
+     {"type":"shift.schedule.updated","version":1,"description":"A escala foi remarcada no que é FATO: turno, período."},
+     {"type":"shift.schedule.cancelled","version":1,"description":"A escala foi cancelada — terminal, com a razão. O período ficou livre sozinho."}
+   ]'::jsonb,
+  '[]'::jsonb,
+  '[]'::jsonb,
+  '0.0.x',
+  'published'
+)
+on conflict (module_id) do update set
+  name            = excluded.name,
+  version         = excluded.version,
+  summary         = excluded.summary,
+  layer           = excluded.layer,
+  domain_key      = excluded.domain_key,
+  vertical_key    = excluded.vertical_key,
+  capabilities    = excluded.capabilities,
+  permissions     = excluded.permissions,
+  events_emits    = excluded.events_emits,
+  events_consumes = excluded.events_consumes,
+  agents          = excluded.agents,
+  requires_core   = excluded.requires_core,
+  status          = excluded.status,
+  updated_at      = now();
+
+-- =============================================================================
+-- 4.35 O MÓDULO `train` NO CATÁLOGO DA STORE — o 35º cartão (Missão Oito)
+-- -----------------------------------------------------------------------------
+-- Treinamentos (Domain RH). Programas e turmas desenho do tenant; a
+-- identidade do evt reaproveitada: turma publicada abre inscrição, presença
+-- é ato imutável carimbado, turma cancelada é terminal. Colaborador por id
+-- solto. `consumes` vazio (Lei 7) — ver a spec §5.
+-- =============================================================================
+
+insert into core.module_registry (
+  module_id, name, version, summary,
+  layer, domain_key,
+  capabilities, permissions, events_emits, events_consumes, agents,
+  requires_core, status
+)
+values (
+  'train',
+  'Treinamentos',
+  '0.1.0',
+  'Os programas de treinamento do tenant e as turmas deles: turma publicada abre inscrição; a presença é ato imutável carimbado pelo servidor (a física do evt); a conclusão por colaborador é ato registrado (data + nota opcional). Colaborador por id solto + nome. Sem certificado (Storage do Core, declarado FORA).',
+  'domain', 'hr',
+  '[
+     {"key":"trainings","canonicalName":"Treinamentos"}
+   ]'::jsonb,
+  '[
+     {"key":"train.setup.manage","moduleId":"train","description":"Desenhar programas e turmas: publicar (abre inscrição), concluir e cancelar a turma."},
+     {"key":"train.enrollment.manage","moduleId":"train","description":"Inscrever colaboradores, registrar presença (ato imutável) e a conclusão do programa."}
+   ]'::jsonb,
+  '[
+     {"type":"train.session.published","version":1,"description":"Uma turma abriu inscrição — programa, título e início no envelope."},
+     {"type":"train.session.concluded","version":1,"description":"A turma foi concluída. Terminal."},
+     {"type":"train.session.cancelled","version":1,"description":"A turma foi cancelada. Terminal."},
+     {"type":"train.enrollment.registered","version":1,"description":"Um colaborador se inscreveu numa turma."},
+     {"type":"train.attendance.recorded","version":1,"description":"A presença foi registrada — ato imutável, carimbado pelo servidor."},
+     {"type":"train.enrollment.completed","version":1,"description":"O colaborador concluiu o programa — data e nota opcional."},
+     {"type":"train.enrollment.cancelled","version":1,"description":"A inscrição foi cancelada. Terminal."}
+   ]'::jsonb,
+  '[]'::jsonb,
+  '[]'::jsonb,
+  '0.0.x',
+  'published'
+)
+on conflict (module_id) do update set
+  name            = excluded.name,
+  version         = excluded.version,
+  summary         = excluded.summary,
+  layer           = excluded.layer,
+  domain_key      = excluded.domain_key,
+  vertical_key    = excluded.vertical_key,
+  capabilities    = excluded.capabilities,
+  permissions     = excluded.permissions,
+  events_emits    = excluded.events_emits,
+  events_consumes = excluded.events_consumes,
+  agents          = excluded.agents,
+  requires_core   = excluded.requires_core,
+  status          = excluded.status,
+  updated_at      = now();
+
+-- =============================================================================
+-- 4.36 O MÓDULO `perf` NO CATÁLOGO DA STORE — o 36º cartão (Missão Oito)
+-- -----------------------------------------------------------------------------
+-- Avaliação de Desempenho (Domain RH). NÃO confundir com goal (a ambição
+-- que o próprio declara): perf é o JULGAMENTO de um avaliador sobre o
+-- trabalho de um avaliado — dois papéis. Ciclo texto livre; avaliação é ato
+-- imutável; ciclo fechado é terminal. `consumes` vazio (Lei 7) — spec §5.
+-- =============================================================================
+
+insert into core.module_registry (
+  module_id, name, version, summary,
+  layer, domain_key,
+  capabilities, permissions, events_emits, events_consumes, agents,
+  requires_core, status
+)
+values (
+  'perf',
+  'Avaliação de Desempenho',
+  '0.1.0',
+  'O julgamento do trabalho de alguém por outra pessoa — dois papéis (avaliador e avaliado), diferente da meta que o próprio declara. Ciclo TEXTO LIVRE (trimestral/anual); a avaliação é ato imutável, carimbado pelo servidor; o ciclo fechado é terminal — o próximo é ciclo novo. OKRs estruturados ficam FORA.',
+  'domain', 'hr',
+  '[
+     {"key":"appraisals","canonicalName":"Avaliação"}
+   ]'::jsonb,
+  '[
+     {"key":"perf.cycle.manage","moduleId":"perf","description":"Abrir e fechar ciclos de avaliação (o ciclo é dado do tenant)."},
+     {"key":"perf.review.manage","moduleId":"perf","description":"Registrar avaliações — ato imutável, ligado ao ciclo, com o avaliador carimbado pelo servidor."}
+   ]'::jsonb,
+  '[
+     {"type":"perf.cycle.opened","version":1,"description":"Um ciclo de avaliação foi aberto — nome e período no envelope."},
+     {"type":"perf.cycle.closed","version":1,"description":"O ciclo foi fechado. Terminal — o próximo é ciclo novo."},
+     {"type":"perf.review.recorded","version":1,"description":"Uma avaliação foi registrada — avaliado (id solto + nome), avaliador carimbado, nota opcional."}
+   ]'::jsonb,
+  '[]'::jsonb,
+  '[]'::jsonb,
+  '0.0.x',
+  'published'
+)
+on conflict (module_id) do update set
+  name            = excluded.name,
+  version         = excluded.version,
+  summary         = excluded.summary,
+  layer           = excluded.layer,
+  domain_key      = excluded.domain_key,
+  vertical_key    = excluded.vertical_key,
+  capabilities    = excluded.capabilities,
+  permissions     = excluded.permissions,
+  events_emits    = excluded.events_emits,
+  events_consumes = excluded.events_consumes,
+  agents          = excluded.agents,
+  requires_core   = excluded.requires_core,
+  status          = excluded.status,
+  updated_at      = now();
+
+-- =============================================================================
+-- 4.37 O MÓDULO `pol` NO CATÁLOGO DA STORE — o 37º cartão (Missão Oito)
+-- -----------------------------------------------------------------------------
+-- Políticas (Domain RH — o mural fala com membros; a *Políticas* de GRC é o
+-- HOMÔNIMO de compliance corporativo, declarado — como o comm declarou o
+-- recorte de Condomínios). ⭐ DIVERGE do comm: política tem VERSÃO — a
+-- ciência é por (política, versão): versão nova exige ciência de novo.
+-- `consumes` vazio (Lei 7) — ver a spec §5.
+-- =============================================================================
+
+insert into core.module_registry (
+  module_id, name, version, summary,
+  layer, domain_key,
+  capabilities, permissions, events_emits, events_consumes, agents,
+  requires_core, status
+)
+values (
+  'pol',
+  'Políticas',
+  '0.1.0',
+  'As políticas internas do tenant que os membros dão ciência — e o que a diferencia do mural: política tem VERSÃO. Publicar uma versão congela o corpo; a ciência é por (política, versão) — uma versão nova exige ciência de novo. Versão arquivada é terminal; a política volta com versão nova, nunca reabrindo a antiga.',
+  'domain', 'hr',
+  '[
+     {"key":"policies","canonicalName":"Políticas"}
+   ]'::jsonb,
+  '[
+     {"key":"pol.policy.manage","moduleId":"pol","description":"Redigir políticas, publicar versões (congela o corpo) e arquivar versões."},
+     {"key":"pol.policy.ack","moduleId":"pol","description":"Dar a PRÓPRIA ciência de uma VERSÃO publicada — ato único por versão, carimbado, que não se retira."}
+   ]'::jsonb,
+  '[
+     {"type":"pol.version.drafted","version":1,"description":"Uma versão de política nasceu no rascunho."},
+     {"type":"pol.version.published","version":1,"description":"Uma versão foi publicada — o corpo congela; quem deu ciência da anterior precisa dar de novo."},
+     {"type":"pol.version.archived","version":1,"description":"Uma versão saiu de circulação. Terminal."},
+     {"type":"pol.version.acknowledged","version":1,"description":"Um membro deu ciência de uma versão — ato próprio, único por versão, carimbado."}
+   ]'::jsonb,
+  '[]'::jsonb,
+  '[]'::jsonb,
+  '0.0.x',
+  'published'
+)
+on conflict (module_id) do update set
+  name            = excluded.name,
+  version         = excluded.version,
+  summary         = excluded.summary,
+  layer           = excluded.layer,
+  domain_key      = excluded.domain_key,
+  vertical_key    = excluded.vertical_key,
+  capabilities    = excluded.capabilities,
+  permissions     = excluded.permissions,
+  events_emits    = excluded.events_emits,
+  events_consumes = excluded.events_consumes,
+  agents          = excluded.agents,
+  requires_core   = excluded.requires_core,
+  status          = excluded.status,
+  updated_at      = now();
+
+-- ⛔ Trinta e sete módulos no catálogo, zero permissão concedida pelo seed.
 
 -- =============================================================================
 -- 5. PLANOS-BASE

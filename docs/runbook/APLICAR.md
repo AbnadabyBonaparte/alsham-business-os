@@ -1343,6 +1343,36 @@ O rito é o mesmo — migration na ordem, seed, Data API, Store:
 Nenhum agente aplica em produção. A conferência de segurança do PASSO 15
 (§ pós-apply) vale para os schemas novos.
 
+## PASSO 21 — A MISSÃO OITO: o Bloco de Pessoas (`0048` em diante)
+
+O rito é o mesmo — migration na ordem, seed, Data API, Store:
+
+1. **Aplicar a migration** no SQL Editor, na ordem:
+   - `0048_hr.sql` — Módulo 33, Cadastro de Colaboradores (schema `hr`)
+   - `0049_shift.sql` — Módulo 34, Escalas (schema `shift`)
+   - `0050_train.sql` — Módulo 35, Treinamentos (schema `train`)
+   - `0051_perf.sql` — Módulo 36, Avaliação de Desempenho (schema `perf`)
+   - `0052_pol.sql` — Módulo 37, Políticas (schema `pol`)
+2. **Reaplicar o seed** — os cinco cartões novos entram no catálogo.
+3. ⚠️ **Expor os schemas novos na Data API**: `hr`, `shift`, `train`,
+   `perf`, `pol`. Sem isso as telas carregam vazias, sem erro que diga o
+   motivo. (O `0049_shift.sql` cria a extensão `btree_gist` — contrib,
+   presente em todo Supabase, já usada pelo `spc`.)
+4. ✅ **SEM redeploy do `apps/api` nesta onda.** Diferente da Missão Sete:
+   **todos os cinco módulos têm `consumes` VAZIO** — nenhum handler de
+   consumo existe para o Bloco de Pessoas (Lei 7). Não há inscrição nova na
+   composição; aplicar as migrations e expor os schemas basta. (Guarda de CI
+   confere que os cinco cartões têm `consumes` vazio.)
+5. **Instalar cada módulo pela Store**, no tenant que o contratou.
+
+⚠️ **Sensibilidade de dado de pessoa física.** Estes módulos guardam o NOME
+do colaborador (dado neutro, texto livre). **Nenhum CPF, dado de saúde ou
+bancário** existe neles — Folha e Benefícios estão declarados FORA (matéria
+de RH/jurídico de verdade). Nada muda no rito por isso; é lembrete de escopo.
+
+Nenhum agente aplica em produção. A conferência de segurança do PASSO 15
+(§ pós-apply) vale para os schemas novos.
+
 ## O QUE AINDA NÃO EXISTE
 
 Honestidade de escopo, para você não procurar o que não foi construído:
