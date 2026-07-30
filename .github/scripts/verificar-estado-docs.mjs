@@ -379,6 +379,19 @@ export const PECAS = [
     onde: 'packages/maintenance/',
   },
   {
+    nome: 'Módulo 18 — Patrimônio',
+    detector: [
+      'packages/assets/src/manifest.ts',
+      'packages/assets/src/assets.ts',
+      'supabase/migrations/0033_pat.sql',
+    ],
+    // ⚠️ NUNCA a palavra "patrimônio" solta: ela é capacidade da Taxonomia e
+    // aparece em prosa de canon desde a Trina ("Patrimônio é a Onda 2"). O
+    // padrão exige o NOME DA PEÇA.
+    padrao: /(m[óo]dulo 18|packages\/assets|@alsham\/assets|0033_pat)/i,
+    onde: 'packages/assets/',
+  },
+  {
     nome: 'Menu filtrado por permissão',
     detector: ['packages/permissions/src/menu.ts'],
     // A dívida da Etapa 10 foi paga: os itens de menu não são mais escritos à

@@ -1278,7 +1278,63 @@ on conflict (module_id) do update set
   status          = excluded.status,
   updated_at      = now();
 
--- ⛔ Dezessete módulos no catálogo, zero permissão concedida pelo seed.
+-- -----------------------------------------------------------------------------
+-- 4.16 O MÓDULO `pat` NO CATÁLOGO DA STORE — o 18º cartão
+-- -----------------------------------------------------------------------------
+-- Patrimônio (Domain operations — capacidade *Patrimônio*). A localização
+-- vigente é calculada do livro de transferências (nunca coluna); a baixa é
+-- terminal com razão escrita. A ponte do mnt (`asset_id`) continua SOLTA.
+-- `consumes` vazio por decisão de canon (Lei 7) — ver a spec §5.
+-- =============================================================================
+
+insert into core.module_registry (
+  module_id, name, version, summary,
+  layer, domain_key,
+  capabilities, permissions, events_emits, events_consumes, agents,
+  requires_core, status
+)
+values (
+  'pat',
+  'Patrimônio',
+  '0.1.0',
+  'O livro de bens do tenant: etiqueta única, categoria desenhada pelo tenant, localização vigente calculada do livro de transferências — e a baixa terminal, com razão escrita e carimbo do servidor.',
+  'domain', 'operations',
+  '[
+     {"key":"assets","canonicalName":"Patrimônio"}
+   ]'::jsonb,
+  '[
+     {"key":"pat.asset.manage","moduleId":"pat","description":"Cadastrar e editar bens, e registrar transferências de localização."},
+     {"key":"pat.asset.decide","moduleId":"pat","description":"Baixar bens (alienação, perda, sucata) — ato terminal, com razão escrita."},
+     {"key":"pat.setup.manage","moduleId":"pat","description":"Desenhar as categorias de bens do tenant — nome livre, nunca enum."}
+   ]'::jsonb,
+  '[
+     {"type":"pat.asset.registered","version":1,"description":"Um bem entrou no livro — com etiqueta, categoria e onde nasceu."},
+     {"type":"pat.asset.updated","version":1,"description":"O bem mudou no que é FATO: nome, etiqueta, categoria, valor, data."},
+     {"type":"pat.asset.transferred","version":1,"description":"O bem mudou de lugar — de onde (carimbado pelo servidor) para onde."},
+     {"type":"pat.asset.retired","version":1,"description":"O bem foi baixado — terminal, com a razão escrita. O que volta é aquisição nova."}
+   ]'::jsonb,
+  '[]'::jsonb,
+  '[]'::jsonb,
+  '0.0.x',
+  'published'
+)
+on conflict (module_id) do update set
+  name            = excluded.name,
+  version         = excluded.version,
+  summary         = excluded.summary,
+  layer           = excluded.layer,
+  domain_key      = excluded.domain_key,
+  vertical_key    = excluded.vertical_key,
+  capabilities    = excluded.capabilities,
+  permissions     = excluded.permissions,
+  events_emits    = excluded.events_emits,
+  events_consumes = excluded.events_consumes,
+  agents          = excluded.agents,
+  requires_core   = excluded.requires_core,
+  status          = excluded.status,
+  updated_at      = now();
+
+-- ⛔ Dezoito módulos no catálogo, zero permissão concedida pelo seed.
 
 -- =============================================================================
 -- 5. PLANOS-BASE

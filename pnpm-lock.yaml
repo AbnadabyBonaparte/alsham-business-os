@@ -69,6 +69,9 @@ importers:
       '@alsham/ai':
         specifier: workspace:*
         version: link:../../packages/ai
+      '@alsham/assets':
+        specifier: workspace:*
+        version: link:../../packages/assets
       '@alsham/billing':
         specifier: workspace:*
         version: link:../../packages/billing
@@ -192,6 +195,19 @@ importers:
       '@alsham/billing':
         specifier: workspace:*
         version: link:../billing
+      '@alsham/core':
+        specifier: workspace:*
+        version: link:../core
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.2
+        version: 22.20.1
+      typescript:
+        specifier: ^5.7.2
+        version: 5.9.3
+
+  packages/assets:
+    dependencies:
       '@alsham/core':
         specifier: workspace:*
         version: link:../core

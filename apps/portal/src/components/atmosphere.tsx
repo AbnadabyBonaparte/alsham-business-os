@@ -271,6 +271,19 @@ function OrnamentOps() {
   );
 }
 
+/** Patrimônio — a etiqueta do bem e o traço do lugar: o livro segue a plaqueta. */
+function OrnamentPat() {
+  return (
+    <svg viewBox="0 0 400 400" aria-hidden {...stroke}>
+      <path d="M120 140 h120 l40 60 -40 60 h-120 z" strokeOpacity="0.32" />
+      <circle cx="152" cy="200" r="7" strokeOpacity="0.45" />
+      <path d="M190 182 h60 M190 200 h74 M190 218 h48" strokeOpacity="0.2" />
+      <path d="M70 310 h260" strokeOpacity="0.22" strokeDasharray="2 8" />
+      <path d="M140 310 v-24 M260 310 v-24" strokeOpacity="0.3" />
+    </svg>
+  );
+}
+
 /** Ajustes / a marca — o selo do tabelionato modernizado (§5.3). */
 function OrnamentSeal() {
   return (
@@ -328,6 +341,7 @@ const SCENES: readonly (readonly [string, Scene])[] = [
   ['/eventos', { sun: '82% 8%', depth: '10% 92%', ornament: <OrnamentEvt />, ornamentClass: RIGHT }],
   ['/esteiras', { sun: '30% 0%', depth: '80% 100%', ornament: <OrnamentOps />, ornamentClass: LEFT }],
   ['/esteira', { sun: '70% 0%', depth: '20% 100%', ornament: <OrnamentOps />, ornamentClass: RIGHT }],
+  ['/patrimonio', { sun: '88% 4%', depth: '8% 96%', ornament: <OrnamentPat />, ornamentClass: RIGHT }],
   ['/ajustes', { sun: '50% 0%', depth: '50% 100%', ornament: <OrnamentSeal />, ornamentClass: RIGHT }],
   ['/login', { sun: '50% 12%', depth: '50% 100%', ornament: <OrnamentLogin />, ornamentClass: CENTER_LOW }],
   ['/', CORE_SCENE],
