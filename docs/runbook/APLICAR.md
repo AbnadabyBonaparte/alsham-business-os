@@ -1299,8 +1299,9 @@ Store:
    - `0038_goal.sql` — Módulo 23, Metas (schema `goal`)
    - `0039_comm.sql` — Módulo 24, Comunicados (schema `comm`)
    - `0040_edcal.sql` — Módulo 25, Calendário Editorial (schema `edcal`)
+   - `0041_media.sql` — Módulo 26, Biblioteca de Mídia (schema `media`)
 2. **Reaplicar o seed** — os cartões novos entram no catálogo.
-3. ⚠️ **Expor os schemas novos na Data API**: `goal`, `comm`, `edcal`. Sem isso as telas
+3. ⚠️ **Expor os schemas novos na Data API**: `goal`, `comm`, `edcal`, `media`. Sem isso as telas
    carregam vazias, sem erro que diga o motivo.
 4. **Instalar cada módulo pela Store**, no tenant que o contratou.
 5. Nenhum módulo desta onda consome evento — **não há redeploy obrigatório

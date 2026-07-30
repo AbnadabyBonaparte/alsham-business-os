@@ -385,6 +385,22 @@ function OrnamentEdcal() {
   );
 }
 
+/** Biblioteca de Mídia — a prateleira do acervo: molduras e o rolo de filme. */
+function OrnamentMedia() {
+  return (
+    <svg viewBox="0 0 400 400" aria-hidden {...stroke}>
+      <path d="M92 150 h216 M92 236 h216" strokeOpacity="0.3" />
+      <rect x="110" y="104" width="52" height="40" rx="4" strokeOpacity="0.35" />
+      <rect x="178" y="96" width="44" height="48" rx="4" strokeOpacity="0.25" />
+      <circle cx="262" cy="122" r="22" strokeOpacity="0.35" />
+      <circle cx="262" cy="122" r="8" strokeOpacity="0.25" />
+      <rect x="124" y="190" width="60" height="40" rx="4" strokeOpacity="0.3" />
+      <rect x="204" y="182" width="48" height="48" rx="4" strokeOpacity="0.22" />
+      <path d="M110 300 q90 -34 180 0" strokeOpacity="0.18" strokeDasharray="2 8" />
+    </svg>
+  );
+}
+
 /** Ajustes / a marca — o selo do tabelionato modernizado (§5.3). */
 function OrnamentSeal() {
   return (
@@ -450,6 +466,7 @@ const SCENES: readonly (readonly [string, Scene])[] = [
   ['/metas', { sun: '80% 0%', depth: '15% 100%', ornament: <OrnamentGoal />, ornamentClass: RIGHT }],
   ['/comunicados', { sun: '25% 0%', depth: '82% 100%', ornament: <OrnamentComm />, ornamentClass: RIGHT }],
   ['/calendario', { sun: '72% 0%', depth: '18% 100%', ornament: <OrnamentEdcal />, ornamentClass: RIGHT }],
+  ['/midia', { sun: '18% 0%', depth: '85% 100%', ornament: <OrnamentMedia />, ornamentClass: LEFT }],
   ['/ajustes', { sun: '50% 0%', depth: '50% 100%', ornament: <OrnamentSeal />, ornamentClass: RIGHT }],
   ['/login', { sun: '50% 12%', depth: '50% 100%', ornament: <OrnamentLogin />, ornamentClass: CENTER_LOW }],
   ['/', CORE_SCENE],

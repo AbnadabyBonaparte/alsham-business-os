@@ -51,6 +51,8 @@ import { createCommMockPort } from './comm-mock';
 import { createCommSupabasePort } from './comm-supabase';
 import { createEdcalMockPort } from './edcal-mock';
 import { createEdcalSupabasePort } from './edcal-supabase';
+import { createMediaMockPort } from './media-mock';
+import { createMediaSupabasePort } from './media-supabase';
 import { createOccSupabasePort } from './occ-supabase';
 import { createCareSupabasePort } from './care-supabase';
 import { createCashSupabasePort } from './cash-supabase';
@@ -83,6 +85,7 @@ import type { LeadPort } from './lead-port';
 import type { GoalPort } from './goal-port';
 import type { CommPort } from './comm-port';
 import type { EdcalPort } from './edcal-port';
+import type { MediaPort } from './media-port';
 import type { OpsPort } from './ops-port';
 import type { ForgePort } from './forge-port';
 import type { BrandPort } from './brand-port';
@@ -115,6 +118,7 @@ export type { LeadPort, LeadRow } from './lead-port';
 export type { GoalPort, GoalRow } from './goal-port';
 export type { CommPort, NoticeRow } from './comm-port';
 export type { EdcalPort, PieceRow } from './edcal-port';
+export type { MediaPort, AssetRowMedia } from './media-port';
 export type { OpsPort, PipelineWithStages } from './ops-port';
 export type { ForgePort, GenerationResponse } from './forge-port';
 export type { BrandPort } from './brand-port';
@@ -478,6 +482,16 @@ export async function getEdcalPort(): Promise<EdcalPort> {
   if (!db) return createEdcalMockPort();
 
   return createEdcalSupabasePort(db, session.activeTenant.id);
+}
+
+export async function getMediaPort(): Promise<MediaPort> {
+  const session = await resolveSession();
+  if (session.mode !== 'authenticated') return createMediaMockPort();
+
+  const db = await createSupabaseServerClient();
+  if (!db) return createMediaMockPort();
+
+  return createMediaSupabasePort(db, session.activeTenant.id);
 }
 
 /**

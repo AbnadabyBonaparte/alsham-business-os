@@ -477,6 +477,18 @@ export const PECAS = [
     onde: 'packages/editorial/',
   },
   {
+    nome: 'Módulo 26 — Biblioteca de Mídia',
+    detector: [
+      'packages/media/src/manifest.ts',
+      'packages/media/src/media.ts',
+      'supabase/migrations/0041_media.sql',
+    ],
+    // ⚠️ NUNCA "mídia" solta: a palavra é prosa do canon (mídia paga, a
+    // mídia do vertical). O padrão exige o NOME DA PEÇA.
+    padrao: /(m[óo]dulo 26|packages\/media|@alsham\/media|0041_media)/i,
+    onde: 'packages/media/',
+  },
+  {
     nome: 'Menu filtrado por permissão',
     detector: ['packages/permissions/src/menu.ts'],
     // A dívida da Etapa 10 foi paga: os itens de menu não são mais escritos à

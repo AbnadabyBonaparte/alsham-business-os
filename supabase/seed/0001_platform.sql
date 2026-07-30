@@ -1724,7 +1724,63 @@ on conflict (module_id) do update set
   status          = excluded.status,
   updated_at      = now();
 
--- ⛔ Vinte e cinco módulos no catálogo, zero permissão concedida pelo seed.
+-- =============================================================================
+-- 4.24 O MÓDULO `media` NO CATÁLOGO DA STORE — o 26º cartão
+-- -----------------------------------------------------------------------------
+-- Biblioteca de Mídia (Domain marketing — capacidade *Mídia*). CATÁLOGO,
+-- não cofre: o ativo diz onde a obra vive (texto livre — Storage do Core
+-- não construído); o acervo volta do arquivo (o DIVERGE assinado do pat);
+-- o uso é livro imutável com vínculo solto.
+-- `consumes` vazio por decisão de canon (Lei 7) — ver a spec §5.
+-- =============================================================================
+
+insert into core.module_registry (
+  module_id, name, version, summary,
+  layer, domain_key,
+  capabilities, permissions, events_emits, events_consumes, agents,
+  requires_core, status
+)
+values (
+  'media',
+  'Biblioteca de Mídia',
+  '0.1.0',
+  'O catálogo do acervo de mídia: cada ativo é um registro que diz onde a obra vive (texto livre — catálogo, não cofre), com tipo livre e etiquetas do tenant; o acervo volta do arquivo; e o uso é livro imutável, carimbado, com vínculo solto.',
+  'domain', 'marketing',
+  '[
+     {"key":"media-library","canonicalName":"Mídia"}
+   ]'::jsonb,
+  '[
+     {"key":"media.asset.manage","moduleId":"media","description":"Catalogar ativos, editar o registro, etiquetar, arquivar e devolver ao acervo."},
+     {"key":"media.usage.record","moduleId":"media","description":"Registrar um USO do ativo — ato imutável, carimbado pelo servidor, com vínculo solto opcional."}
+   ]'::jsonb,
+  '[
+     {"type":"media.asset.cataloged","version":1,"description":"Uma obra entrou no acervo — título, tipo e o onde-vive no envelope."},
+     {"type":"media.asset.archived","version":1,"description":"A obra saiu do acervo vivo — o catálogo e o livro de usos ficam."},
+     {"type":"media.asset.restored","version":1,"description":"A obra voltou ao acervo — a MESMA obra, com a história inteira (o DIVERGE do pat)."},
+     {"type":"media.usage.recorded","version":1,"description":"Um uso foi registrado no livro — em quê, quando e por quem, com vínculo solto."}
+   ]'::jsonb,
+  '[]'::jsonb,
+  '[]'::jsonb,
+  '0.0.x',
+  'published'
+)
+on conflict (module_id) do update set
+  name            = excluded.name,
+  version         = excluded.version,
+  summary         = excluded.summary,
+  layer           = excluded.layer,
+  domain_key      = excluded.domain_key,
+  vertical_key    = excluded.vertical_key,
+  capabilities    = excluded.capabilities,
+  permissions     = excluded.permissions,
+  events_emits    = excluded.events_emits,
+  events_consumes = excluded.events_consumes,
+  agents          = excluded.agents,
+  requires_core   = excluded.requires_core,
+  status          = excluded.status,
+  updated_at      = now();
+
+-- ⛔ Vinte e seis módulos no catálogo, zero permissão concedida pelo seed.
 
 -- =============================================================================
 -- 5. PLANOS-BASE

@@ -129,6 +129,9 @@ importers:
       '@alsham/marketing':
         specifier: workspace:*
         version: link:../../packages/marketing
+      '@alsham/media':
+        specifier: workspace:*
+        version: link:../../packages/media
       '@alsham/occurrences':
         specifier: workspace:*
         version: link:../../packages/occurrences
@@ -472,6 +475,19 @@ importers:
       '@alsham/workflow':
         specifier: workspace:*
         version: link:../workflow
+      '@types/node':
+        specifier: ^22.10.2
+        version: 22.20.1
+      typescript:
+        specifier: ^5.7.2
+        version: 5.9.3
+
+  packages/media:
+    dependencies:
+      '@alsham/core':
+        specifier: workspace:*
+        version: link:../core
+    devDependencies:
       '@types/node':
         specifier: ^22.10.2
         version: 22.20.1

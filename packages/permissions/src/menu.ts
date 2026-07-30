@@ -72,6 +72,7 @@ const MENU: readonly MenuItem[] = [
   { href: '/metas', label: 'Metas', moduleId: 'goal' },
   { href: '/comunicados', label: 'Comunicados', moduleId: 'comm' },
   { href: '/calendario', label: 'Calendário', moduleId: 'edcal' },
+  { href: '/midia', label: 'Mídia', moduleId: 'media' },
   { href: '/store', label: 'Store', moduleId: null },
   { href: '/ajustes', label: 'Ajustes', moduleId: null },
 ];
