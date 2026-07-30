@@ -6,18 +6,32 @@ import type { ShelfItem, ShelfState } from '@alsham/permissions';
 
 import { installModuleAction, uninstallModuleAction } from '@/app/store-actions';
 import { Badge, EmptyState, Panel } from '@/components/states';
+import {
+  mapShelfToTaxonomy,
+  type Gallery,
+  type TerritorySection,
+  type Territory,
+} from '@/lib/store-taxonomy';
 
 /**
- * A prateleira da Store.
+ * A prateleira da Store — agora com o MAPA INTEIRO.
  *
  * ⭐ Este componente **não decide nada**. Recebe a prateleira pronta de
- * `buildShelf()` e desenha. A recusa que aparece no erro é a mensagem que
- * `core.install_module()` devolveu — palavra por palavra, porque ela foi
- * escrita para o humano ler ("o tenant não tem o papel X", "o plano permite N").
+ * `buildShelf()`, CRUZA com a Taxonomia (`store-taxonomy.ts`) e desenha duas
+ * galerias — Domínios Universais e Verticais por Setor. Território com módulo
+ * publicado vira **seção viva** (cards do catálogo); território sem módulo vira
+ * uma **pill "Em breve"**. Quando uma onda futura publicar um módulo num
+ * território hoje vazio, ele gradua para a seção viva sozinho — sem tocar nesta
+ * tela.
  *
- * Instalar e desinstalar têm **confirmação explícita em dois passos** (padrão
- * CRIVO). Desinstalar diz, na confirmação, o que acontece com o dado — porque
- * é a pergunta que a pessoa está fazendo em silêncio.
+ * ⚠️ A recusa que aparece no erro é a mensagem que `core.install_module()`
+ * devolveu — palavra por palavra. Instalar e desinstalar têm **confirmação
+ * explícita em dois passos** (padrão CRIVO), e a lógica deles é a mesma de
+ * sempre: só a moldura mudou.
+ *
+ * ⛔ **"Em breve" é MAPA, não promessa** (Lei 7 / canon de marketing): sem
+ * preço, sem botão de instalar, sem lista de capacidade individual. Só o nome
+ * do território e a contagem de capacidades DO MAPA.
  */
 
 type Tone = 'success' | 'warning' | 'danger' | 'info' | 'neutral';
@@ -56,15 +70,121 @@ export function StoreShelf({
     );
   }
 
+  const { domains, verticals } = mapShelfToTaxonomy(items);
+
   return (
-    <div className="flex flex-col gap-4">
-      {items.map((item) => (
-        <ModuleCard key={item.entry.moduleId} item={item} roles={roles} canInstall={canInstall} />
-      ))}
+    <div className="flex flex-col gap-14">
+      <GalleryView
+        gallery={domains}
+        eyebrow="O mapa · Domínios Universais"
+        title="Domínios Universais"
+        blurb="18 territórios que praticamente toda empresa usa. Cada um agrupa suas capacidades; o empacotamento em módulos é decisão de produto."
+        roles={roles}
+        canInstall={canInstall}
+      />
+      <GalleryView
+        gallery={verticals}
+        eyebrow="O mapa · Verticais por Setor"
+        title="Verticais por Setor"
+        blurb="29 territórios por ramo. Reutilizam os Domínios e acrescentam só o que é do ofício."
+        roles={roles}
+        canInstall={canInstall}
+      />
     </div>
   );
 }
 
+function GalleryView({
+  gallery,
+  eyebrow,
+  title,
+  blurb,
+  roles,
+  canInstall,
+}: {
+  gallery: Gallery;
+  eyebrow: string;
+  title: string;
+  blurb: string;
+  roles: readonly { key: string; name: string }[];
+  canInstall: boolean;
+}) {
+  const rotuloCamada = gallery.layer === 'domain' ? 'Domínio' : 'Vertical';
+
+  return (
+    <section>
+      <div className="mb-6">
+        <p className="bos-eyebrow mb-2">{eyebrow}</p>
+        <h2 className="font-display text-[1.4rem] leading-tight tracking-tight text-bos-text">
+          {title}
+        </h2>
+        <p className="mt-1.5 max-w-2xl text-sm text-bos-muted">{blurb}</p>
+      </div>
+
+      {gallery.live.length > 0 ? (
+        <div className="flex flex-col gap-8">
+          {gallery.live.map((secao) => (
+            <LiveSection
+              key={secao.territory.key}
+              section={secao}
+              rotuloCamada={rotuloCamada}
+              roles={roles}
+              canInstall={canInstall}
+            />
+          ))}
+        </div>
+      ) : null}
+
+      {gallery.upcoming.length > 0 ? (
+        <UpcomingBlock territories={gallery.upcoming} rotuloCamada={rotuloCamada} />
+      ) : null}
+    </section>
+  );
+}
+
+/** Um território VIVO: cabeçalho + grid de cards fechados que expandem. */
+function LiveSection({
+  section,
+  rotuloCamada,
+  roles,
+  canInstall,
+}: {
+  section: TerritorySection;
+  rotuloCamada: string;
+  roles: readonly { key: string; name: string }[];
+  canInstall: boolean;
+}) {
+  const n = section.items.length;
+  return (
+    <div>
+      <div className="mb-3 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 border-b border-bos-border pb-2">
+        <div>
+          <p className="bos-eyebrow mb-1">{rotuloCamada}</p>
+          <h3 className="font-display text-lg text-bos-text">{section.territory.name}</h3>
+        </div>
+        <span className="text-xs text-bos-muted">
+          {n} módulo{n === 1 ? '' : 's'}
+          {section.territory.capabilities > 0
+            ? ` · de ${section.territory.capabilities} capacidades no mapa`
+            : ''}
+        </span>
+      </div>
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+        {section.items.map((item) => (
+          <ModuleCard key={item.entry.moduleId} item={item} roles={roles} canInstall={canInstall} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * O card do módulo — fechado por padrão, expande em accordion independente.
+ *
+ * ⭐ Vários podem estar abertos ao mesmo tempo: o estado é local a cada card.
+ * ⚠️ O detalhe (capacidades/permissões/fatos) e as ações vivem FORA do botão
+ * de expandir — abrir um card nunca dispara instalar/desinstalar.
+ */
 function ModuleCard({
   item,
   roles,
@@ -74,94 +194,150 @@ function ModuleCard({
   roles: readonly { key: string; name: string }[];
   canInstall: boolean;
 }) {
+  const [aberto, setAberto] = useState(false);
   const { entry, state } = item;
   const emUso = state === 'installed' || state === 'installing' || state === 'suspended';
+  const painelId = `mod-${entry.moduleId}`;
 
   return (
-    <Panel className="px-6 py-6">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="min-w-0">
-          <h2 className="font-display text-lg text-bos-text">{entry.name}</h2>
-          <p className="mt-1 max-w-2xl text-sm text-bos-muted">{entry.summary}</p>
-          <p className="mt-2 font-mono text-[11px] text-bos-muted">
-            {entry.moduleId} · v{entry.version} · {entry.layer === 'domain' ? 'Domain' : 'Vertical'}{' '}
+    <Panel className="flex flex-col">
+      <button
+        type="button"
+        onClick={() => setAberto((v) => !v)}
+        aria-expanded={aberto}
+        aria-controls={painelId}
+        className="flex w-full flex-col gap-2 px-5 py-4 text-left transition-colors hover:bg-bos-elevated/40"
+      >
+        <div className="flex items-start justify-between gap-3">
+          <h4 className="min-w-0 font-display text-base leading-snug text-bos-text">{entry.name}</h4>
+          <Badge tone={TOM[state]}>{ROTULO[state]}</Badge>
+        </div>
+        <p className="line-clamp-1 text-xs text-bos-muted">{entry.summary}</p>
+        <div className="flex items-center justify-between gap-2">
+          <span className="font-mono text-[10px] text-bos-muted">
+            {entry.moduleId} · v{entry.version}
+          </span>
+          <span className="text-[10px] text-bos-muted">{aberto ? 'fechar ▲' : 'detalhes ▼'}</span>
+        </div>
+      </button>
+
+      {aberto ? (
+        <div id={painelId} className="border-t border-bos-border px-5 py-5">
+          <p className="mb-4 font-mono text-[11px] text-bos-muted">
+            {entry.layer === 'domain' ? 'Domain' : 'Vertical'}{' '}
             {entry.domainKey ?? entry.verticalKey}
             {item.installedVersion ? ` · você tem a v${item.installedVersion}` : ''}
           </p>
-        </div>
-        <Badge tone={TOM[state]}>{ROTULO[state]}</Badge>
-      </div>
 
-      <div className="mt-5 grid gap-5 border-t border-bos-border pt-5 sm:grid-cols-2">
-        <Bloco titulo="Capacidades">
-          {entry.capabilities.length === 0 ? (
-            <Vazio>nenhuma declarada</Vazio>
-          ) : (
-            <ul className="flex flex-col gap-1">
-              {entry.capabilities.map((c) => (
-                <li key={c.key} className="text-xs text-bos-text">
-                  {c.canonicalName}
-                </li>
-              ))}
-            </ul>
-          )}
-        </Bloco>
+          <div className="grid gap-5 sm:grid-cols-2">
+            <Bloco titulo="Capacidades">
+              {entry.capabilities.length === 0 ? (
+                <Vazio>nenhuma declarada</Vazio>
+              ) : (
+                <ul className="flex flex-col gap-1">
+                  {entry.capabilities.map((c) => (
+                    <li key={c.key} className="text-xs text-bos-text">
+                      {c.canonicalName}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </Bloco>
 
-        <Bloco titulo="Permissões que o módulo registra">
-          <ul className="flex flex-col gap-1">
-            {entry.permissions.map((p) => (
-              <li key={p.key} className="text-xs text-bos-muted">
-                <span className="font-mono text-bos-text">{p.key}</span>
-              </li>
-            ))}
-          </ul>
-        </Bloco>
-
-        <Bloco titulo="Fatos que ele conta">
-          {entry.emits.length === 0 ? (
-            <Vazio>nenhum</Vazio>
-          ) : (
-            <ul className="flex flex-col gap-1">
-              {entry.emits.map((e) => (
-                <li key={e.type} className="font-mono text-[11px] text-bos-muted">
-                  {e.type}
-                </li>
-              ))}
-            </ul>
-          )}
-        </Bloco>
-
-        <Bloco titulo="Fatos que ele escuta">
-          {entry.consumes.length === 0 ? (
-            <Vazio>nenhum — funciona sozinho</Vazio>
-          ) : (
-            <>
+            <Bloco titulo="Permissões que o módulo registra">
               <ul className="flex flex-col gap-1">
-                {entry.consumes.map((e) => (
-                  <li key={e.type} className="font-mono text-[11px] text-bos-muted">
-                    {e.type}
+                {entry.permissions.map((p) => (
+                  <li key={p.key} className="text-xs text-bos-muted">
+                    <span className="font-mono text-bos-text">{p.key}</span>
                   </li>
                 ))}
               </ul>
-              {/* ⭐ HONESTIDADE NA VITRINE. Dizer "consome eventos" sem dizer
-                  de quem faria a Store prometer uma reação que depende de um
-                  módulo que o cliente talvez não tenha. */}
-              {item.listensTo.length > 0 ? (
-                <p className="mt-2 text-[11px] text-bos-muted">
-                  Só reage se <strong className="text-bos-text">{item.listensTo.join(', ')}</strong>{' '}
-                  também estiver instalado e emitindo. Sem isso, o módulo funciona — apenas não é
-                  acordado.
-                </p>
-              ) : null}
-            </>
-          )}
-        </Bloco>
-      </div>
+            </Bloco>
 
-      <div className="mt-5 border-t border-bos-border pt-4">
-        <Acoes item={item} roles={roles} canInstall={canInstall} emUso={emUso} />
-      </div>
+            <Bloco titulo="Fatos que ele conta">
+              {entry.emits.length === 0 ? (
+                <Vazio>nenhum</Vazio>
+              ) : (
+                <ul className="flex flex-col gap-1">
+                  {entry.emits.map((e) => (
+                    <li key={e.type} className="font-mono text-[11px] text-bos-muted">
+                      {e.type}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </Bloco>
+
+            <Bloco titulo="Fatos que ele escuta">
+              {entry.consumes.length === 0 ? (
+                <Vazio>nenhum — funciona sozinho</Vazio>
+              ) : (
+                <>
+                  <ul className="flex flex-col gap-1">
+                    {entry.consumes.map((e) => (
+                      <li key={e.type} className="font-mono text-[11px] text-bos-muted">
+                        {e.type}
+                      </li>
+                    ))}
+                  </ul>
+                  {/* ⭐ HONESTIDADE NA VITRINE. Dizer "consome eventos" sem dizer
+                      de quem faria a Store prometer uma reação que depende de um
+                      módulo que o cliente talvez não tenha. */}
+                  {item.listensTo.length > 0 ? (
+                    <p className="mt-2 text-[11px] text-bos-muted">
+                      Só reage se{' '}
+                      <strong className="text-bos-text">{item.listensTo.join(', ')}</strong> também
+                      estiver instalado e emitindo. Sem isso, o módulo funciona — apenas não é
+                      acordado.
+                    </p>
+                  ) : null}
+                </>
+              )}
+            </Bloco>
+          </div>
+
+          <div className="mt-5 border-t border-bos-border pt-4">
+            <Acoes item={item} roles={roles} canInstall={canInstall} emUso={emUso} />
+          </div>
+        </div>
+      ) : null}
     </Panel>
+  );
+}
+
+/**
+ * O bloco "Em breve" de uma galeria — os territórios do mapa que ainda não têm
+ * módulo publicado. Tratamento LEVE: pills recuadas, sem CTA, sem preço, sem
+ * capacidade individual. É mapa, não promessa.
+ */
+function UpcomingBlock({
+  territories,
+  rotuloCamada,
+}: {
+  territories: readonly Territory[];
+  rotuloCamada: string;
+}) {
+  return (
+    <div className="mt-8">
+      <p className="bos-eyebrow mb-3 text-bos-muted">
+        Em breve · {territories.length} {rotuloCamada === 'Domínio' ? 'domínios' : 'verticais'} no
+        mapa
+      </p>
+      <div className="flex flex-wrap gap-2">
+        {territories.map((t) => (
+          <span
+            key={t.key}
+            className="inline-flex items-center gap-2 rounded-full border border-bos-border/60 bg-bos-elevated/30 px-3 py-1.5 text-xs text-bos-muted"
+          >
+            <span className="text-bos-text/80">{t.name}</span>
+            <span className="text-[10px] text-bos-muted">· {t.capabilities} capacidades mapeadas</span>
+            <span className="rounded-full border border-bos-border/60 px-1.5 py-0.5 text-[9px] uppercase tracking-wide text-bos-muted">
+              Em breve
+            </span>
+          </span>
+        ))}
+      </div>
+    </div>
   );
 }
 
