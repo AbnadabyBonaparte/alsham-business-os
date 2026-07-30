@@ -8,7 +8,7 @@ import type { ShelfItem } from '@alsham/permissions';
 import { getPanelPort, loadAllPermissions } from '@/lib/data';
 import type { AuditRow, CourierSummary, PlanUsageRow } from '@/lib/data/panel-port';
 import { resolveSession } from '@/lib/session';
-import { Badge, DemoNotice, EmptyState, PageHero, Panel, SectionHeader } from '@/components/states';
+import { Badge, DemoNotice, EmptyState, Panel, SectionHeader } from '@/components/states';
 
 export const dynamic = 'force-dynamic';
 
@@ -82,11 +82,8 @@ export default async function Painel() {
     <>
       {session.mode === 'demo' ? <DemoNotice /> : null}
 
-      <PageHero
-        eyebrow="O painel executivo"
-        title={session.mode === 'authenticated' ? `${session.activeTenant.name}.` : 'Painel.'}
-        accent="Tudo aqui é contado no banco."
-        subtitle="Nenhum número nesta tela é ilustrativo — cada um sai de uma contagem real ou de uma linha do plano."
+      <PainelHero
+        titulo={session.mode === 'authenticated' ? `${session.activeTenant.name}.` : 'Painel.'}
       />
 
       <div className="grid gap-4 lg:grid-cols-3">
@@ -107,6 +104,48 @@ export default async function Painel() {
         <UltimasLinhas linhas={linhas} />
       </div>
     </>
+  );
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+ * O HERO COM IMAGEM — a "Planta antes da Obra"
+ * ──────────────────────────────────────────────────────────────────────
+ * ⭐ A primeira alma visual do portal: uma arte ARQUITETÔNICA (obsidian + um
+ * só ouro, o Sol Único como horizonte) em `public/hero-painel.svg` — asset
+ * ESTÁTICO, gerado uma vez, sem custo nem latência de runtime. Nada de foto de
+ * banco, nada de gradiente genérico (Anti-Brand §6). O texto vive sobre um
+ * scrim de `--bos-bg`, então respira em qualquer largura.
+ */
+function PainelHero({ titulo }: { titulo: string }) {
+  return (
+    <header className="bos-sheen relative mb-10 overflow-hidden rounded-lg border border-bos-border">
+      {/* A arte, como fundo decorativo (aria-hidden): a informação é o texto. */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 bg-cover bg-center"
+        style={{ backgroundImage: 'url(/hero-painel.svg)' }}
+      />
+      {/* Scrim extra à esquerda — só tokens, nenhum HEX. */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0"
+        style={{
+          background:
+            'linear-gradient(to right, var(--bos-bg) 6%, color-mix(in srgb, var(--bos-bg) 35%, transparent) 52%, transparent)',
+        }}
+      />
+      <div className="relative px-6 py-14 sm:py-16">
+        <p className="bos-eyebrow mb-3">O painel executivo</p>
+        <h1 className="bos-hero-title">
+          {titulo}
+          <em className="block text-[0.72em]">Tudo aqui é contado no banco.</em>
+        </h1>
+        <p className="mt-3 max-w-2xl text-sm text-bos-muted">
+          Nenhum número nesta tela é ilustrativo — cada um sai de uma contagem real ou de uma
+          linha do plano.
+        </p>
+      </div>
+    </header>
   );
 }
 
