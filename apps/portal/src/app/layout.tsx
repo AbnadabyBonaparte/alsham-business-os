@@ -9,6 +9,8 @@ import { visibleMenu } from '@alsham/permissions';
 import { resolveSession } from '@/lib/session';
 import { loadAllPermissions } from '@/lib/data';
 import { TenantSwitcher } from '@/components/tenant-switcher';
+import { Atmosphere, Grain } from '@/components/atmosphere';
+import { NavLink } from '@/components/nav-link';
 
 import './globals.css';
 
@@ -61,16 +63,28 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
 
   return (
     <html lang="pt-BR">
-      <body className="min-h-screen bg-bos-bg text-bos-text">
+      <body className="min-h-screen text-bos-text">
+        {/* A atmosfera da sala atual (z: -1) e a película de grão (z: 50) —
+            camadas de apresentação puras; nenhuma intercepta clique ou dado. */}
+        <Atmosphere />
+        <Grain />
+
         <div className="flex min-h-screen flex-col">
           <header className="border-b border-bos-border">
             <div className="mx-auto flex w-full max-w-7xl flex-wrap items-center gap-x-8 gap-y-3 px-6 py-4">
               <Link href="/" className="flex items-center gap-3">
-                {/* O Sol Único — um só por peça (IDENTIDADE-VISUAL §5.1). */}
-                <span
+                {/* O Sol Único — um só por peça (IDENTIDADE-VISUAL §5.1):
+                    o arco e o núcleo, desenhados, nunca dois sóis. */}
+                <svg
                   aria-hidden
-                  className="block size-3 rounded-full border border-bos-accent"
-                />
+                  viewBox="0 0 24 24"
+                  className="size-5 text-bos-accent"
+                  fill="none"
+                  stroke="currentColor"
+                >
+                  <circle cx="12" cy="12" r="9" strokeWidth="1" strokeOpacity="0.55" strokeDasharray="40 8" />
+                  <circle cx="12" cy="12" r="3.5" strokeWidth="1" />
+                </svg>
                 <span className="font-display text-lg tracking-tight text-bos-text">
                   {PRODUCT.displayName}
                 </span>
@@ -98,24 +112,21 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
 
           <main className="mx-auto w-full max-w-7xl flex-1 px-6 py-10">{children}</main>
 
-          <footer className="border-t border-bos-border">
-            <div className="mx-auto w-full max-w-7xl px-6 py-6 text-xs text-bos-muted">
-              {COMPANY.legalName} · Powered by ALSHAM
+          {/* O rodapé de pertencimento — todo mundo declara no rodapé a que
+              universo pertence (canon da Casa). Sóbrio: um fio, uma linha. */}
+          <footer className="mt-16">
+            <div className="bos-hairline" aria-hidden />
+            <div className="mx-auto flex w-full max-w-7xl flex-wrap items-center justify-between gap-x-8 gap-y-2 px-6 py-7 text-xs text-bos-muted">
+              <p>
+                {COMPANY.legalName} · Powered by <span className="text-bos-text">ALSHAM</span>
+              </p>
+              <p className="uppercase tracking-[0.22em] text-bos-muted/80">
+                Universo Bonaparte · construído para durar
+              </p>
             </div>
           </footer>
         </div>
       </body>
     </html>
-  );
-}
-
-function NavLink({ href, children }: { href: string; children: ReactNode }) {
-  return (
-    <Link
-      href={href}
-      className="rounded-md px-3 py-2 text-bos-muted transition-colors duration-200 hover:bg-bos-surface hover:text-bos-text"
-    >
-      {children}
-    </Link>
   );
 }

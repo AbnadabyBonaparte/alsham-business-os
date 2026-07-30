@@ -47,6 +47,7 @@ async function Conteudo() {
       <>
         {port.kind === 'mock' ? <DemoNotice /> : null}
         <SectionHeader
+          eyebrow="Eventos · marketing"
           title="Eventos"
           subtitle="O evento universal: publique para abrir a lista, registre presença como ato. Ingresso e QR são o ofício do vertical — não estão aqui."
           aside={

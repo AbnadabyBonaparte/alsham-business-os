@@ -60,6 +60,7 @@ async function Conteudo() {
         {port.kind === 'mock' ? <DemoNotice /> : null}
 
         <SectionHeader
+          eyebrow="Conciliação &amp; Aprovações · finanças"
           title="Fechar período"
           subtitle="O resumo antes do carimbo: o que casou, e o que sobrou."
           aside={

@@ -3,7 +3,7 @@ import { Suspense } from 'react';
 import { buildShelf, summarizeShelf } from '@alsham/permissions';
 
 import { getStorePort, DataPortError } from '@/lib/data';
-import { Badge, DemoNotice, ErrorState, SectionHeader, TableSkeleton } from '@/components/states';
+import { Badge, DemoNotice, ErrorState, PageHero, SectionHeader, TableSkeleton } from '@/components/states';
 import { StoreShelf } from '@/components/store-shelf';
 
 export const dynamic = 'force-dynamic';
@@ -59,9 +59,11 @@ async function Conteudo() {
       <>
         {port.kind === 'mock' ? <DemoNotice /> : null}
 
-        <SectionHeader
-          title="Store"
-          subtitle="A empresa não compra um sistema. Ela monta o dela — Core mais módulos."
+        <PageHero
+          eyebrow="A Store · o catálogo da plataforma"
+          title="A empresa não compra um sistema."
+          accent="Ela monta o dela."
+          subtitle="Core mais módulos, como Lego: instalar dá acesso e concede as permissões do manifesto — e desinstalar não apaga nada."
           aside={
             <div className="flex flex-wrap items-center gap-2">
               <Badge tone={resumo.installed > 0 ? 'success' : 'neutral'}>

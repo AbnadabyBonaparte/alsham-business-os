@@ -16,38 +16,107 @@ import type { ReactNode } from 'react';
 export function SectionHeader({
   title,
   subtitle,
+  eyebrow,
   aside,
 }: {
   title: string;
   subtitle?: string;
+  /** Rótulo institucional acima do título — o nome do módulo, a sala da casa. */
+  eyebrow?: string;
   aside?: ReactNode;
 }) {
   return (
-    <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
+    <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
       <div>
-        <h1 className="font-display text-2xl tracking-tight text-bos-text">{title}</h1>
-        {subtitle ? <p className="mt-1 text-sm text-bos-muted">{subtitle}</p> : null}
+        {eyebrow ? <p className="bos-eyebrow mb-2">{eyebrow}</p> : null}
+        <h1 className="font-display text-[1.75rem] leading-tight tracking-tight text-bos-text">
+          {title}
+        </h1>
+        {subtitle ? <p className="mt-1.5 max-w-2xl text-sm text-bos-muted">{subtitle}</p> : null}
       </div>
       {aside}
     </div>
   );
 }
 
-/** Superfície elevada padrão: Midnight Ink com borda alpha dourada a 15%. */
+/**
+ * O hero de capítulo — o momento de apresentação das telas-vitrine.
+ *
+ * Gramática da casa: eyebrow com micro-régua, título serifa grande em
+ * romano + `accent` em itálico dourado (via <em> — o ouro é acento, nunca
+ * bloco), apoio em grotesque. Fecha num fio de ouro que acende no meio.
+ */
+export function PageHero({
+  eyebrow,
+  title,
+  accent,
+  subtitle,
+  aside,
+}: {
+  eyebrow: string;
+  title: string;
+  /** A segunda linha, em itálico dourado — a alma da tela em uma frase. */
+  accent?: string;
+  subtitle?: string;
+  aside?: ReactNode;
+}) {
+  return (
+    <header className="mb-10">
+      <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-4 pt-4 pb-7">
+        <div>
+          <p className="bos-eyebrow mb-3">{eyebrow}</p>
+          <h1 className="bos-hero-title">
+            {title}
+            {accent ? (
+              <>
+                {' '}
+                <em className="block text-[0.72em]">{accent}</em>
+              </>
+            ) : null}
+          </h1>
+          {subtitle ? <p className="mt-3 max-w-2xl text-sm text-bos-muted">{subtitle}</p> : null}
+        </div>
+        {aside ? <div className="pb-1">{aside}</div> : null}
+      </div>
+      <div className="bos-hairline" aria-hidden />
+    </header>
+  );
+}
+
+/** Superfície elevada padrão: Midnight Ink com borda alpha dourada a 15%
+    e um chanfro de luz na borda superior — materialidade, não brilho. */
 export function Panel({ children, className = '' }: { children: ReactNode; className?: string }) {
   return (
-    <section className={`rounded-lg border border-bos-border bg-bos-surface ${className}`}>
+    <section className={`bos-sheen rounded-lg border border-bos-border bg-bos-surface ${className}`}>
       {children}
     </section>
   );
 }
 
-/** Estado vazio desenhado — nunca tela branca. */
+/** Estado vazio desenhado — nunca tela branca: moldura de cantoneiras,
+    o Sol em opacidade mínima, serifa itálica. Composição, não ausência. */
 export function EmptyState({ title, hint }: { title: string; hint?: string }) {
   return (
-    <Panel className="blueprint px-6 py-16 text-center">
+    <Panel className="blueprint relative px-6 py-16 text-center">
+      <span aria-hidden className="absolute top-3 left-3 h-4 w-4 border-t border-l border-bos-accent/30" />
+      <span aria-hidden className="absolute top-3 right-3 h-4 w-4 border-t border-r border-bos-accent/30" />
+      <span aria-hidden className="absolute bottom-3 left-3 h-4 w-4 border-b border-l border-bos-accent/30" />
+      <span aria-hidden className="absolute right-3 bottom-3 h-4 w-4 border-b border-r border-bos-accent/30" />
+      {/* A fagulha — não um segundo sol: o Sol é um por peça (§5.1). */}
+      <svg
+        aria-hidden
+        viewBox="0 0 24 24"
+        className="bos-sun-breathe mx-auto mb-5 size-7 text-bos-accent/50"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="0.75"
+      >
+        <path d="M12 2 L14 10 L22 12 L14 14 L12 22 L10 14 L2 12 L10 10 Z" />
+      </svg>
       <p className="font-display text-lg text-bos-text">{title}</p>
-      {hint ? <p className="mx-auto mt-2 max-w-md text-sm text-bos-muted">{hint}</p> : null}
+      {hint ? (
+        <p className="mx-auto mt-2 max-w-md font-display text-sm italic text-bos-muted">{hint}</p>
+      ) : null}
     </Panel>
   );
 }
@@ -96,7 +165,7 @@ const TONE: Record<Tone, string> = {
 export function Badge({ tone, children }: { tone: Tone; children: ReactNode }) {
   return (
     <span
-      className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs whitespace-nowrap ${TONE[tone]}`}
+      className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs whitespace-nowrap ${TONE[tone]}`}
     >
       {children}
     </span>

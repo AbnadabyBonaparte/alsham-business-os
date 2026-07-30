@@ -83,17 +83,73 @@
 }
 
 /* --------------------------------------------------------------------------
+   Fontes — auto-hospedadas em /public/fonts (OFL), sem rede no build.
+   A decisão registrada no layout ("nenhuma fonte baixada em tempo de build")
+   continua honrada: os arquivos são estáticos, versionados, servidos por nós.
+   Variáveis: Fraunces (display, IDENTIDADE-VISUAL §4), Inter (UI),
+   JetBrains Mono (código/refs técnicas).
+   -------------------------------------------------------------------------- */
+@font-face {
+  font-family: 'Fraunces';
+  src: url('/fonts/fraunces-var.woff2') format('woff2');
+  font-weight: 300 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Fraunces';
+  src: url('/fonts/fraunces-var-italic.woff2') format('woff2');
+  font-weight: 300 700;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Inter';
+  src: url('/fonts/inter-var.woff2') format('woff2');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'JetBrains Mono';
+  src: url('/fonts/jetbrains-mono-var.woff2') format('woff2');
+  font-weight: 100 800;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* --------------------------------------------------------------------------
    Base
+   --------------------------------------------------------------------------
+   O fundo mora no <html>, e o <body> é transparente: é isso que permite a
+   camada de atmosfera (position: fixed, z-index: -1) viver ATRÁS do conteúdo
+   sem que o corpo a cubra. Ver `components/atmosphere.tsx`.
    -------------------------------------------------------------------------- */
 html {
   color-scheme: dark;
+  background-color: var(--bos-bg);
 }
 
 body {
-  background-color: var(--bos-bg);
+  background-color: transparent;
   color: var(--bos-text);
   font-family: var(--bos-font-ui);
   -webkit-font-smoothing: antialiased;
+}
+
+/* Seleção e foco na cor do sistema — visíveis no escuro. */
+::selection {
+  background-color: color-mix(in srgb, var(--bos-imperial-gold) 30%, transparent);
+  color: var(--bos-ivory);
+}
+
+:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--bos-imperial-gold) 70%, transparent);
+  outline-offset: 2px;
+  border-radius: 4px;
 }
 
 /* Numerais TABULARES em tudo que é número (IDENTIDADE-VISUAL §4).
@@ -144,4 +200,192 @@ body {
 .bos-skeleton {
   background-color: var(--bos-steel-navy);
   animation: bos-pulse 2.2s var(--bos-ease) infinite;
+}
+
+/* ==========================================================================
+   O SISTEMA DE ATMOSFERAS — "a Catedral acesa".
+   --------------------------------------------------------------------------
+   Cada tela é uma sala da mesma casa: a diferenciação é por GEOMETRIA
+   (ornamento e posição da luz), nunca por cor nova — a paleta é lei
+   (IDENTIDADE-VISUAL §1 e §6). Tudo aqui é CSS/SVG puro: custo zero de rede,
+   a demo roda ao vivo. As camadas são montadas por `components/atmosphere.tsx`.
+   ========================================================================== */
+
+/* A moldura fixa atrás de tudo (o body é transparente; ver Base). */
+.bos-atm {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+/* Camada 1 — a luz: um único ponto quente de ouro (o Sol, nunca dois) e um
+   corpo frio de aço para dar profundidade. As posições vêm por variável,
+   definidas por cena em atmosphere.tsx. */
+.bos-atm-mesh {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(
+      52% 44% at var(--atm-sun, 82% 0%),
+      color-mix(in srgb, var(--bos-imperial-gold) 7%, transparent),
+      transparent 70%
+    ),
+    radial-gradient(
+      70% 60% at var(--atm-depth, 12% 100%),
+      color-mix(in srgb, var(--bos-steel-navy) 55%, transparent),
+      transparent 72%
+    );
+}
+
+/* Camada 2 — a planta: retícula técnica fina que SÓ existe no miolo e
+   dissolve nas bordas (máscara radial) — blueprint, não papel milimetrado. */
+.bos-atm-grid {
+  position: absolute;
+  inset: 0;
+  opacity: 0.5;
+  background-image:
+    linear-gradient(to right, var(--bos-border) 0.5px, transparent 0.5px),
+    linear-gradient(to bottom, var(--bos-border) 0.5px, transparent 0.5px);
+  background-size: 72px 72px;
+  mask-image: radial-gradient(ellipse 90% 80% at 50% 30%, black 20%, transparent 78%);
+}
+
+/* Camada 3 — o ornamento do módulo (SVG inline, traço fino dourado). */
+.bos-atm-ornament {
+  position: absolute;
+  color: var(--bos-imperial-gold);
+}
+
+/* Camada 4 — a vinheta: as bordas voltam ao Obsidian, o miolo respira. */
+.bos-atm-vignette {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse 120% 95% at 50% 38%,
+    transparent 55%,
+    color-mix(in srgb, var(--bos-obsidian) 85%, transparent) 100%
+  );
+}
+
+/* O grão — película de matéria sobre tudo (inclusive o texto): é o que tira
+   o "plástico" da tela. feTurbulence inline, ~350 bytes, dose dupla de
+   opacidade (no rect e no elemento). */
+.bos-grain {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  pointer-events: none;
+  opacity: 0.05;
+  mix-blend-mode: soft-light;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.6'/%3E%3C/svg%3E");
+}
+
+/* ==========================================================================
+   ORNAMENTOS DE OFÍCIO — hairlines, eyebrow, selo.
+   ========================================================================== */
+
+/* O fio de ouro que acende no meio e apaga nas pontas. */
+.bos-hairline {
+  height: 1px;
+  border: 0;
+  background: linear-gradient(
+    to right,
+    transparent,
+    color-mix(in srgb, var(--bos-imperial-gold) 45%, transparent),
+    transparent
+  );
+}
+
+/* Eyebrow institucional: micro-régua antes do rótulo, tracking largo. */
+.bos-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.68rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.28em;
+  color: color-mix(in srgb, var(--bos-imperial-gold) 75%, var(--bos-slate));
+}
+
+.bos-eyebrow::before {
+  content: '';
+  width: 2.5rem;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--bos-imperial-gold) 60%, transparent),
+    transparent
+  );
+}
+
+/* Variante centrada: a micro-régua dos dois lados, simétrica. */
+.bos-eyebrow-center::after {
+  content: '';
+  width: 2.5rem;
+  height: 1px;
+  background: linear-gradient(
+    270deg,
+    color-mix(in srgb, var(--bos-imperial-gold) 60%, transparent),
+    transparent
+  );
+}
+
+.bos-eyebrow-center::before {
+  background: linear-gradient(
+    270deg,
+    transparent,
+    color-mix(in srgb, var(--bos-imperial-gold) 60%, transparent)
+  );
+}
+
+/* Chanfro de luz na borda superior dos painéis — materialidade, não brilho. */
+.bos-sheen {
+  box-shadow: inset 0 1px 0 0 color-mix(in srgb, var(--bos-ivory) 4%, transparent);
+}
+
+/* ==========================================================================
+   O HERO — título de capítulo. Serifa grande, romano + itálico dourado.
+   ========================================================================== */
+.bos-hero-title {
+  font-family: var(--bos-font-display);
+  font-size: clamp(2rem, 2.8vw + 1rem, 3.25rem);
+  line-height: 1.04;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+  color: var(--bos-text);
+}
+
+.bos-hero-title em {
+  font-style: italic;
+  color: var(--bos-accent);
+}
+
+/* O Sol Único desenhado — arco + núcleo. Um por peça (§5.1). */
+@media (prefers-reduced-motion: no-preference) {
+  .bos-sun-breathe {
+    animation: bos-sun 9s var(--bos-ease) infinite;
+  }
+}
+
+@keyframes bos-sun {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 0.9;
+  }
+}
+
+/* Kill-switch de movimento — a lei vale para tudo, inclusive o que vier. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
 }

@@ -58,6 +58,7 @@ async function Conteudo() {
         {port.kind === 'mock' ? <DemoNotice /> : null}
 
         <SectionHeader
+          eyebrow="Conciliação &amp; Aprovações · finanças"
           title="Fila de aprovação"
           subtitle="Cada item tem dono, valor, idade e trilha. Nada fica embaixo de outra pilha."
           aside={

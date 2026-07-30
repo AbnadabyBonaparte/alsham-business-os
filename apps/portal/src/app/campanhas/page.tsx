@@ -98,6 +98,7 @@ async function Conteudo() {
         {port.kind === 'mock' ? <DemoNotice /> : null}
 
         <SectionHeader
+          eyebrow="Campanhas de Marketing · marketing"
           title="Campanhas"
           subtitle="Planeje, ponha no ar e encerre. A verba aprovada chega sozinha, do financeiro."
           aside={

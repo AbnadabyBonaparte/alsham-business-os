@@ -8,7 +8,7 @@ import type { ShelfItem } from '@alsham/permissions';
 import { getPanelPort, loadAllPermissions } from '@/lib/data';
 import type { AuditRow, CourierSummary, PlanUsageRow } from '@/lib/data/panel-port';
 import { resolveSession } from '@/lib/session';
-import { Badge, DemoNotice, EmptyState, Panel, SectionHeader } from '@/components/states';
+import { Badge, DemoNotice, EmptyState, PageHero, Panel, SectionHeader } from '@/components/states';
 
 export const dynamic = 'force-dynamic';
 
@@ -82,9 +82,11 @@ export default async function Painel() {
     <>
       {session.mode === 'demo' ? <DemoNotice /> : null}
 
-      <SectionHeader
-        title={session.mode === 'authenticated' ? session.activeTenant.name : 'Painel'}
-        subtitle="Tudo nesta tela é contado no banco. Nenhum número aqui é ilustrativo."
+      <PageHero
+        eyebrow="O painel executivo"
+        title={session.mode === 'authenticated' ? `${session.activeTenant.name}.` : 'Painel.'}
+        accent="Tudo aqui é contado no banco."
+        subtitle="Nenhum número nesta tela é ilustrativo — cada um sai de uma contagem real ou de uma linha do plano."
       />
 
       <div className="grid gap-4 lg:grid-cols-3">
@@ -406,7 +408,7 @@ function Numero({
     <div>
       <p className="text-xs text-bos-muted">{rotulo}</p>
       <p
-        className={`mt-0.5 font-display text-2xl ${alerta ? 'text-bos-danger' : 'text-bos-text'}`}
+        className={`tabular mt-0.5 font-display text-2xl ${alerta ? 'text-bos-danger' : 'text-bos-text'}`}
       >
         {valor.toLocaleString('pt-BR')}
         <span className="text-base text-bos-muted">{sufixo}</span>

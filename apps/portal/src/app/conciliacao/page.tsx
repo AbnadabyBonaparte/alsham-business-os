@@ -12,6 +12,7 @@ import {
   Badge,
   DemoNotice,
   ErrorState,
+  PageHero,
   SectionHeader,
   TableSkeleton,
 } from '@/components/states';
@@ -76,9 +77,11 @@ async function Conteudo() {
       <>
         {port.kind === 'mock' ? <DemoNotice /> : null}
 
-        <SectionHeader
-          title="Mesa de conciliação"
-          subtitle="O sistema sugere; o humano confere e visa. Débito casa com a pagar; crédito, com a receber."
+        <PageHero
+          eyebrow="Conciliação &amp; Aprovações · finanças"
+          title="A mesa de conciliação."
+          accent="O sistema sugere; o humano visa."
+          subtitle="Débito casa com a pagar; crédito, com a receber. Nada se baixa sem decisão de gente."
           aside={
             <div className="flex flex-wrap items-center gap-2">
               <Badge tone="neutral">
