@@ -64,6 +64,11 @@ const MENU: readonly MenuItem[] = [
   { href: '/atendimento', label: 'Atendimento', moduleId: 'care' },
   { href: '/ocorrencias', label: 'Ocorrências', moduleId: 'occ' },
   { href: '/manutencao', label: 'Manutenção', moduleId: 'mnt' },
+  { href: '/patrimonio', label: 'Patrimônio', moduleId: 'pat' },
+  { href: '/checklists', label: 'Checklists', moduleId: 'chk' },
+  { href: '/espacos', label: 'Espaços', moduleId: 'spc' },
+  { href: '/visitas', label: 'Visitas', moduleId: 'vis' },
+  { href: '/leads', label: 'Leads', moduleId: 'lead' },
   { href: '/store', label: 'Store', moduleId: null },
   { href: '/ajustes', label: 'Ajustes', moduleId: null },
 ];

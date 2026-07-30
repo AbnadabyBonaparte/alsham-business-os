@@ -1268,6 +1268,28 @@ O rito é o mesmo do Passo 16 — migration na ordem, seed, Data API, Store:
 Nenhum agente aplica em produção. A conferência de segurança do PASSO 15
 (§ pós-apply) vale para os schemas novos.
 
+## PASSO 18 — A MISSÃO PENTA: os módulos seguintes (`0033` em diante)
+
+O rito é o mesmo dos Passos 16 e 17 — migration na ordem, seed, Data API,
+Store:
+
+1. **Aplicar a migration** no SQL Editor, na ordem:
+   - `0033_pat.sql` — Módulo 18, Patrimônio (schema `pat`)
+   - `0034_chk.sql` — Módulo 19, Checklists (schema `chk`)
+   - `0035_spc.sql` — Módulo 20, Reserva de Espaços (schema `spc`) — ⚠️ cria
+     a extensão `btree_gist` (contrib, presente em todo Supabase)
+   - `0036_vis.sql` — Módulo 21, Visitas (schema `vis`)
+   - `0037_lead.sql` — Módulo 22, Leads (schema `lead`)
+2. **Reaplicar o seed** — os cartões novos entram no catálogo.
+3. ⚠️ **Expor os schemas novos na Data API**: `pat`, `chk`, `spc`, `vis`, `lead`. Sem isso as telas
+   carregam vazias, sem erro que diga o motivo.
+4. **Instalar cada módulo pela Store**, no tenant que o contratou.
+5. Nenhum módulo desta onda consome evento — **não há redeploy obrigatório
+   do `apps/api`**.
+
+Nenhum agente aplica em produção. A conferência de segurança do PASSO 15
+(§ pós-apply) vale para os schemas novos.
+
 ## O QUE AINDA NÃO EXISTE
 
 Honestidade de escopo, para você não procurar o que não foi construído:

@@ -271,6 +271,78 @@ function OrnamentOps() {
   );
 }
 
+/** Patrimônio — a etiqueta do bem e o traço do lugar: o livro segue a plaqueta. */
+function OrnamentPat() {
+  return (
+    <svg viewBox="0 0 400 400" aria-hidden {...stroke}>
+      <path d="M120 140 h120 l40 60 -40 60 h-120 z" strokeOpacity="0.32" />
+      <circle cx="152" cy="200" r="7" strokeOpacity="0.45" />
+      <path d="M190 182 h60 M190 200 h74 M190 218 h48" strokeOpacity="0.2" />
+      <path d="M70 310 h260" strokeOpacity="0.22" strokeDasharray="2 8" />
+      <path d="M140 310 v-24 M260 310 v-24" strokeOpacity="0.3" />
+    </svg>
+  );
+}
+
+/** Checklists — a prancheta: os itens e os ticks do traço. */
+function OrnamentChk() {
+  return (
+    <svg viewBox="0 0 400 400" aria-hidden {...stroke}>
+      <rect x="120" y="90" width="160" height="220" rx="10" strokeOpacity="0.3" />
+      <path d="M170 90 v-16 h60 v16" strokeOpacity="0.35" />
+      {[0, 1, 2].map((i) => (
+        <g key={i} strokeOpacity="0.28">
+          <rect x="144" y={140 + i * 52} width="22" height="22" rx="4" />
+          <path d="M188 151 h68" transform={`translate(0 ${i * 52})`} strokeOpacity="0.2" />
+        </g>
+      ))}
+      <path d="M148 149 l6 7 l11 -13" strokeOpacity="0.5" />
+      <path d="M148 201 l6 7 l11 -13" strokeOpacity="0.5" />
+    </svg>
+  );
+}
+
+/** Espaços — a planta da sala e o arco do período reservado. */
+function OrnamentSpc() {
+  return (
+    <svg viewBox="0 0 400 400" aria-hidden {...stroke}>
+      <rect x="100" y="110" width="200" height="140" rx="8" strokeOpacity="0.3" />
+      <path d="M100 180 h70 M230 180 h70 M170 110 v40 M230 250 v-40" strokeOpacity="0.2" />
+      <path d="M120 310 h160" strokeOpacity="0.25" />
+      <path d="M150 310 a50 50 0 0 1 100 0" strokeOpacity="0.4" />
+      <circle cx="150" cy="310" r="3" strokeOpacity="0.5" />
+      <circle cx="250" cy="310" r="3" strokeOpacity="0.5" />
+    </svg>
+  );
+}
+
+/** Visitas — a cancela: a linha da portaria e as duas setas da passagem. */
+function OrnamentVis() {
+  return (
+    <svg viewBox="0 0 400 400" aria-hidden {...stroke}>
+      <path d="M200 90 v220" strokeOpacity="0.3" strokeDasharray="2 8" />
+      <path d="M90 170 h84 m0 0 l-18 -14 m18 14 l-18 14" strokeOpacity="0.42" />
+      <path d="M310 230 h-84 m0 0 l18 -14 m-18 14 l18 14" strokeOpacity="0.3" />
+      <circle cx="200" cy="200" r="12" strokeOpacity="0.45" />
+      <path d="M120 310 h160" strokeOpacity="0.2" />
+    </svg>
+  );
+}
+
+/** Leads — a foz: muitos afluentes, uma fila que corre para o funil. */
+function OrnamentLead() {
+  return (
+    <svg viewBox="0 0 400 400" aria-hidden {...stroke}>
+      <path d="M90 110 q60 30 110 84 M200 84 v110 M310 110 q-60 30 -110 84" strokeOpacity="0.3" />
+      <path d="M200 194 v96" strokeOpacity="0.45" />
+      <path d="M200 290 l-14 -16 m14 16 l14 -16" strokeOpacity="0.45" />
+      <circle cx="90" cy="110" r="4" strokeOpacity="0.35" />
+      <circle cx="200" cy="84" r="4" strokeOpacity="0.35" />
+      <circle cx="310" cy="110" r="4" strokeOpacity="0.35" />
+    </svg>
+  );
+}
+
 /** Ajustes / a marca — o selo do tabelionato modernizado (§5.3). */
 function OrnamentSeal() {
   return (
@@ -328,6 +400,11 @@ const SCENES: readonly (readonly [string, Scene])[] = [
   ['/eventos', { sun: '82% 8%', depth: '10% 92%', ornament: <OrnamentEvt />, ornamentClass: RIGHT }],
   ['/esteiras', { sun: '30% 0%', depth: '80% 100%', ornament: <OrnamentOps />, ornamentClass: LEFT }],
   ['/esteira', { sun: '70% 0%', depth: '20% 100%', ornament: <OrnamentOps />, ornamentClass: RIGHT }],
+  ['/patrimonio', { sun: '88% 4%', depth: '8% 96%', ornament: <OrnamentPat />, ornamentClass: RIGHT }],
+  ['/checklists', { sun: '22% 0%', depth: '88% 100%', ornament: <OrnamentChk />, ornamentClass: RIGHT }],
+  ['/espacos', { sun: '65% 0%', depth: '18% 100%', ornament: <OrnamentSpc />, ornamentClass: RIGHT }],
+  ['/visitas', { sun: '15% 5%', depth: '85% 95%', ornament: <OrnamentVis />, ornamentClass: LEFT }],
+  ['/leads', { sun: '50% 0%', depth: '20% 100%', ornament: <OrnamentLead />, ornamentClass: RIGHT }],
   ['/ajustes', { sun: '50% 0%', depth: '50% 100%', ornament: <OrnamentSeal />, ornamentClass: RIGHT }],
   ['/login', { sun: '50% 12%', depth: '50% 100%', ornament: <OrnamentLogin />, ornamentClass: CENTER_LOW }],
   ['/', CORE_SCENE],

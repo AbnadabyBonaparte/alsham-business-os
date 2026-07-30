@@ -69,6 +69,9 @@ importers:
       '@alsham/ai':
         specifier: workspace:*
         version: link:../../packages/ai
+      '@alsham/assets':
+        specifier: workspace:*
+        version: link:../../packages/assets
       '@alsham/billing':
         specifier: workspace:*
         version: link:../../packages/billing
@@ -78,6 +81,9 @@ importers:
       '@alsham/cashflow':
         specifier: workspace:*
         version: link:../../packages/cashflow
+      '@alsham/checklists':
+        specifier: workspace:*
+        version: link:../../packages/checklists
       '@alsham/config':
         specifier: workspace:*
         version: link:../../packages/config
@@ -105,6 +111,9 @@ importers:
       '@alsham/inventory':
         specifier: workspace:*
         version: link:../../packages/inventory
+      '@alsham/leads':
+        specifier: workspace:*
+        version: link:../../packages/leads
       '@alsham/maintenance':
         specifier: workspace:*
         version: link:../../packages/maintenance
@@ -126,6 +135,12 @@ importers:
       '@alsham/quotes':
         specifier: workspace:*
         version: link:../../packages/quotes
+      '@alsham/spaces':
+        specifier: workspace:*
+        version: link:../../packages/spaces
+      '@alsham/visits':
+        specifier: workspace:*
+        version: link:../../packages/visits
       '@supabase/ssr':
         specifier: ^0.12.3
         version: 0.12.3(@supabase/supabase-js@2.110.8)
@@ -203,6 +218,19 @@ importers:
         specifier: ^5.7.2
         version: 5.9.3
 
+  packages/assets:
+    dependencies:
+      '@alsham/core':
+        specifier: workspace:*
+        version: link:../core
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.2
+        version: 22.20.1
+      typescript:
+        specifier: ^5.7.2
+        version: 5.9.3
+
   packages/billing:
     dependencies:
       '@alsham/core':
@@ -230,6 +258,19 @@ importers:
         version: 5.9.3
 
   packages/cashflow:
+    dependencies:
+      '@alsham/core':
+        specifier: workspace:*
+        version: link:../core
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.2
+        version: 22.20.1
+      typescript:
+        specifier: ^5.7.2
+        version: 5.9.3
+
+  packages/checklists:
     dependencies:
       '@alsham/core':
         specifier: workspace:*
@@ -345,6 +386,19 @@ importers:
         specifier: ^5.7.2
         version: 5.9.3
 
+  packages/leads:
+    dependencies:
+      '@alsham/core':
+        specifier: workspace:*
+        version: link:../core
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.2
+        version: 22.20.1
+      typescript:
+        specifier: ^5.7.2
+        version: 5.9.3
+
   packages/maintenance:
     dependencies:
       '@alsham/core':
@@ -430,6 +484,32 @@ importers:
         version: 5.9.3
 
   packages/quotes:
+    dependencies:
+      '@alsham/core':
+        specifier: workspace:*
+        version: link:../core
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.2
+        version: 22.20.1
+      typescript:
+        specifier: ^5.7.2
+        version: 5.9.3
+
+  packages/spaces:
+    dependencies:
+      '@alsham/core':
+        specifier: workspace:*
+        version: link:../core
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.2
+        version: 22.20.1
+      typescript:
+        specifier: ^5.7.2
+        version: 5.9.3
+
+  packages/visits:
     dependencies:
       '@alsham/core':
         specifier: workspace:*

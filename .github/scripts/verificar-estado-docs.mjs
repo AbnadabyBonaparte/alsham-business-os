@@ -379,6 +379,68 @@ export const PECAS = [
     onde: 'packages/maintenance/',
   },
   {
+    nome: 'Módulo 18 — Patrimônio',
+    detector: [
+      'packages/assets/src/manifest.ts',
+      'packages/assets/src/assets.ts',
+      'supabase/migrations/0033_pat.sql',
+    ],
+    // ⚠️ NUNCA a palavra "patrimônio" solta: ela é capacidade da Taxonomia e
+    // aparece em prosa de canon desde a Trina ("Patrimônio é a Onda 2"). O
+    // padrão exige o NOME DA PEÇA.
+    padrao: /(m[óo]dulo 18|packages\/assets|@alsham\/assets|0033_pat)/i,
+    onde: 'packages/assets/',
+  },
+  {
+    nome: 'Módulo 19 — Checklists',
+    detector: [
+      'packages/checklists/src/manifest.ts',
+      'packages/checklists/src/checklists.ts',
+      'supabase/migrations/0034_chk.sql',
+    ],
+    // ⚠️ NUNCA a palavra "checklist" solta: ela é capacidade da Taxonomia e
+    // vocabulário de prosa do canon. O padrão exige o NOME DA PEÇA.
+    padrao: /(m[óo]dulo 19|packages\/checklists|@alsham\/checklists|0034_chk)/i,
+    onde: 'packages/checklists/',
+  },
+  {
+    nome: 'Módulo 20 — Reserva de Espaços',
+    detector: [
+      'packages/spaces/src/manifest.ts',
+      'packages/spaces/src/spaces.ts',
+      'supabase/migrations/0035_spc.sql',
+    ],
+    // ⚠️ NUNCA "reserva" nem "espaço" soltos: são prosa comum do canon. O
+    // padrão exige o NOME DA PEÇA.
+    padrao: /(m[óo]dulo 20|packages\/spaces|@alsham\/spaces|0035_spc)/i,
+    onde: 'packages/spaces/',
+  },
+  {
+    nome: 'Módulo 21 — Visitas',
+    detector: [
+      'packages/visits/src/manifest.ts',
+      'packages/visits/src/visits.ts',
+      'supabase/migrations/0036_vis.sql',
+    ],
+    // ⚠️ NUNCA "visita" solta: a Taxonomia tem a Visitas do CRM (a do
+    // vendedor) e a prosa do canon usa a palavra. O padrão exige o NOME DA
+    // PEÇA.
+    padrao: /(m[óo]dulo 21|packages\/visits|@alsham\/visits|0036_vis)/i,
+    onde: 'packages/visits/',
+  },
+  {
+    nome: 'Módulo 22 — Leads',
+    detector: [
+      'packages/leads/src/manifest.ts',
+      'packages/leads/src/leads.ts',
+      'supabase/migrations/0037_lead.sql',
+    ],
+    // ⚠️ NUNCA "lead" solto: a palavra aparece na prosa comercial do canon
+    // (o PRIMA, os dossiês). O padrão exige o NOME DA PEÇA.
+    padrao: /(m[óo]dulo 22|packages\/leads|@alsham\/leads|0037_lead)/i,
+    onde: 'packages/leads/',
+  },
+  {
     nome: 'Menu filtrado por permissão',
     detector: ['packages/permissions/src/menu.ts'],
     // A dívida da Etapa 10 foi paga: os itens de menu não são mais escritos à

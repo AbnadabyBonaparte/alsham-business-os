@@ -1278,7 +1278,282 @@ on conflict (module_id) do update set
   status          = excluded.status,
   updated_at      = now();
 
--- ⛔ Dezessete módulos no catálogo, zero permissão concedida pelo seed.
+-- -----------------------------------------------------------------------------
+-- 4.16 O MÓDULO `pat` NO CATÁLOGO DA STORE — o 18º cartão
+-- -----------------------------------------------------------------------------
+-- Patrimônio (Domain operations — capacidade *Patrimônio*). A localização
+-- vigente é calculada do livro de transferências (nunca coluna); a baixa é
+-- terminal com razão escrita. A ponte do mnt (`asset_id`) continua SOLTA.
+-- `consumes` vazio por decisão de canon (Lei 7) — ver a spec §5.
+-- =============================================================================
+
+insert into core.module_registry (
+  module_id, name, version, summary,
+  layer, domain_key,
+  capabilities, permissions, events_emits, events_consumes, agents,
+  requires_core, status
+)
+values (
+  'pat',
+  'Patrimônio',
+  '0.1.0',
+  'O livro de bens do tenant: etiqueta única, categoria desenhada pelo tenant, localização vigente calculada do livro de transferências — e a baixa terminal, com razão escrita e carimbo do servidor.',
+  'domain', 'operations',
+  '[
+     {"key":"assets","canonicalName":"Patrimônio"}
+   ]'::jsonb,
+  '[
+     {"key":"pat.asset.manage","moduleId":"pat","description":"Cadastrar e editar bens, e registrar transferências de localização."},
+     {"key":"pat.asset.decide","moduleId":"pat","description":"Baixar bens (alienação, perda, sucata) — ato terminal, com razão escrita."},
+     {"key":"pat.setup.manage","moduleId":"pat","description":"Desenhar as categorias de bens do tenant — nome livre, nunca enum."}
+   ]'::jsonb,
+  '[
+     {"type":"pat.asset.registered","version":1,"description":"Um bem entrou no livro — com etiqueta, categoria e onde nasceu."},
+     {"type":"pat.asset.updated","version":1,"description":"O bem mudou no que é FATO: nome, etiqueta, categoria, valor, data."},
+     {"type":"pat.asset.transferred","version":1,"description":"O bem mudou de lugar — de onde (carimbado pelo servidor) para onde."},
+     {"type":"pat.asset.retired","version":1,"description":"O bem foi baixado — terminal, com a razão escrita. O que volta é aquisição nova."}
+   ]'::jsonb,
+  '[]'::jsonb,
+  '[]'::jsonb,
+  '0.0.x',
+  'published'
+)
+on conflict (module_id) do update set
+  name            = excluded.name,
+  version         = excluded.version,
+  summary         = excluded.summary,
+  layer           = excluded.layer,
+  domain_key      = excluded.domain_key,
+  vertical_key    = excluded.vertical_key,
+  capabilities    = excluded.capabilities,
+  permissions     = excluded.permissions,
+  events_emits    = excluded.events_emits,
+  events_consumes = excluded.events_consumes,
+  agents          = excluded.agents,
+  requires_core   = excluded.requires_core,
+  status          = excluded.status,
+  updated_at      = now();
+
+-- -----------------------------------------------------------------------------
+-- 4.17 O MÓDULO `chk` NO CATÁLOGO DA STORE — o 19º cartão
+-- -----------------------------------------------------------------------------
+-- Checklists (Domain operations — capacidade *Checklist*). O modelo é
+-- desenho do tenant; executar CONGELA o modelo por cópia (gatilho); a
+-- resposta é ato imutável; concluir exige tudo respondido.
+-- `consumes` vazio por decisão de canon (Lei 7) — ver a spec §5.
+-- =============================================================================
+
+insert into core.module_registry (
+  module_id, name, version, summary,
+  layer, domain_key,
+  capabilities, permissions, events_emits, events_consumes, agents,
+  requires_core, status
+)
+values (
+  'chk',
+  'Checklists',
+  '0.1.0',
+  'Os checklists do tenant: o modelo é desenho livre (itens ordenados, texto livre); executar congela o modelo daquele momento; cada resposta é ato carimbado que não se rasura — e concluir exige tudo respondido.',
+  'domain', 'operations',
+  '[
+     {"key":"checklists","canonicalName":"Checklist"}
+   ]'::jsonb,
+  '[
+     {"key":"chk.run.execute","moduleId":"chk","description":"Abrir execuções, responder itens (ato carimbado), concluir e abandonar com razão."},
+     {"key":"chk.setup.manage","moduleId":"chk","description":"Desenhar os modelos de checklist do tenant — itens ordenados, texto livre."}
+   ]'::jsonb,
+  '[
+     {"type":"chk.run.started","version":1,"description":"Uma execução abriu — com o modelo congelado daquele momento."},
+     {"type":"chk.run.completed","version":1,"description":"A execução foi concluída — tudo respondido, com as contagens no envelope. Terminal."},
+     {"type":"chk.run.abandoned","version":1,"description":"A execução foi abandonada — com a razão escrita. A inspeção refeita é outra inspeção."}
+   ]'::jsonb,
+  '[]'::jsonb,
+  '[]'::jsonb,
+  '0.0.x',
+  'published'
+)
+on conflict (module_id) do update set
+  name            = excluded.name,
+  version         = excluded.version,
+  summary         = excluded.summary,
+  layer           = excluded.layer,
+  domain_key      = excluded.domain_key,
+  vertical_key    = excluded.vertical_key,
+  capabilities    = excluded.capabilities,
+  permissions     = excluded.permissions,
+  events_emits    = excluded.events_emits,
+  events_consumes = excluded.events_consumes,
+  agents          = excluded.agents,
+  requires_core   = excluded.requires_core,
+  status          = excluded.status,
+  updated_at      = now();
+
+-- -----------------------------------------------------------------------------
+-- 4.18 O MÓDULO `spc` NO CATÁLOGO DA STORE — o 20º cartão
+-- -----------------------------------------------------------------------------
+-- Reserva de Espaços (Domain operations — Facilities). O conflito é recusado
+-- pelo BANCO (exclusion constraint, parcial: a cancelada libera sozinha); o
+-- passado é permitido — fato consumado; cancelar exige razão.
+-- `consumes` vazio por decisão de canon (Lei 7) — ver a spec §5.
+-- =============================================================================
+
+insert into core.module_registry (
+  module_id, name, version, summary,
+  layer, domain_key,
+  capabilities, permissions, events_emits, events_consumes, agents,
+  requires_core, status
+)
+values (
+  'spc',
+  'Reserva de Espaços',
+  '0.1.0',
+  'Os espaços do tenant e a agenda deles: período meio-aberto, conflito recusado pelo BANCO (exclusion constraint — a cancelada libera sozinha), o passado permitido como fato consumado e o cancelamento com razão escrita.',
+  'domain', 'operations',
+  '[
+     {"key":"space-booking","canonicalName":"Reserva de espaços"}
+   ]'::jsonb,
+  '[
+     {"key":"spc.reservation.manage","moduleId":"spc","description":"Reservar períodos, remarcar e cancelar com razão escrita."},
+     {"key":"spc.setup.manage","moduleId":"spc","description":"Desenhar os espaços do tenant — nome livre, capacidade opcional; arquivado volta."}
+   ]'::jsonb,
+  '[
+     {"type":"spc.reservation.booked","version":1,"description":"Um período foi prometido — espaço pelo nome, início e fim no envelope."},
+     {"type":"spc.reservation.updated","version":1,"description":"A reserva mudou no que é FATO: período, finalidade, espaço."},
+     {"type":"spc.reservation.cancelled","version":1,"description":"A reserva foi cancelada — terminal, com a razão escrita. O período ficou livre sozinho."}
+   ]'::jsonb,
+  '[]'::jsonb,
+  '[]'::jsonb,
+  '0.0.x',
+  'published'
+)
+on conflict (module_id) do update set
+  name            = excluded.name,
+  version         = excluded.version,
+  summary         = excluded.summary,
+  layer           = excluded.layer,
+  domain_key      = excluded.domain_key,
+  vertical_key    = excluded.vertical_key,
+  capabilities    = excluded.capabilities,
+  permissions     = excluded.permissions,
+  events_emits    = excluded.events_emits,
+  events_consumes = excluded.events_consumes,
+  agents          = excluded.agents,
+  requires_core   = excluded.requires_core,
+  status          = excluded.status,
+  updated_at      = now();
+
+-- -----------------------------------------------------------------------------
+-- 4.19 O MÓDULO `vis` NO CATÁLOGO DA STORE — o 21º cartão
+-- -----------------------------------------------------------------------------
+-- Visitas (Domain operations — a portaria é operação; a Visitas do CRM é a
+-- do vendedor). Entrada e saída carimbadas pelo servidor; o registro não se
+-- rasura (correção é registro novo); o documento não passeia pelo correio.
+-- `consumes` vazio por decisão de canon (Lei 7) — ver a spec §5.
+-- =============================================================================
+
+insert into core.module_registry (
+  module_id, name, version, summary,
+  layer, domain_key,
+  capabilities, permissions, events_emits, events_consumes, agents,
+  requires_core, status
+)
+values (
+  'vis',
+  'Visitas',
+  '0.1.0',
+  'O livro da portaria: visitante neutro, destino em texto livre, entrada e saída carimbadas pelo servidor, agendamento opcional antes — e o registro que não se rasura: corrigir é registrar de novo, apontando o errado.',
+  'domain', 'operations',
+  '[
+     {"key":"visitor-log","canonicalName":"Visitas"}
+   ]'::jsonb,
+  '[
+     {"key":"vis.visit.register","moduleId":"vis","description":"Operar a cancela: registrar entrada (walk-in), saída e o não-comparecimento."},
+     {"key":"vis.visit.schedule","moduleId":"vis","description":"Agendar visitas e desmarcá-las com razão escrita."}
+   ]'::jsonb,
+  '[
+     {"type":"vis.visit.scheduled","version":1,"description":"Uma visita foi agendada — nome e destino no envelope; o documento fica na portaria."},
+     {"type":"vis.visit.arrived","version":1,"description":"O visitante entrou — carimbo do servidor no ato."},
+     {"type":"vis.visit.departed","version":1,"description":"O visitante saiu — o segundo carimbo fecha a passagem. Terminal."},
+     {"type":"vis.visit.missed","version":1,"description":"O agendado não veio — observação da cancela. Terminal."},
+     {"type":"vis.visit.cancelled","version":1,"description":"O agendamento foi desmarcado — com a razão escrita. Terminal."}
+   ]'::jsonb,
+  '[]'::jsonb,
+  '[]'::jsonb,
+  '0.0.x',
+  'published'
+)
+on conflict (module_id) do update set
+  name            = excluded.name,
+  version         = excluded.version,
+  summary         = excluded.summary,
+  layer           = excluded.layer,
+  domain_key      = excluded.domain_key,
+  vertical_key    = excluded.vertical_key,
+  capabilities    = excluded.capabilities,
+  permissions     = excluded.permissions,
+  events_emits    = excluded.events_emits,
+  events_consumes = excluded.events_consumes,
+  agents          = excluded.agents,
+  requires_core   = excluded.requires_core,
+  status          = excluded.status,
+  updated_at      = now();
+
+-- -----------------------------------------------------------------------------
+-- 4.20 O MÓDULO `lead` NO CATÁLOGO DA STORE — o 22º cartão
+-- -----------------------------------------------------------------------------
+-- Leads (Domain crm — capacidade *Leads*). A fila de entrada: origem TEXTO
+-- LIVRE, ciclo curto com desfechos terminais (o lead é a manifestação de
+-- interesse — quem volta é lead novo), vínculos SOLTOS carimbados pela tela.
+-- `consumes` vazio por decisão de canon (Lei 7) — ver a spec §5.
+-- =============================================================================
+
+insert into core.module_registry (
+  module_id, name, version, summary,
+  layer, domain_key,
+  capabilities, permissions, events_emits, events_consumes, agents,
+  requires_core, status
+)
+values (
+  'lead',
+  'Leads',
+  '0.1.0',
+  'A fila de entrada do comercial: origem em TEXTO LIVRE (o dado que a fila existe para guardar), ciclo curto com a volta à fila permitida, desfechos terminais com carimbo — e o vínculo SOLTO com a contraparte e o negócio de quem qualificou.',
+  'domain', 'crm',
+  '[
+     {"key":"leads","canonicalName":"Leads"}
+   ]'::jsonb,
+  '[
+     {"key":"lead.lead.manage","moduleId":"lead","description":"Registrar leads, atender, devolver à fila e atribuir responsável."},
+     {"key":"lead.lead.decide","moduleId":"lead","description":"Qualificar (carimbando os vínculos soltos) e descartar com razão — atos terminais."}
+   ]'::jsonb,
+  '[
+     {"type":"lead.lead.created","version":1,"description":"Um interesse entrou na fila — nome, origem e interesse no envelope; o contato fica."},
+     {"type":"lead.lead.updated","version":1,"description":"O lead mudou no que é FATO: atendimento, devolução à fila, responsável, origem."},
+     {"type":"lead.lead.qualified","version":1,"description":"Qualificado — terminal, com os vínculos soltos carimbados (contraparte, negócio)."},
+     {"type":"lead.lead.discarded","version":1,"description":"Descartado — terminal, com a razão escrita. Quem volta é lead novo."}
+   ]'::jsonb,
+  '[]'::jsonb,
+  '[]'::jsonb,
+  '0.0.x',
+  'published'
+)
+on conflict (module_id) do update set
+  name            = excluded.name,
+  version         = excluded.version,
+  summary         = excluded.summary,
+  layer           = excluded.layer,
+  domain_key      = excluded.domain_key,
+  vertical_key    = excluded.vertical_key,
+  capabilities    = excluded.capabilities,
+  permissions     = excluded.permissions,
+  events_emits    = excluded.events_emits,
+  events_consumes = excluded.events_consumes,
+  agents          = excluded.agents,
+  requires_core   = excluded.requires_core,
+  status          = excluded.status,
+  updated_at      = now();
+
+-- ⛔ Vinte e dois módulos no catálogo, zero permissão concedida pelo seed.
 
 -- =============================================================================
 -- 5. PLANOS-BASE
