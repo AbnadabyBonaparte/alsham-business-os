@@ -356,6 +356,16 @@ export const PECAS = [
     onde: 'packages/care/',
   },
   {
+    nome: 'Módulo 16 — Ocorrências',
+    detector: [
+      'packages/occurrences/src/manifest.ts',
+      'packages/occurrences/src/occurrence.ts',
+      'supabase/migrations/0031_occ.sql',
+    ],
+    padrao: /(m[óo]dulo 16|packages\/occurrences|@alsham\/occurrences|0031_occ)/i,
+    onde: 'packages/occurrences/',
+  },
+  {
     nome: 'Menu filtrado por permissão',
     detector: ['packages/permissions/src/menu.ts'],
     // A dívida da Etapa 10 foi paga: os itens de menu não são mais escritos à
@@ -468,6 +478,7 @@ const SECOES = [
   { arquivo: 'docs/canon/MODULO-CTR-SPEC.md', titulo: '## 6. ESTADO DA OBRA' },
   { arquivo: 'docs/canon/MODULO-CASH-SPEC.md', titulo: '## 6. ESTADO DA OBRA' },
   { arquivo: 'docs/canon/MODULO-CARE-SPEC.md', titulo: '## 6. ESTADO DA OBRA' },
+  { arquivo: 'docs/canon/MODULO-OCC-SPEC.md', titulo: '## 6. ESTADO DA OBRA' },
 ];
 
 /**

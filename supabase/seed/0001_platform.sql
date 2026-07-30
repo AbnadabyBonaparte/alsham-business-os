@@ -1165,7 +1165,63 @@ on conflict (module_id) do update set
   status          = excluded.status,
   updated_at      = now();
 
--- ⛔ Quinze módulos no catálogo, zero permissão concedida pelo seed.
+-- -----------------------------------------------------------------------------
+-- 4.14 O MÓDULO `occ` NO CATÁLOGO DA STORE — o 16º cartão
+-- -----------------------------------------------------------------------------
+-- Ocorrências (Domain operations — capacidade *Ocorrências*). O livro do
+-- fato consumado: registro imutável desde o nascimento (a física que diverge
+-- do care), tratativa em atos eternos, encerramento com desfecho — terminal.
+-- `consumes` vazio por decisão de canon (Lei 7) — ver a spec §5.
+-- =============================================================================
+
+insert into core.module_registry (
+  module_id, name, version, summary,
+  layer, domain_key,
+  capabilities, permissions, events_emits, events_consumes, agents,
+  requires_core, status
+)
+values (
+  'occ',
+  'Ocorrências',
+  '0.1.0',
+  'O livro do que aconteceu: registro imutável do fato consumado, gravidade desenhada pelo tenant, tratativa em atos eternos e encerramento com desfecho escrito — terminal.',
+  'domain', 'operations',
+  '[
+     {"key":"incident-log","canonicalName":"Ocorrências"}
+   ]'::jsonb,
+  '[
+     {"key":"occ.occurrence.register","moduleId":"occ","description":"Registrar o fato consumado — o registro nasce imutável."},
+     {"key":"occ.occurrence.treat","moduleId":"occ","description":"Registrar tratativas — a cadeia de atos eternos sobre a ocorrência aberta."},
+     {"key":"occ.occurrence.close","moduleId":"occ","description":"Encerrar com o desfecho escrito — ato carimbado e terminal."},
+     {"key":"occ.setup.manage","moduleId":"occ","description":"Desenhar a régua de gravidade do tenant — nome livre e posição, nunca enum."}
+   ]'::jsonb,
+  '[
+     {"type":"occ.occurrence.registered","version":1,"description":"Um fato foi registrado — relato, local, envolvidos e gravidade pelo nome."},
+     {"type":"occ.occurrence.treated","version":1,"description":"Uma tratativa entrou na cadeia — o que foi feito, por quem, quando."},
+     {"type":"occ.occurrence.closed","version":1,"description":"A ocorrência foi encerrada — ato carimbado, com o desfecho escrito. Terminal."}
+   ]'::jsonb,
+  '[]'::jsonb,
+  '[]'::jsonb,
+  '0.0.x',
+  'published'
+)
+on conflict (module_id) do update set
+  name            = excluded.name,
+  version         = excluded.version,
+  summary         = excluded.summary,
+  layer           = excluded.layer,
+  domain_key      = excluded.domain_key,
+  vertical_key    = excluded.vertical_key,
+  capabilities    = excluded.capabilities,
+  permissions     = excluded.permissions,
+  events_emits    = excluded.events_emits,
+  events_consumes = excluded.events_consumes,
+  agents          = excluded.agents,
+  requires_core   = excluded.requires_core,
+  status          = excluded.status,
+  updated_at      = now();
+
+-- ⛔ Dezesseis módulos no catálogo, zero permissão concedida pelo seed.
 
 -- =============================================================================
 -- 5. PLANOS-BASE

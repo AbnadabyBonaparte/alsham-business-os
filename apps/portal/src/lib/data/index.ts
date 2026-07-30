@@ -32,6 +32,8 @@ import { createDunMockPort } from './dun-mock';
 import { createCtrMockPort } from './ctr-mock';
 import { createCashMockPort } from './cash-mock';
 import { createCareMockPort } from './care-mock';
+import { createOccMockPort } from './occ-mock';
+import { createOccSupabasePort } from './occ-supabase';
 import { createCareSupabasePort } from './care-supabase';
 import { createCashSupabasePort } from './cash-supabase';
 import { createCtrSupabasePort } from './ctr-supabase';
@@ -53,6 +55,7 @@ import type { DunPort } from './dun-port';
 import type { CtrPort } from './ctr-port';
 import type { CashPort } from './cash-port';
 import type { CarePort } from './care-port';
+import type { OccPort } from './occ-port';
 import type { OpsPort } from './ops-port';
 import type { ForgePort } from './forge-port';
 import type { BrandPort } from './brand-port';
@@ -75,6 +78,7 @@ export type { DunPort, RulerWithSteps, DunTitleRow } from './dun-port';
 export type { CtrPort, ContractRow } from './ctr-port';
 export type { CashPort, EntryRow } from './cash-port';
 export type { CarePort, TicketRow } from './care-port';
+export type { OccPort, OccurrenceRow } from './occ-port';
 export type { OpsPort, PipelineWithStages } from './ops-port';
 export type { ForgePort, GenerationResponse } from './forge-port';
 export type { BrandPort } from './brand-port';
@@ -336,6 +340,16 @@ export async function getCarePort(): Promise<CarePort> {
   if (!db) return createCareMockPort();
 
   return createCareSupabasePort(db, session.activeTenant.id);
+}
+
+export async function getOccPort(): Promise<OccPort> {
+  const session = await resolveSession();
+  if (session.mode !== 'authenticated') return createOccMockPort();
+
+  const db = await createSupabaseServerClient();
+  if (!db) return createOccMockPort();
+
+  return createOccSupabasePort(db, session.activeTenant.id);
 }
 
 /**
