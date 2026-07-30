@@ -396,6 +396,18 @@ jobs:
           echo "após 1x: $ANTES | após 3x: $DEPOIS"
           [ "$ANTES" = "$DEPOIS" ] || { echo "::error::seed NÃO é idempotente"; exit 1; }
 
+      # ⭐ 42/42 — a campanha das 6 Ondas está completa no catálogo.
+      # ⚠️ Contado AQUI, logo após o seed, e não no fim do job: o
+      # `04_install_module.sql` insere o fixture `terceiro` (status='published')
+      # para provar o teto do plano, e ele fica no banco. No fim do job a conta
+      # daria 43 — 42 do catálogo + 1 de teste. Antes dos testes, o registro é
+      # exatamente o seed.
+      - name: quarenta e dois módulos publicados no catálogo
+        run: |
+          T=$($PSQL -tAc "select count(*) from core.module_registry where status='published';")
+          [ "$T" = "42" ] || { echo "::error::esperava 42 módulos publicados (campanha das 6 Ondas): [$T]"; exit 1; }
+          echo "⭐ 42/42 módulos publicados — Campanha das 6 Ondas COMPLETA."
+
       # ---------------------------------------------------------------------
       # 3. AS INVARIANTES DE SEGURANÇA — as mesmas do runbook
       # ---------------------------------------------------------------------
@@ -1760,13 +1772,6 @@ jobs:
             [ "$C" = "0" ] || { echo "::error::o módulo $M deveria ter consumes vazio: [$C]"; exit 1; }
           done
           echo "mall·lease·fund·park·sec — consumes vazio, sem handler (Lei 7)."
-
-      # ⭐ 42/42 — a campanha das 6 Ondas está completa no catálogo.
-      - name: quarenta e dois módulos publicados no catálogo
-        run: |
-          T=$($PSQL -tAc "select count(*) from core.module_registry where status='published';")
-          [ "$T" = "42" ] || { echo "::error::esperava 42 módulos publicados (campanha das 6 Ondas): [$T]"; exit 1; }
-          echo "⭐ 42/42 módulos publicados — Campanha das 6 Ondas COMPLETA."
 
       - name: nenhuma porta de DELETE em quote.proposals
         run: |
