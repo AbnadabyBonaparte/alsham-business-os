@@ -1312,6 +1312,20 @@ Store:
 Nenhum agente aplica em produção. A conferência de segurança do PASSO 15
 (§ pós-apply) vale para os schemas novos.
 
+## PASSO 20 — A MISSÃO SETE: o Bloco Financeiro (`0043` em diante)
+
+O rito é o mesmo — migration na ordem, seed, Data API, Store:
+
+1. **Aplicar a migration** no SQL Editor, na ordem:
+   - `0043_cc.sql` — Módulo 28, Centros de Custo & Rateio (schema `cc`)
+2. **Reaplicar o seed** — os cartões novos entram no catálogo.
+3. ⚠️ **Expor os schemas novos na Data API**: `cc`. Sem isso as telas
+   carregam vazias, sem erro que diga o motivo.
+4. **Instalar cada módulo pela Store**, no tenant que o contratou.
+
+Nenhum agente aplica em produção. A conferência de segurança do PASSO 15
+(§ pós-apply) vale para os schemas novos.
+
 ## O QUE AINDA NÃO EXISTE
 
 Honestidade de escopo, para você não procurar o que não foi construído:

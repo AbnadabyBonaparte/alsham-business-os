@@ -55,6 +55,8 @@ import { createMediaMockPort } from './media-mock';
 import { createMediaSupabasePort } from './media-supabase';
 import { createNpsMockPort } from './nps-mock';
 import { createNpsSupabasePort } from './nps-supabase';
+import { createCcMockPort } from './cc-mock';
+import { createCcSupabasePort } from './cc-supabase';
 import { createOccSupabasePort } from './occ-supabase';
 import { createCareSupabasePort } from './care-supabase';
 import { createCashSupabasePort } from './cash-supabase';
@@ -89,6 +91,7 @@ import type { CommPort } from './comm-port';
 import type { EdcalPort } from './edcal-port';
 import type { MediaPort } from './media-port';
 import type { NpsPort } from './nps-port';
+import type { CcPort } from './cc-port';
 import type { OpsPort } from './ops-port';
 import type { ForgePort } from './forge-port';
 import type { BrandPort } from './brand-port';
@@ -123,6 +126,7 @@ export type { CommPort, NoticeRow } from './comm-port';
 export type { EdcalPort, PieceRow } from './edcal-port';
 export type { MediaPort, AssetRowMedia } from './media-port';
 export type { NpsPort, SurveyRow } from './nps-port';
+export type { CcPort, CenterRow, RuleRow, ExecutionRow, ByCenterRow } from './cc-port';
 export type { OpsPort, PipelineWithStages } from './ops-port';
 export type { ForgePort, GenerationResponse } from './forge-port';
 export type { BrandPort } from './brand-port';
@@ -506,6 +510,16 @@ export async function getNpsPort(): Promise<NpsPort> {
   if (!db) return createNpsMockPort();
 
   return createNpsSupabasePort(db, session.activeTenant.id);
+}
+
+export async function getCcPort(): Promise<CcPort> {
+  const session = await resolveSession();
+  if (session.mode !== 'authenticated') return createCcMockPort();
+
+  const db = await createSupabaseServerClient();
+  if (!db) return createCcMockPort();
+
+  return createCcSupabasePort(db, session.activeTenant.id);
 }
 
 /**

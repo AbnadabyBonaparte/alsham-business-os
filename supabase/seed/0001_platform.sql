@@ -1836,7 +1836,65 @@ on conflict (module_id) do update set
   status          = excluded.status,
   updated_at      = now();
 
--- ⛔ Vinte e sete módulos no catálogo, zero permissão concedida pelo seed.
+-- =============================================================================
+-- 4.26 O MÓDULO `cc` NO CATÁLOGO DA STORE — o 28º cartão
+-- -----------------------------------------------------------------------------
+-- Centros de Custo & Rateio (Domain finance — o primeiro da Missão Sete, o
+-- Bloco Financeiro). Centro é dado do tenant (volta do arquivo); a regra
+-- fecha 100% ao ativar (física); a execução é ato de gente que gera
+-- lançamentos imutáveis, com a origem por id solto + nome carimbado.
+-- `consumes` vazio e honesto — quem executa é gente.
+-- =============================================================================
+
+insert into core.module_registry (
+  module_id, name, version, summary,
+  layer, domain_key,
+  capabilities, permissions, events_emits, events_consumes, agents,
+  requires_core, status
+)
+values (
+  'cc',
+  'Centros de Custo & Rateio',
+  '0.1.0',
+  'Os centros de custo do tenant (que voltam do arquivo), as regras de rateio que fecham 100% ao ativar, e a execução como ato de gente: lançamentos imutáveis, um por centro, sem perder centavo — com a origem por id solto e nome carimbado.',
+  'domain', 'finance',
+  '[
+     {"key":"cost-centers","canonicalName":"Centros de custo"},
+     {"key":"cost-allocation","canonicalName":"Rateio"}
+   ]'::jsonb,
+  '[
+     {"key":"cc.center.manage","moduleId":"cc","description":"Cadastrar centros de custo, arquivar e devolver ao ativo."},
+     {"key":"cc.rule.design","moduleId":"cc","description":"Desenhar as regras de rateio: centros e percentuais; ativar (exige 100%) e arquivar."},
+     {"key":"cc.rateio.execute","moduleId":"cc","description":"Executar uma regra ativa sobre um valor, gerando os lançamentos de rateio (ato de gente)."}
+   ]'::jsonb,
+  '[
+     {"type":"cc.center.registered","version":1,"description":"Um centro de custo entrou no cadastro."},
+     {"type":"cc.center.archived","version":1,"description":"Um centro saiu de uso — a história e as execuções ficam."},
+     {"type":"cc.rule.activated","version":1,"description":"Uma regra fechou 100% e passou a ratear."},
+     {"type":"cc.rateio.executed","version":1,"description":"Um rateio foi executado — a regra, a origem pelo nome e o total no envelope; os valores por centro ficam no livro."}
+   ]'::jsonb,
+  '[]'::jsonb,
+  '[]'::jsonb,
+  '0.0.x',
+  'published'
+)
+on conflict (module_id) do update set
+  name            = excluded.name,
+  version         = excluded.version,
+  summary         = excluded.summary,
+  layer           = excluded.layer,
+  domain_key      = excluded.domain_key,
+  vertical_key    = excluded.vertical_key,
+  capabilities    = excluded.capabilities,
+  permissions     = excluded.permissions,
+  events_emits    = excluded.events_emits,
+  events_consumes = excluded.events_consumes,
+  agents          = excluded.agents,
+  requires_core   = excluded.requires_core,
+  status          = excluded.status,
+  updated_at      = now();
+
+-- ⛔ Vinte e oito módulos no catálogo, zero permissão concedida pelo seed.
 
 -- =============================================================================
 -- 5. PLANOS-BASE

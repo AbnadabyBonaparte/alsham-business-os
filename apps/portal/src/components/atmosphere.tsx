@@ -415,6 +415,21 @@ function OrnamentNps() {
   );
 }
 
+/** Centros de Custo — o círculo que se reparte em fatias que fecham o todo. */
+function OrnamentCc() {
+  return (
+    <svg viewBox="0 0 400 400" aria-hidden {...stroke}>
+      <circle cx="200" cy="200" r="92" strokeOpacity="0.32" />
+      <path d="M200 200 L200 108" strokeOpacity="0.4" />
+      <path d="M200 200 L280 246" strokeOpacity="0.4" />
+      <path d="M200 200 L120 246" strokeOpacity="0.4" />
+      <path d="M200 200 m0 -92 a92 92 0 0 1 80 46" strokeOpacity="0.2" strokeDasharray="2 6" />
+      <circle cx="200" cy="200" r="6" strokeOpacity="0.5" />
+      <path d="M96 320 h208" strokeOpacity="0.18" strokeDasharray="2 8" />
+    </svg>
+  );
+}
+
 /** Ajustes / a marca — o selo do tabelionato modernizado (§5.3). */
 function OrnamentSeal() {
   return (
@@ -482,6 +497,7 @@ const SCENES: readonly (readonly [string, Scene])[] = [
   ['/calendario', { sun: '72% 0%', depth: '18% 100%', ornament: <OrnamentEdcal />, ornamentClass: RIGHT }],
   ['/midia', { sun: '18% 0%', depth: '85% 100%', ornament: <OrnamentMedia />, ornamentClass: LEFT }],
   ['/pesquisas', { sun: '78% 0%', depth: '12% 100%', ornament: <OrnamentNps />, ornamentClass: RIGHT }],
+  ['/centros-de-custo', { sun: '55% 0%', depth: '20% 100%', ornament: <OrnamentCc />, ornamentClass: RIGHT }],
   ['/ajustes', { sun: '50% 0%', depth: '50% 100%', ornament: <OrnamentSeal />, ornamentClass: RIGHT }],
   ['/login', { sun: '50% 12%', depth: '50% 100%', ornament: <OrnamentLogin />, ornamentClass: CENTER_LOW }],
   ['/', CORE_SCENE],

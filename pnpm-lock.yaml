@@ -96,6 +96,9 @@ importers:
       '@alsham/core':
         specifier: workspace:*
         version: link:../../packages/core
+      '@alsham/cost-centers':
+        specifier: workspace:*
+        version: link:../../packages/cost-centers
       '@alsham/crm':
         specifier: workspace:*
         version: link:../../packages/crm
@@ -332,6 +335,19 @@ importers:
 
   packages/core:
     devDependencies:
+      typescript:
+        specifier: ^5.7.2
+        version: 5.9.3
+
+  packages/cost-centers:
+    dependencies:
+      '@alsham/core':
+        specifier: workspace:*
+        version: link:../core
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.2
+        version: 22.20.1
       typescript:
         specifier: ^5.7.2
         version: 5.9.3

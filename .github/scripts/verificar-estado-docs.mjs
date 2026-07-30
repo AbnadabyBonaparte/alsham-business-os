@@ -501,6 +501,16 @@ export const PECAS = [
     onde: 'packages/nps/',
   },
   {
+    nome: 'Módulo 28 — Centros de Custo & Rateio',
+    detector: [
+      'packages/cost-centers/src/manifest.ts',
+      'packages/cost-centers/src/cost-centers.ts',
+      'supabase/migrations/0043_cc.sql',
+    ],
+    padrao: /(m[óo]dulo 28|packages\/cost-centers|@alsham\/cost-centers|0043_cc)/i,
+    onde: 'packages/cost-centers/',
+  },
+  {
     nome: 'Menu filtrado por permissão',
     detector: ['packages/permissions/src/menu.ts'],
     // A dívida da Etapa 10 foi paga: os itens de menu não são mais escritos à
