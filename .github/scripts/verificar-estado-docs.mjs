@@ -404,6 +404,18 @@ export const PECAS = [
     onde: 'packages/checklists/',
   },
   {
+    nome: 'Módulo 20 — Reserva de Espaços',
+    detector: [
+      'packages/spaces/src/manifest.ts',
+      'packages/spaces/src/spaces.ts',
+      'supabase/migrations/0035_spc.sql',
+    ],
+    // ⚠️ NUNCA "reserva" nem "espaço" soltos: são prosa comum do canon. O
+    // padrão exige o NOME DA PEÇA.
+    padrao: /(m[óo]dulo 20|packages\/spaces|@alsham\/spaces|0035_spc)/i,
+    onde: 'packages/spaces/',
+  },
+  {
     nome: 'Menu filtrado por permissão',
     detector: ['packages/permissions/src/menu.ts'],
     // A dívida da Etapa 10 foi paga: os itens de menu não são mais escritos à

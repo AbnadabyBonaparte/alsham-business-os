@@ -39,6 +39,8 @@ import { createPatMockPort } from './pat-mock';
 import { createPatSupabasePort } from './pat-supabase';
 import { createChkMockPort } from './chk-mock';
 import { createChkSupabasePort } from './chk-supabase';
+import { createSpcMockPort } from './spc-mock';
+import { createSpcSupabasePort } from './spc-supabase';
 import { createOccSupabasePort } from './occ-supabase';
 import { createCareSupabasePort } from './care-supabase';
 import { createCashSupabasePort } from './cash-supabase';
@@ -65,6 +67,7 @@ import type { OccPort } from './occ-port';
 import type { MntPort } from './mnt-port';
 import type { PatPort } from './pat-port';
 import type { ChkPort } from './chk-port';
+import type { SpcPort } from './spc-port';
 import type { OpsPort } from './ops-port';
 import type { ForgePort } from './forge-port';
 import type { BrandPort } from './brand-port';
@@ -91,6 +94,7 @@ export type { OccPort, OccurrenceRow } from './occ-port';
 export type { MntPort, MntOrderRow } from './mnt-port';
 export type { PatPort, AssetRow } from './pat-port';
 export type { ChkPort, ChkRunRow } from './chk-port';
+export type { SpcPort, ReservationRow } from './spc-port';
 export type { OpsPort, PipelineWithStages } from './ops-port';
 export type { ForgePort, GenerationResponse } from './forge-port';
 export type { BrandPort } from './brand-port';
@@ -392,6 +396,16 @@ export async function getChkPort(): Promise<ChkPort> {
   if (!db) return createChkMockPort();
 
   return createChkSupabasePort(db, session.activeTenant.id);
+}
+
+export async function getSpcPort(): Promise<SpcPort> {
+  const session = await resolveSession();
+  if (session.mode !== 'authenticated') return createSpcMockPort();
+
+  const db = await createSupabaseServerClient();
+  if (!db) return createSpcMockPort();
+
+  return createSpcSupabasePort(db, session.activeTenant.id);
 }
 
 /**

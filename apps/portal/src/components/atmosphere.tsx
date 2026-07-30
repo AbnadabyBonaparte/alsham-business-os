@@ -302,6 +302,20 @@ function OrnamentChk() {
   );
 }
 
+/** Espaços — a planta da sala e o arco do período reservado. */
+function OrnamentSpc() {
+  return (
+    <svg viewBox="0 0 400 400" aria-hidden {...stroke}>
+      <rect x="100" y="110" width="200" height="140" rx="8" strokeOpacity="0.3" />
+      <path d="M100 180 h70 M230 180 h70 M170 110 v40 M230 250 v-40" strokeOpacity="0.2" />
+      <path d="M120 310 h160" strokeOpacity="0.25" />
+      <path d="M150 310 a50 50 0 0 1 100 0" strokeOpacity="0.4" />
+      <circle cx="150" cy="310" r="3" strokeOpacity="0.5" />
+      <circle cx="250" cy="310" r="3" strokeOpacity="0.5" />
+    </svg>
+  );
+}
+
 /** Ajustes / a marca — o selo do tabelionato modernizado (§5.3). */
 function OrnamentSeal() {
   return (
@@ -361,6 +375,7 @@ const SCENES: readonly (readonly [string, Scene])[] = [
   ['/esteira', { sun: '70% 0%', depth: '20% 100%', ornament: <OrnamentOps />, ornamentClass: RIGHT }],
   ['/patrimonio', { sun: '88% 4%', depth: '8% 96%', ornament: <OrnamentPat />, ornamentClass: RIGHT }],
   ['/checklists', { sun: '22% 0%', depth: '88% 100%', ornament: <OrnamentChk />, ornamentClass: RIGHT }],
+  ['/espacos', { sun: '65% 0%', depth: '18% 100%', ornament: <OrnamentSpc />, ornamentClass: RIGHT }],
   ['/ajustes', { sun: '50% 0%', depth: '50% 100%', ornament: <OrnamentSeal />, ornamentClass: RIGHT }],
   ['/login', { sun: '50% 12%', depth: '50% 100%', ornament: <OrnamentLogin />, ornamentClass: CENTER_LOW }],
   ['/', CORE_SCENE],

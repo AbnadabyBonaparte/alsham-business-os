@@ -1388,7 +1388,61 @@ on conflict (module_id) do update set
   status          = excluded.status,
   updated_at      = now();
 
--- ⛔ Dezenove módulos no catálogo, zero permissão concedida pelo seed.
+-- -----------------------------------------------------------------------------
+-- 4.18 O MÓDULO `spc` NO CATÁLOGO DA STORE — o 20º cartão
+-- -----------------------------------------------------------------------------
+-- Reserva de Espaços (Domain operations — Facilities). O conflito é recusado
+-- pelo BANCO (exclusion constraint, parcial: a cancelada libera sozinha); o
+-- passado é permitido — fato consumado; cancelar exige razão.
+-- `consumes` vazio por decisão de canon (Lei 7) — ver a spec §5.
+-- =============================================================================
+
+insert into core.module_registry (
+  module_id, name, version, summary,
+  layer, domain_key,
+  capabilities, permissions, events_emits, events_consumes, agents,
+  requires_core, status
+)
+values (
+  'spc',
+  'Reserva de Espaços',
+  '0.1.0',
+  'Os espaços do tenant e a agenda deles: período meio-aberto, conflito recusado pelo BANCO (exclusion constraint — a cancelada libera sozinha), o passado permitido como fato consumado e o cancelamento com razão escrita.',
+  'domain', 'operations',
+  '[
+     {"key":"space-booking","canonicalName":"Reserva de espaços"}
+   ]'::jsonb,
+  '[
+     {"key":"spc.reservation.manage","moduleId":"spc","description":"Reservar períodos, remarcar e cancelar com razão escrita."},
+     {"key":"spc.setup.manage","moduleId":"spc","description":"Desenhar os espaços do tenant — nome livre, capacidade opcional; arquivado volta."}
+   ]'::jsonb,
+  '[
+     {"type":"spc.reservation.booked","version":1,"description":"Um período foi prometido — espaço pelo nome, início e fim no envelope."},
+     {"type":"spc.reservation.updated","version":1,"description":"A reserva mudou no que é FATO: período, finalidade, espaço."},
+     {"type":"spc.reservation.cancelled","version":1,"description":"A reserva foi cancelada — terminal, com a razão escrita. O período ficou livre sozinho."}
+   ]'::jsonb,
+  '[]'::jsonb,
+  '[]'::jsonb,
+  '0.0.x',
+  'published'
+)
+on conflict (module_id) do update set
+  name            = excluded.name,
+  version         = excluded.version,
+  summary         = excluded.summary,
+  layer           = excluded.layer,
+  domain_key      = excluded.domain_key,
+  vertical_key    = excluded.vertical_key,
+  capabilities    = excluded.capabilities,
+  permissions     = excluded.permissions,
+  events_emits    = excluded.events_emits,
+  events_consumes = excluded.events_consumes,
+  agents          = excluded.agents,
+  requires_core   = excluded.requires_core,
+  status          = excluded.status,
+  updated_at      = now();
+
+-- ⛔ Vinte módulos no catálogo, zero permissão concedida pelo seed.
 
 -- =============================================================================
 -- 5. PLANOS-BASE
