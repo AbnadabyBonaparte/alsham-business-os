@@ -326,7 +326,7 @@ security definer
 set search_path = ''
 as $$
 begin
-  -- ⭐ SEM visitor_document e SEM visitor_contact — de propósito (cabeçalho).
+  -- ⭐ SEM o documento e SEM o contato do visitante — de propósito (cabeçalho).
   return jsonb_build_object(
     'visitId',       p.id,
     'visitorName',   p.visitor_name,
