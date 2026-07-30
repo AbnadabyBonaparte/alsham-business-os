@@ -36,6 +36,7 @@
     "@alsham/nps": "workspace:*",
     "@alsham/cost-centers": "workspace:*",
     "@alsham/budgets": "workspace:*",
+    "@alsham/bank-accounts": "workspace:*",
     "@alsham/leads": "workspace:*",
     "@alsham/maintenance": "workspace:*",
     "@alsham/marketing": "workspace:*",

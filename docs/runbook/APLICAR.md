@@ -1319,9 +1319,10 @@ O rito é o mesmo — migration na ordem, seed, Data API, Store:
 1. **Aplicar a migration** no SQL Editor, na ordem:
    - `0043_cc.sql` — Módulo 28, Centros de Custo & Rateio (schema `cc`)
    - `0044_bud.sql` — Módulo 29, Orçamentos (schema `bud`)
+   - `0045_bank.sql` — Módulo 30, Contas Bancárias (schema `bank`)
 2. **Reaplicar o seed** — os cartões novos entram no catálogo.
-3. ⚠️ **Expor os schemas novos na Data API**: `cc`, `bud`. Sem isso as telas
-   carregam vazias, sem erro que diga o motivo.
+3. ⚠️ **Expor os schemas novos na Data API**: `cc`, `bud`, `bank`. Sem isso as
+   telas carregam vazias, sem erro que diga o motivo.
 4. ⛔🔴 **REDEPLOYAR o `apps/api` — ESTA ONDA EXIGE.** O Módulo 29 (`bud`)
    é CONSUMIDOR: ele escuta `cash.entry.registered` e projeta o realizado.
    A inscrição (`cash.*` → `bud.record_external_movement`) só existe no
@@ -1373,6 +1374,8 @@ Honestidade de escopo, para você não procurar o que não foi construído:
 | Política de repetição de geração que FALHOU | **NÃO CONSTRUÍDA** — repetir chamada paga sem política é pagar duas vezes por um erro. Declarado no cabeçalho do `0019` |
 | Módulo 28 — Centros de Custo & Rateio (`0043_cc.sql`) | ✅ **CONSTRUÍDO** — arquivo, ainda não aplicado (§20). **Expor schema `cc`.** `consumes` vazio: sem redeploy do `apps/api` |
 | Módulo 29 — Orçamentos (`0044_bud.sql`) | ✅ **CONSTRUÍDO** — arquivo, ainda não aplicado (§20). **Expor schema `bud`.** ⛔🔴 **CONSUMIDOR: EXIGE redeploy do `apps/api`** (a projeção `cash.*` → `bud.record_external_movement`) |
+| Módulo 30 — Contas Bancárias (`0045_bank.sql`) | ✅ **CONSTRUÍDO** — arquivo, ainda não aplicado (§20). **Expor schema `bank`.** `consumes` vazio (SOL ÚNICO: a conciliação é do recon): sem redeploy do `apps/api` |
+| Conciliação bancária refeita no `bank` | **NÃO EXISTE, por lei** — a mesa/OFX/casamento são do `recon` (Sol Único) |
 | Realizado do orçamento por CENTRO / orçamento de RECEITA / forecast | **NÃO CONSTRUÍDO** — ver `MODULO-BUD-SPEC §5` |
 | Painel Executivo (`0021`) | ✅ **CONSTRUÍDO** — arquivo, ainda não aplicado (§14). É **Core**: não entra no catálogo |
 | Fechar o `EXECUTE` de `PUBLIC` (`0022`) | ✅ **CONSTRUÍDO** — arquivo, ainda não aplicado (§15). ⛔ Aplique junto com o `0021` |

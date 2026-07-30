@@ -1956,6 +1956,64 @@ on conflict (module_id) do update set
 -- ⛔ Vinte e nove módulos no catálogo, zero permissão concedida pelo seed.
 
 -- =============================================================================
+-- 4.28 O MÓDULO `bank` NO CATÁLOGO DA STORE — o 30º cartão
+-- -----------------------------------------------------------------------------
+-- Contas Bancárias (Domain finance — o terceiro da Missão Sete). SOL ÚNICO: a
+-- conciliação é do recon; aqui é o cadastro das contas (voltam do arquivo) e o
+-- livro por conta. O saldo é view e PODE ser negativo (cheque especial); a
+-- transferência é atômica. `consumes` vazio e honesto (dupla contagem).
+-- =============================================================================
+
+insert into core.module_registry (
+  module_id, name, version, summary,
+  layer, domain_key,
+  capabilities, permissions, events_emits, events_consumes, agents,
+  requires_core, status
+)
+values (
+  'bank',
+  'Contas Bancárias',
+  '0.1.0',
+  'As contas do tenant (que voltam do arquivo) e o livro de movimentos por conta, imutável. O saldo é a soma do livro — pode ser negativo (cheque especial). A transferência é atômica: duas pernas, uma transação. Não refaz a conciliação (é do recon).',
+  'domain', 'finance',
+  '[
+     {"key":"bank-accounts","canonicalName":"Bancos"}
+   ]'::jsonb,
+  '[
+     {"key":"bank.account.manage","moduleId":"bank","description":"Cadastrar contas bancárias, arquivar e devolver ao ativo."},
+     {"key":"bank.movement.register","moduleId":"bank","description":"Lançar entrada/saída no livro de uma conta e transferir entre contas."},
+     {"key":"bank.movement.adjust","moduleId":"bank","description":"Ajustar o saldo de uma conta — ato com razão obrigatória, de quem confere."}
+   ]'::jsonb,
+  '[
+     {"type":"bank.account.registered","version":1,"description":"Uma conta bancária entrou no cadastro."},
+     {"type":"bank.account.archived","version":1,"description":"Uma conta saiu de uso — o livro dela continua inteiro."},
+     {"type":"bank.movement.registered","version":1,"description":"Um movimento entrou no livro de uma conta — com o sinal do tipo e a competência."},
+     {"type":"bank.transfer.executed","version":1,"description":"Uma transferência entre duas contas foi executada — as duas pernas ligadas pelo transfer_id."}
+   ]'::jsonb,
+  '[]'::jsonb,
+  '[]'::jsonb,
+  '0.0.x',
+  'published'
+)
+on conflict (module_id) do update set
+  name            = excluded.name,
+  version         = excluded.version,
+  summary         = excluded.summary,
+  layer           = excluded.layer,
+  domain_key      = excluded.domain_key,
+  vertical_key    = excluded.vertical_key,
+  capabilities    = excluded.capabilities,
+  permissions     = excluded.permissions,
+  events_emits    = excluded.events_emits,
+  events_consumes = excluded.events_consumes,
+  agents          = excluded.agents,
+  requires_core   = excluded.requires_core,
+  status          = excluded.status,
+  updated_at      = now();
+
+-- ⛔ Trinta módulos no catálogo, zero permissão concedida pelo seed.
+
+-- =============================================================================
 -- 5. PLANOS-BASE
 -- Minerado de: `plan_limits` (5 planos) do kraken-v2 (PROVADO em produção).
 -- -----------------------------------------------------------------------------

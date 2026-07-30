@@ -521,6 +521,16 @@ export const PECAS = [
     onde: 'packages/budgets/',
   },
   {
+    nome: 'Módulo 30 — Contas Bancárias',
+    detector: [
+      'packages/bank-accounts/src/manifest.ts',
+      'packages/bank-accounts/src/bank-accounts.ts',
+      'supabase/migrations/0045_bank.sql',
+    ],
+    padrao: /(m[óo]dulo 30|packages\/bank-accounts|@alsham\/bank-accounts|0045_bank)/i,
+    onde: 'packages/bank-accounts/',
+  },
+  {
     nome: 'Menu filtrado por permissão',
     detector: ['packages/permissions/src/menu.ts'],
     // A dívida da Etapa 10 foi paga: os itens de menu não são mais escritos à

@@ -447,6 +447,22 @@ function OrnamentBud() {
   );
 }
 
+/** Contas Bancárias — duas contas e o arco da transferência entre elas. */
+function OrnamentBank() {
+  return (
+    <svg viewBox="0 0 400 400" aria-hidden {...stroke}>
+      {/* Duas contas — dois cofres redondos. */}
+      <circle cx="130" cy="230" r="46" strokeOpacity="0.34" />
+      <circle cx="270" cy="230" r="46" strokeOpacity="0.34" />
+      {/* O arco da transferência — a ponte entre as duas. */}
+      <path d="M130 184 q70 -70 140 0" strokeOpacity="0.4" />
+      <path d="M258 178 l14 6 -6 14" strokeOpacity="0.4" />
+      {/* A linha do saldo — pode descer abaixo de zero. */}
+      <path d="M96 300 h208" strokeOpacity="0.2" strokeDasharray="2 8" />
+    </svg>
+  );
+}
+
 /** Ajustes / a marca — o selo do tabelionato modernizado (§5.3). */
 function OrnamentSeal() {
   return (
@@ -516,6 +532,7 @@ const SCENES: readonly (readonly [string, Scene])[] = [
   ['/pesquisas', { sun: '78% 0%', depth: '12% 100%', ornament: <OrnamentNps />, ornamentClass: RIGHT }],
   ['/centros-de-custo', { sun: '55% 0%', depth: '20% 100%', ornament: <OrnamentCc />, ornamentClass: RIGHT }],
   ['/orcamentos', { sun: '42% 0%', depth: '76% 100%', ornament: <OrnamentBud />, ornamentClass: LEFT }],
+  ['/contas-bancarias', { sun: '62% 0%', depth: '30% 100%', ornament: <OrnamentBank />, ornamentClass: RIGHT }],
   ['/ajustes', { sun: '50% 0%', depth: '50% 100%', ornament: <OrnamentSeal />, ornamentClass: RIGHT }],
   ['/login', { sun: '50% 12%', depth: '50% 100%', ornament: <OrnamentLogin />, ornamentClass: CENTER_LOW }],
   ['/', CORE_SCENE],

@@ -59,6 +59,8 @@ import { createCcMockPort } from './cc-mock';
 import { createCcSupabasePort } from './cc-supabase';
 import { createBudMockPort } from './bud-mock';
 import { createBudSupabasePort } from './bud-supabase';
+import { createBankMockPort } from './bank-mock';
+import { createBankSupabasePort } from './bank-supabase';
 import { createOccSupabasePort } from './occ-supabase';
 import { createCareSupabasePort } from './care-supabase';
 import { createCashSupabasePort } from './cash-supabase';
@@ -95,6 +97,7 @@ import type { MediaPort } from './media-port';
 import type { NpsPort } from './nps-port';
 import type { CcPort } from './cc-port';
 import type { BudPort } from './bud-port';
+import type { BankPort } from './bank-port';
 import type { OpsPort } from './ops-port';
 import type { ForgePort } from './forge-port';
 import type { BrandPort } from './brand-port';
@@ -131,6 +134,7 @@ export type { MediaPort, AssetRowMedia } from './media-port';
 export type { NpsPort, SurveyRow } from './nps-port';
 export type { CcPort, CenterRow, RuleRow, ExecutionRow, ByCenterRow } from './cc-port';
 export type { BudPort, BudgetRow } from './bud-port';
+export type { BankPort, AccountRow, BalanceRow, MovementRow as BankMovementRow } from './bank-port';
 export type { OpsPort, PipelineWithStages } from './ops-port';
 export type { ForgePort, GenerationResponse } from './forge-port';
 export type { BrandPort } from './brand-port';
@@ -534,6 +538,16 @@ export async function getBudPort(): Promise<BudPort> {
   if (!db) return createBudMockPort();
 
   return createBudSupabasePort(db, session.activeTenant.id);
+}
+
+export async function getBankPort(): Promise<BankPort> {
+  const session = await resolveSession();
+  if (session.mode !== 'authenticated') return createBankMockPort();
+
+  const db = await createSupabaseServerClient();
+  if (!db) return createBankMockPort();
+
+  return createBankSupabasePort(db, session.activeTenant.id);
 }
 
 /**
