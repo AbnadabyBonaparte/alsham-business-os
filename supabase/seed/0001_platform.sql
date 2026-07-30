@@ -2014,6 +2014,63 @@ on conflict (module_id) do update set
 -- ⛔ Trinta módulos no catálogo, zero permissão concedida pelo seed.
 
 -- =============================================================================
+-- 4.29 O MÓDULO `invest` NO CATÁLOGO DA STORE — o 31º cartão
+-- -----------------------------------------------------------------------------
+-- Investimentos (Domain finance — o quarto da Missão Sete). Livro de atos
+-- imutáveis (aplicação, rendimento, resgate); a posição é a soma dos atos —
+-- SEM cotação de mercado (Lei 3/7). ⭐ Resgatar mais que a posição é RECUSADO
+-- (a terceira resposta: ar permite overpay, inv permite negativo). `consumes`
+-- vazio — rendimento é ato de gente.
+-- =============================================================================
+
+insert into core.module_registry (
+  module_id, name, version, summary,
+  layer, domain_key,
+  capabilities, permissions, events_emits, events_consumes, agents,
+  requires_core, status
+)
+values (
+  'invest',
+  'Investimentos',
+  '0.1.0',
+  'Os investimentos do tenant (que voltam do arquivo) e o livro de atos imutáveis: aplicação, rendimento e resgate. A posição é a soma dos atos — sem cotação de mercado. Resgatar mais que a posição é recusado.',
+  'domain', 'finance',
+  '[
+     {"key":"investments","canonicalName":"Investimentos"}
+   ]'::jsonb,
+  '[
+     {"key":"invest.holding.manage","moduleId":"invest","description":"Cadastrar investimentos, arquivar e devolver ao ativo."},
+     {"key":"invest.movement.register","moduleId":"invest","description":"Registrar atos: aplicação, rendimento e resgate (resgate não passa da posição)."}
+   ]'::jsonb,
+  '[
+     {"type":"invest.holding.registered","version":1,"description":"Um investimento entrou no cadastro."},
+     {"type":"invest.holding.archived","version":1,"description":"Um investimento saiu de uso — o livro dele continua inteiro."},
+     {"type":"invest.movement.registered","version":1,"description":"Um ato entrou no livro — aplicação, rendimento ou resgate, com o sinal e a competência."}
+   ]'::jsonb,
+  '[]'::jsonb,
+  '[]'::jsonb,
+  '0.0.x',
+  'published'
+)
+on conflict (module_id) do update set
+  name            = excluded.name,
+  version         = excluded.version,
+  summary         = excluded.summary,
+  layer           = excluded.layer,
+  domain_key      = excluded.domain_key,
+  vertical_key    = excluded.vertical_key,
+  capabilities    = excluded.capabilities,
+  permissions     = excluded.permissions,
+  events_emits    = excluded.events_emits,
+  events_consumes = excluded.events_consumes,
+  agents          = excluded.agents,
+  requires_core   = excluded.requires_core,
+  status          = excluded.status,
+  updated_at      = now();
+
+-- ⛔ Trinta e um módulos no catálogo, zero permissão concedida pelo seed.
+
+-- =============================================================================
 -- 5. PLANOS-BASE
 -- Minerado de: `plan_limits` (5 planos) do kraken-v2 (PROVADO em produção).
 -- -----------------------------------------------------------------------------

@@ -77,6 +77,7 @@ const MENU: readonly MenuItem[] = [
   { href: '/centros-de-custo', label: 'Centros de Custo', moduleId: 'cc' },
   { href: '/orcamentos', label: 'Orçamentos', moduleId: 'bud' },
   { href: '/contas-bancarias', label: 'Contas Bancárias', moduleId: 'bank' },
+  { href: '/investimentos', label: 'Investimentos', moduleId: 'invest' },
   { href: '/store', label: 'Store', moduleId: null },
   { href: '/ajustes', label: 'Ajustes', moduleId: null },
 ];

@@ -463,6 +463,23 @@ function OrnamentBank() {
   );
 }
 
+/** Investimentos — a semente e a árvore que cresce dos atos, sem prometer. */
+function OrnamentInvest() {
+  return (
+    <svg viewBox="0 0 400 400" aria-hidden {...stroke}>
+      {/* O tronco — o principal aplicado. */}
+      <path d="M200 320 v-120" strokeOpacity="0.4" />
+      {/* Os galhos — os rendimentos que se somam, degrau a degrau. */}
+      <path d="M200 260 l40 -30" strokeOpacity="0.34" />
+      <path d="M200 230 l-40 -30" strokeOpacity="0.34" />
+      <path d="M200 200 l40 -34" strokeOpacity="0.34" />
+      {/* A linha do chão — a posição parte do zero, do que está no papel. */}
+      <path d="M120 320 h160" strokeOpacity="0.2" strokeDasharray="2 8" />
+      <circle cx="200" cy="150" r="6" strokeOpacity="0.5" />
+    </svg>
+  );
+}
+
 /** Ajustes / a marca — o selo do tabelionato modernizado (§5.3). */
 function OrnamentSeal() {
   return (
@@ -533,6 +550,7 @@ const SCENES: readonly (readonly [string, Scene])[] = [
   ['/centros-de-custo', { sun: '55% 0%', depth: '20% 100%', ornament: <OrnamentCc />, ornamentClass: RIGHT }],
   ['/orcamentos', { sun: '42% 0%', depth: '76% 100%', ornament: <OrnamentBud />, ornamentClass: LEFT }],
   ['/contas-bancarias', { sun: '62% 0%', depth: '30% 100%', ornament: <OrnamentBank />, ornamentClass: RIGHT }],
+  ['/investimentos', { sun: '38% 0%', depth: '70% 100%', ornament: <OrnamentInvest />, ornamentClass: LEFT }],
   ['/ajustes', { sun: '50% 0%', depth: '50% 100%', ornament: <OrnamentSeal />, ornamentClass: RIGHT }],
   ['/login', { sun: '50% 12%', depth: '50% 100%', ornament: <OrnamentLogin />, ornamentClass: CENTER_LOW }],
   ['/', CORE_SCENE],
