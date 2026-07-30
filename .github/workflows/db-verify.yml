@@ -348,6 +348,35 @@ jobs:
       - name: aplicar 0052_pol.sql
         run: $PSQL -f supabase/migrations/0052_pol.sql
 
+      # ⭐ MISSÃO NOVE (Onda 6 — a ÚLTIMA). O VERTICAL Shopping Centers: os
+      # cinco primeiros cartões com `vertical_key`, todos `consumes` VAZIO —
+      # sem redeploy do apps/api. Camadas finas sobre os Domains genéricos.
+      # ⭐ O Módulo 38 (mall): o primeiro vertical — lojistas, segmento texto
+      # livre, a unidade física por id solto ao spc; active ↔ archived (o
+      # DIVERGE do hr).
+      - name: aplicar 0053_mall.sql
+        run: $PSQL -f supabase/migrations/0053_mall.sql
+
+      # ⭐ O Módulo 39 (lease): camada comercial sobre o ctr (id solto — não
+      # reescreve a vigência); o relatório de vendas é ato imutável.
+      - name: aplicar 0054_lease.sql
+        run: $PSQL -f supabase/migrations/0054_lease.sql
+
+      # ⭐ O Módulo 40 (fund): livro próprio de contribuições e gastos; o saldo
+      # NUNCA fica negativo (o DIVERGE do bank/inv).
+      - name: aplicar 0055_fund.sql
+        run: $PSQL -f supabase/migrations/0055_fund.sql
+
+      # ⭐ O Módulo 41 (park): a identidade do vis — entrada/saída carimbadas
+      # pelo servidor, correção é registro novo.
+      - name: aplicar 0056_park.sql
+        run: $PSQL -f supabase/migrations/0056_park.sql
+
+      # ⭐ O Módulo 42 (sec): a ÚLTIMA peça — só a RONDA (o incidente é occ);
+      # postos do tenant e o livro de rondas imutável. 42/42 — campanha completa.
+      - name: aplicar 0057_sec.sql
+        run: $PSQL -f supabase/migrations/0057_sec.sql
+
       # ---------------------------------------------------------------------
       # 2. SEED — e a prova de que reaplicar não muda nada
       # ---------------------------------------------------------------------
@@ -375,12 +404,12 @@ jobs:
           FALTA=$($PSQL -tAc "
             select coalesce(string_agg(n.nspname||'.'||c.relname, ', '), '')
               from pg_class c join pg_namespace n on n.oid = c.relnamespace
-             where n.nspname in ('core','recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt','dun','ctr','cash','care','occ','mnt','pat','chk','spc','vis','lead','goal','comm','edcal','media','nps','cc','bud','bank','invest','dre','hr','shift','train','perf','pol') and c.relkind = 'r'
+             where n.nspname in ('core','recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt','dun','ctr','cash','care','occ','mnt','pat','chk','spc','vis','lead','goal','comm','edcal','media','nps','cc','bud','bank','invest','dre','hr','shift','train','perf','pol','mall','lease','fund','park','sec') and c.relkind = 'r'
                and (not c.relrowsecurity or not c.relforcerowsecurity);")
           [ -z "$FALTA" ] || { echo "::error::sem RLS enable+force: $FALTA"; exit 1; }
           $PSQL -c "select n.nspname as schema, count(*) as tabelas
                       from pg_class c join pg_namespace n on n.oid=c.relnamespace
-                     where n.nspname in ('core','recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt','dun','ctr','cash','care','occ','mnt','pat','chk','spc','vis','lead','goal','comm','edcal','media','nps','cc','bud','bank','invest','dre','hr','shift','train','perf','pol') and c.relkind='r'
+                     where n.nspname in ('core','recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt','dun','ctr','cash','care','occ','mnt','pat','chk','spc','vis','lead','goal','comm','edcal','media','nps','cc','bud','bank','invest','dre','hr','shift','train','perf','pol','mall','lease','fund','park','sec') and c.relkind='r'
                      group by 1 order by 1;"
 
       - name: nenhuma policy USING (true)
@@ -390,7 +419,7 @@ jobs:
               from pg_policy p
               join pg_class c on c.oid = p.polrelid
               join pg_namespace n on n.oid = c.relnamespace
-             where n.nspname in ('core','recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt','dun','ctr','cash','care','occ','mnt','pat','chk','spc','vis','lead','goal','comm','edcal','media','nps','cc','bud','bank','invest','dre','hr','shift','train','perf','pol')
+             where n.nspname in ('core','recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt','dun','ctr','cash','care','occ','mnt','pat','chk','spc','vis','lead','goal','comm','edcal','media','nps','cc','bud','bank','invest','dre','hr','shift','train','perf','pol','mall','lease','fund','park','sec')
                and pg_get_expr(p.polqual, p.polrelid) = 'true';")
           [ -z "$ABERTAS" ] || { echo "::error::policy aberta (lição paga do suna-core): $ABERTAS"; exit 1; }
 
@@ -401,7 +430,7 @@ jobs:
                              where n.nspname='public' and c.relkind='r';")
           [ "$PUB" = "0" ] || { echo "::error::$PUB tabela(s) em public — expostas via API"; exit 1; }
           ANON=$($PSQL -tAc "select count(*) from information_schema.role_table_grants
-                              where grantee='anon' and table_schema in ('core','recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt','dun','ctr','cash','care','occ','mnt','pat','chk','spc','vis','lead','goal','comm','edcal','media','nps','cc','bud','bank','invest','dre','hr','shift','train','perf','pol');")
+                              where grantee='anon' and table_schema in ('core','recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt','dun','ctr','cash','care','occ','mnt','pat','chk','spc','vis','lead','goal','comm','edcal','media','nps','cc','bud','bank','invest','dre','hr','shift','train','perf','pol','mall','lease','fund','park','sec');")
           [ "$ANON" = "0" ] || { echo "::error::anon tem $ANON grant(s) no Business OS"; exit 1; }
 
       - name: o seed não semeou tenant nem usuário
@@ -1658,6 +1687,80 @@ jobs:
           done
           echo "hr·shift·train·perf·pol — consumes vazio, sem handler (Lei 7)."
 
+      # =====================================================================
+      # ⭐ MISSÃO NOVE — o VERTICAL Shopping Centers no banco (Módulos 38–42)
+      # =====================================================================
+      - name: teste de lojistas (mall)
+        run: $PSQL -f supabase/tests/43_mall_isolation.sql
+
+      - name: teste de locação (lease)
+        run: $PSQL -f supabase/tests/44_lease_isolation.sql
+
+      - name: teste de fundo de promoção (fund)
+        run: $PSQL -f supabase/tests/45_fund_isolation.sql
+
+      - name: teste de estacionamento (park)
+        run: $PSQL -f supabase/tests/46_park_isolation.sql
+
+      - name: teste de segurança / rondas (sec)
+        run: $PSQL -f supabase/tests/47_sec_isolation.sql
+
+      # ⭐ Os cinco cartões da Missão Nove são VERTICAIS (vertical_key), os
+      # primeiros do catálogo — e a chave é a do @alsham/core / store-taxonomy.
+      - name: os cinco módulos da Missão Nove são verticais shopping-centers
+        run: |
+          N=$($PSQL -tAc "select count(*) from core.module_registry
+                           where layer='vertical' and vertical_key='shopping-centers'
+                             and module_id in ('mall','lease','fund','park','sec');")
+          [ "$N" = "5" ] || { echo "::error::esperava 5 cartões vertical shopping-centers: [$N]"; exit 1; }
+          # ⛔ vertical não pode ter domain_key (CHECK do 0001), e vice-versa.
+          BAD=$($PSQL -tAc "select count(*) from core.module_registry
+                             where module_id in ('mall','lease','fund','park','sec')
+                               and domain_key is not null;")
+          [ "$BAD" = "0" ] || { echo "::error::um cartão vertical carregou domain_key"; exit 1; }
+          echo "mall·lease·fund·park·sec — verticais shopping-centers, o primeiro bloco vertical do catálogo."
+
+      # ⭐⭐ A assinatura do fund: o saldo NUNCA fica negativo (o DIVERGE do
+      # bank/inv). A guarda confere que existe a recusa no schema.
+      #
+      # ⚠️ O CTE `materialized` restringe ao schema `fund` e a funções normais
+      # (prokind='f') ANTES de qualquer chamada a pg_get_functiondef. Sem essa
+      # barreira, o planejador do Postgres 17 pode avaliar pg_get_functiondef
+      # sobre TODO pg_proc antes do filtro de nspname — e ele recusa agregados
+      # ("array_agg is an aggregate function"), quebrando a guarda sem que nada
+      # no fund tenha mudado.
+      - name: o fundo de promoção recusa saldo negativo
+        run: |
+          D=$($PSQL -tAc "with fund_fns as materialized (
+                             select p.oid from pg_proc p
+                              where p.pronamespace = 'fund'::regnamespace
+                                and p.prokind = 'f'
+                           )
+                           select count(*) from fund_fns
+                            where pg_get_functiondef(oid) ilike '%negativ%';")
+          [ "$D" -ge "1" ] || { echo "::error::o fund perdeu a recusa de saldo negativo (o DIVERGE do bank/inv)"; exit 1; }
+
+      # ⭐ O relatório de vendas do lease, a ronda do sec e os livros do fund
+      # são imutáveis (só INSERT,SELECT concedidos).
+      - name: os livros do vertical são imutáveis
+        run: |
+          for PAR in "lease sales_reports" "fund contributions" "fund expenses" "sec patrols"; do
+            set -- $PAR
+            G=$($PSQL -tAc "select coalesce(string_agg(distinct privilege_type, ',' order by privilege_type), '')
+                              from information_schema.role_table_grants
+                             where table_schema='$1' and table_name='$2' and grantee='authenticated';")
+            [ "$G" = "INSERT,SELECT" ] || { echo "::error::$1.$2 tem privilégios além de INSERT,SELECT: [$G]"; exit 1; }
+          done
+
+      # ⭐ Os cinco cartões da onda têm consumes VAZIO (Lei 7).
+      - name: os cinco módulos do vertical têm consumes vazio
+        run: |
+          for M in mall lease fund park sec; do
+            C=$($PSQL -tAc "select jsonb_array_length(events_consumes) from core.module_registry where module_id='$M';")
+            [ "$C" = "0" ] || { echo "::error::o módulo $M deveria ter consumes vazio: [$C]"; exit 1; }
+          done
+          echo "mall·lease·fund·park·sec — consumes vazio, sem handler (Lei 7)."
+
       - name: nenhuma porta de DELETE em quote.proposals
         run: |
           G=$($PSQL -tAc "select count(*) from information_schema.role_table_grants
@@ -1839,15 +1942,16 @@ jobs:
           # `04_install_module.sql` insere módulos FICTÍCIOS no catálogo para
           # provar o instalador: um `rascunho` (para provar que draft não
           # aparece na vitrine) e um `terceiro` publicado (para provar o teto do
-          # plano). Uma contagem ingênua de `status='published'` daria 7 e
+          # plano). Uma contagem ingênua de `status='published'` daria 43 e
           # reprovaria o repositório inteiro, por causa do fixture de outro
-          # teste.
+          # teste. Por isso conta a whitelist dos 42 reais (37 Domain + 5
+          # Vertical) — a Campanha das 6 Ondas COMPLETA.
           #
           # Só apareceu porque os números foram conferidos contra o banco.
           N=$($PSQL -tAc "select count(*) from core.module_registry
                            where status='published'
-                             and module_id in ('recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt','dun','ctr','cash','care','occ','mnt','pat','chk','spc','vis','lead','goal','comm','edcal','media','nps','cc','bud','bank','invest','dre','hr','shift','train','perf','pol');")
-          [ "$N" = "37" ] || { echo "::error::o catálogo tem $N dos 37 módulos reais publicados"; exit 1; }
+                             and module_id in ('recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt','dun','ctr','cash','care','occ','mnt','pat','chk','spc','vis','lead','goal','comm','edcal','media','nps','cc','bud','bank','invest','dre','hr','shift','train','perf','pol','mall','lease','fund','park','sec');")
+          [ "$N" = "42" ] || { echo "::error::o catálogo tem $N dos 42 módulos reais publicados"; exit 1; }
           C=$($PSQL -tAc "select jsonb_array_length(events_consumes)
                             from core.module_registry where module_id='crm';")
           [ "$C" = "0" ] || {
@@ -1986,7 +2090,7 @@ jobs:
           ABERTAS=$($PSQL -tAc "
             select coalesce(string_agg(n.nspname||'.'||p.proname, ', ' order by p.proname), '')
               from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-             where n.nspname in ('core','recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt','dun','ctr','cash','care','occ','mnt','pat','chk','spc','vis','lead','goal','comm','edcal','media','nps','cc','bud','bank','invest','dre','hr','shift','train','perf','pol')
+             where n.nspname in ('core','recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt','dun','ctr','cash','care','occ','mnt','pat','chk','spc','vis','lead','goal','comm','edcal','media','nps','cc','bud','bank','invest','dre','hr','shift','train','perf','pol','mall','lease','fund','park','sec')
                and has_function_privilege('anon', p.oid, 'execute');")
           [ -z "$ABERTAS" ] || { echo "::error::função executável por anon: $ABERTAS"; exit 1; }
 
@@ -1997,7 +2101,7 @@ jobs:
             OK=$($PSQL -tAc "
               select count(*) from pg_proc p join pg_namespace n on n.oid = p.pronamespace
                where p.proname = '$FN'
-                 and n.nspname in ('core','recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt','dun','ctr','cash','care','occ','mnt','pat','chk','spc','vis','lead','goal','comm','edcal','media','nps','cc','bud','bank','invest','dre','hr','shift','train','perf','pol')
+                 and n.nspname in ('core','recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt','dun','ctr','cash','care','occ','mnt','pat','chk','spc','vis','lead','goal','comm','edcal','media','nps','cc','bud','bank','invest','dre','hr','shift','train','perf','pol','mall','lease','fund','park','sec')
                  and has_function_privilege('authenticated', p.oid, 'execute');")
             [ "$OK" -ge 1 ] || { echo "::error::$FN() deixou de ser chamável pelo portal"; exit 1; }
           done
@@ -2663,7 +2767,7 @@ jobs:
       - name: módulo não conhece módulo
         run: |
           FALHOU=0
-          MODULOS="finance-reconciliation marketing accounts-payable crm accounts-receivable purchase-orders ops inventory quotes deals event-management dunning contracts cashflow care occurrences maintenance assets checklists spaces visits leads goals comms editorial media nps cost-centers budgets bank-accounts investments dre hr shift-scheduling training performance policies"
+          MODULOS="finance-reconciliation marketing accounts-payable crm accounts-receivable purchase-orders ops inventory quotes deals event-management dunning contracts cashflow care occurrences maintenance assets checklists spaces visits leads goals comms editorial media nps cost-centers budgets bank-accounts investments dre hr shift-scheduling training performance policies mall lease fund park sec"
 
           # 1. Nenhum módulo importa outro módulo, em nenhuma forma.
           for MOD in $MODULOS; do

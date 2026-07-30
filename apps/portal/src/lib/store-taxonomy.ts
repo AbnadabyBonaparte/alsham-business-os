@@ -75,7 +75,7 @@ export const DOMAIN_TERRITORIES: readonly Territory[] = [
  * Nenhum vertical tem módulo publicado hoje — todas as chaves são provisórias.
  */
 export const VERTICAL_TERRITORIES: readonly Territory[] = [
-  { key: 'shopping', layer: 'vertical', name: 'Shopping Centers', capabilities: 9 },
+  { key: 'shopping-centers', layer: 'vertical', name: 'Shopping Centers', capabilities: 9 },
   { key: 'retail', layer: 'vertical', name: 'Varejo & Supermercados', capabilities: 7 },
   { key: 'energy', layer: 'vertical', name: 'Energia', capabilities: 8 },
   { key: 'health', layer: 'vertical', name: 'Saúde', capabilities: 8 },
