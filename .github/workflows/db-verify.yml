@@ -319,6 +319,35 @@ jobs:
       - name: aplicar 0047_dre.sql
         run: $PSQL -f supabase/migrations/0047_dre.sql
 
+      # ⭐ MISSÃO OITO (Onda 5 — o BLOCO DE PESSOAS). Cinco módulos do Domain
+      # RH, todos com `consumes` VAZIO (nenhum handler nesta onda) — sem
+      # redeploy obrigatório do apps/api.
+      # ⭐ O Módulo 33 (hr): o roster — cargo/departamento texto livre;
+      # on_leave volta, terminated é terminal com razão (o DIVERGE do crm).
+      - name: aplicar 0048_hr.sql
+        run: $PSQL -f supabase/migrations/0048_hr.sql
+
+      # ⭐ O Módulo 34 (shift): a física do spc reaproveitada para a PESSOA —
+      # duas escalas não ocupam o mesmo colaborador no mesmo período
+      # (exclusion, parcial); o passado é permitido.
+      - name: aplicar 0049_shift.sql
+        run: $PSQL -f supabase/migrations/0049_shift.sql
+
+      # ⭐ O Módulo 35 (train): a identidade do evt aplicada ao treino —
+      # turma publicada abre inscrição, presença é ato imutável carimbado.
+      - name: aplicar 0050_train.sql
+        run: $PSQL -f supabase/migrations/0050_train.sql
+
+      # ⭐ O Módulo 36 (perf): avaliador × avaliado (o contraste com o goal);
+      # a avaliação é ato imutável; o ciclo fechado é terminal.
+      - name: aplicar 0051_perf.sql
+        run: $PSQL -f supabase/migrations/0051_perf.sql
+
+      # ⭐ O Módulo 37 (pol): política tem VERSÃO — a ciência é por (política,
+      # versão): versão nova exige ciência de novo (o DIVERGE do comm).
+      - name: aplicar 0052_pol.sql
+        run: $PSQL -f supabase/migrations/0052_pol.sql
+
       # ---------------------------------------------------------------------
       # 2. SEED — e a prova de que reaplicar não muda nada
       # ---------------------------------------------------------------------
@@ -346,12 +375,12 @@ jobs:
           FALTA=$($PSQL -tAc "
             select coalesce(string_agg(n.nspname||'.'||c.relname, ', '), '')
               from pg_class c join pg_namespace n on n.oid = c.relnamespace
-             where n.nspname in ('core','recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt','dun','ctr','cash','care','occ','mnt','pat','chk','spc','vis','lead','goal','comm','edcal','media','nps','cc','bud','bank','invest','dre') and c.relkind = 'r'
+             where n.nspname in ('core','recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt','dun','ctr','cash','care','occ','mnt','pat','chk','spc','vis','lead','goal','comm','edcal','media','nps','cc','bud','bank','invest','dre','hr','shift','train','perf','pol') and c.relkind = 'r'
                and (not c.relrowsecurity or not c.relforcerowsecurity);")
           [ -z "$FALTA" ] || { echo "::error::sem RLS enable+force: $FALTA"; exit 1; }
           $PSQL -c "select n.nspname as schema, count(*) as tabelas
                       from pg_class c join pg_namespace n on n.oid=c.relnamespace
-                     where n.nspname in ('core','recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt','dun','ctr','cash','care','occ','mnt','pat','chk','spc','vis','lead','goal','comm','edcal','media','nps','cc','bud','bank','invest','dre') and c.relkind='r'
+                     where n.nspname in ('core','recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt','dun','ctr','cash','care','occ','mnt','pat','chk','spc','vis','lead','goal','comm','edcal','media','nps','cc','bud','bank','invest','dre','hr','shift','train','perf','pol') and c.relkind='r'
                      group by 1 order by 1;"
 
       - name: nenhuma policy USING (true)
@@ -361,7 +390,7 @@ jobs:
               from pg_policy p
               join pg_class c on c.oid = p.polrelid
               join pg_namespace n on n.oid = c.relnamespace
-             where n.nspname in ('core','recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt','dun','ctr','cash','care','occ','mnt','pat','chk','spc','vis','lead','goal','comm','edcal','media','nps','cc','bud','bank','invest','dre')
+             where n.nspname in ('core','recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt','dun','ctr','cash','care','occ','mnt','pat','chk','spc','vis','lead','goal','comm','edcal','media','nps','cc','bud','bank','invest','dre','hr','shift','train','perf','pol')
                and pg_get_expr(p.polqual, p.polrelid) = 'true';")
           [ -z "$ABERTAS" ] || { echo "::error::policy aberta (lição paga do suna-core): $ABERTAS"; exit 1; }
 
@@ -372,7 +401,7 @@ jobs:
                              where n.nspname='public' and c.relkind='r';")
           [ "$PUB" = "0" ] || { echo "::error::$PUB tabela(s) em public — expostas via API"; exit 1; }
           ANON=$($PSQL -tAc "select count(*) from information_schema.role_table_grants
-                              where grantee='anon' and table_schema in ('core','recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt','dun','ctr','cash','care','occ','mnt','pat','chk','spc','vis','lead','goal','comm','edcal','media','nps','cc','bud','bank','invest','dre');")
+                              where grantee='anon' and table_schema in ('core','recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt','dun','ctr','cash','care','occ','mnt','pat','chk','spc','vis','lead','goal','comm','edcal','media','nps','cc','bud','bank','invest','dre','hr','shift','train','perf','pol');")
           [ "$ANON" = "0" ] || { echo "::error::anon tem $ANON grant(s) no Business OS"; exit 1; }
 
       - name: o seed não semeou tenant nem usuário
@@ -1570,6 +1599,65 @@ jobs:
           [ "$T" = "cash.entry.registered,cc.rateio.executed" ] || { echo "::error::os consumos do dre deveriam ser cash.entry.registered,cc.rateio.executed: [$T]"; exit 1; }
           echo "dre no catálogo consumindo cash.entry.registered e cc.rateio.executed — com handler."
 
+      # =====================================================================
+      # ⭐ MISSÃO OITO — o BLOCO DE PESSOAS no banco (Módulos 33–37)
+      # =====================================================================
+      - name: teste de colaboradores (hr)
+        run: $PSQL -f supabase/tests/38_hr_isolation.sql
+
+      - name: teste de escalas (shift)
+        run: $PSQL -f supabase/tests/39_shift_isolation.sql
+
+      - name: teste de treinamentos (train)
+        run: $PSQL -f supabase/tests/40_train_isolation.sql
+
+      - name: teste de avaliação (perf)
+        run: $PSQL -f supabase/tests/41_perf_isolation.sql
+
+      - name: teste de políticas (pol)
+        run: $PSQL -f supabase/tests/42_pol_isolation.sql
+
+      # ⭐ A física do shift é EXCLUSION sobre o COLABORADOR (não o espaço).
+      - name: a escala do shift é exclusion parcial sobre o colaborador
+        run: |
+          E=$($PSQL -tAc "select pg_get_constraintdef(c.oid) from pg_constraint c
+                            join pg_class t on t.oid=c.conrelid
+                            join pg_namespace n on n.oid=t.relnamespace
+                           where n.nspname='shift' and c.contype='x';")
+          echo "$E" | grep -q "employee_id" || { echo "::error::a exclusion do shift não é sobre o colaborador"; exit 1; }
+          echo "$E" | grep -q "scheduled" || { echo "::error::a exclusion do shift não é parcial (cancelada libera)"; exit 1; }
+
+      # ⭐ A avaliação do perf é imutável (nem UPDATE nem DELETE concedidos).
+      - name: a avaliação do perf é imutável
+        run: |
+          G=$($PSQL -tAc "select coalesce(string_agg(distinct privilege_type, ',' order by privilege_type), '')
+                            from information_schema.role_table_grants
+                           where table_schema='perf' and table_name='reviews' and grantee='authenticated';")
+          [ "$G" = "INSERT,SELECT" ] || { echo "::error::perf.reviews tem privilégios além de INSERT,SELECT: [$G]"; exit 1; }
+
+      # ⭐ A ciência do pol é por VERSÃO (unique version_id,user_id) — o DIVERGE do comm.
+      - name: a ciência do pol é por versão, não por documento
+        run: |
+          U=$($PSQL -tAc "select count(*) from pg_constraint c
+                            join pg_class t on t.oid=c.conrelid
+                            join pg_namespace n on n.oid=t.relnamespace
+                           where n.nspname='pol' and t.relname='acknowledgements' and c.contype='u'
+                             and pg_get_constraintdef(c.oid) ilike '%version_id%user_id%';")
+          [ "$U" = "1" ] || { echo "::error::a ciência do pol não é unique por (version_id,user_id) — o DIVERGE do comm sumiu"; exit 1; }
+          G=$($PSQL -tAc "select coalesce(string_agg(distinct privilege_type, ',' order by privilege_type), '')
+                            from information_schema.role_table_grants
+                           where table_schema='pol' and table_name='acknowledgements' and grantee='authenticated';")
+          [ "$G" = "INSERT,SELECT" ] || { echo "::error::pol.acknowledgements tem privilégios além de INSERT,SELECT: [$G]"; exit 1; }
+
+      # ⭐ Os cinco cartões da onda têm consumes VAZIO (Lei 7).
+      - name: os cinco módulos do Bloco de Pessoas têm consumes vazio
+        run: |
+          for M in hr shift train perf pol; do
+            C=$($PSQL -tAc "select jsonb_array_length(events_consumes) from core.module_registry where module_id='$M';")
+            [ "$C" = "0" ] || { echo "::error::o módulo $M deveria ter consumes vazio: [$C]"; exit 1; }
+          done
+          echo "hr·shift·train·perf·pol — consumes vazio, sem handler (Lei 7)."
+
       - name: nenhuma porta de DELETE em quote.proposals
         run: |
           G=$($PSQL -tAc "select count(*) from information_schema.role_table_grants
@@ -1758,8 +1846,8 @@ jobs:
           # Só apareceu porque os números foram conferidos contra o banco.
           N=$($PSQL -tAc "select count(*) from core.module_registry
                            where status='published'
-                             and module_id in ('recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt','dun','ctr','cash','care','occ','mnt','pat','chk','spc','vis','lead','goal','comm','edcal','media','nps','cc','bud','bank','invest','dre');")
-          [ "$N" = "32" ] || { echo "::error::o catálogo tem $N dos 32 módulos reais publicados"; exit 1; }
+                             and module_id in ('recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt','dun','ctr','cash','care','occ','mnt','pat','chk','spc','vis','lead','goal','comm','edcal','media','nps','cc','bud','bank','invest','dre','hr','shift','train','perf','pol');")
+          [ "$N" = "37" ] || { echo "::error::o catálogo tem $N dos 37 módulos reais publicados"; exit 1; }
           C=$($PSQL -tAc "select jsonb_array_length(events_consumes)
                             from core.module_registry where module_id='crm';")
           [ "$C" = "0" ] || {
@@ -1898,7 +1986,7 @@ jobs:
           ABERTAS=$($PSQL -tAc "
             select coalesce(string_agg(n.nspname||'.'||p.proname, ', ' order by p.proname), '')
               from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-             where n.nspname in ('core','recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt','dun','ctr','cash','care','occ','mnt','pat','chk','spc','vis','lead','goal','comm','edcal','media','nps','cc','bud','bank','invest','dre')
+             where n.nspname in ('core','recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt','dun','ctr','cash','care','occ','mnt','pat','chk','spc','vis','lead','goal','comm','edcal','media','nps','cc','bud','bank','invest','dre','hr','shift','train','perf','pol')
                and has_function_privilege('anon', p.oid, 'execute');")
           [ -z "$ABERTAS" ] || { echo "::error::função executável por anon: $ABERTAS"; exit 1; }
 
@@ -1909,7 +1997,7 @@ jobs:
             OK=$($PSQL -tAc "
               select count(*) from pg_proc p join pg_namespace n on n.oid = p.pronamespace
                where p.proname = '$FN'
-                 and n.nspname in ('core','recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt','dun','ctr','cash','care','occ','mnt','pat','chk','spc','vis','lead','goal','comm','edcal','media','nps','cc','bud','bank','invest','dre')
+                 and n.nspname in ('core','recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt','dun','ctr','cash','care','occ','mnt','pat','chk','spc','vis','lead','goal','comm','edcal','media','nps','cc','bud','bank','invest','dre','hr','shift','train','perf','pol')
                  and has_function_privilege('authenticated', p.oid, 'execute');")
             [ "$OK" -ge 1 ] || { echo "::error::$FN() deixou de ser chamável pelo portal"; exit 1; }
           done
@@ -2575,7 +2663,7 @@ jobs:
       - name: módulo não conhece módulo
         run: |
           FALHOU=0
-          MODULOS="finance-reconciliation marketing accounts-payable crm accounts-receivable purchase-orders ops inventory quotes deals event-management dunning contracts cashflow care occurrences maintenance assets checklists spaces visits leads goals comms editorial media nps cost-centers budgets bank-accounts investments dre"
+          MODULOS="finance-reconciliation marketing accounts-payable crm accounts-receivable purchase-orders ops inventory quotes deals event-management dunning contracts cashflow care occurrences maintenance assets checklists spaces visits leads goals comms editorial media nps cost-centers budgets bank-accounts investments dre hr shift-scheduling training performance policies"
 
           # 1. Nenhum módulo importa outro módulo, em nenhuma forma.
           for MOD in $MODULOS; do

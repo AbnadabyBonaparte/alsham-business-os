@@ -79,6 +79,11 @@ const MENU: readonly MenuItem[] = [
   { href: '/contas-bancarias', label: 'Contas Bancárias', moduleId: 'bank' },
   { href: '/investimentos', label: 'Investimentos', moduleId: 'invest' },
   { href: '/dre', label: 'DRE Gerencial', moduleId: 'dre' },
+  { href: '/colaboradores', label: 'Colaboradores', moduleId: 'hr' },
+  { href: '/escalas', label: 'Escalas', moduleId: 'shift' },
+  { href: '/treinamentos', label: 'Treinamentos', moduleId: 'train' },
+  { href: '/avaliacoes', label: 'Avaliações', moduleId: 'perf' },
+  { href: '/politicas', label: 'Políticas', moduleId: 'pol' },
   { href: '/store', label: 'Store', moduleId: null },
   { href: '/ajustes', label: 'Ajustes', moduleId: null },
 ];
