@@ -343,6 +343,20 @@ function OrnamentLead() {
   );
 }
 
+/** Metas — o alvo e a seta que sobe: o placar da ambição. */
+function OrnamentGoal() {
+  return (
+    <svg viewBox="0 0 400 400" aria-hidden {...stroke}>
+      <circle cx="240" cy="160" r="70" strokeOpacity="0.3" />
+      <circle cx="240" cy="160" r="42" strokeOpacity="0.22" />
+      <circle cx="240" cy="160" r="6" strokeOpacity="0.5" />
+      <path d="M90 310 L160 250 L200 272 L240 160" strokeOpacity="0.4" />
+      <path d="M240 160 l-20 6 m20 -6 l-4 20" strokeOpacity="0.45" />
+      <path d="M80 310 h250" strokeOpacity="0.18" strokeDasharray="2 8" />
+    </svg>
+  );
+}
+
 /** Ajustes / a marca — o selo do tabelionato modernizado (§5.3). */
 function OrnamentSeal() {
   return (
@@ -405,6 +419,7 @@ const SCENES: readonly (readonly [string, Scene])[] = [
   ['/espacos', { sun: '65% 0%', depth: '18% 100%', ornament: <OrnamentSpc />, ornamentClass: RIGHT }],
   ['/visitas', { sun: '15% 5%', depth: '85% 95%', ornament: <OrnamentVis />, ornamentClass: LEFT }],
   ['/leads', { sun: '50% 0%', depth: '20% 100%', ornament: <OrnamentLead />, ornamentClass: RIGHT }],
+  ['/metas', { sun: '80% 0%', depth: '15% 100%', ornament: <OrnamentGoal />, ornamentClass: RIGHT }],
   ['/ajustes', { sun: '50% 0%', depth: '50% 100%', ornament: <OrnamentSeal />, ornamentClass: RIGHT }],
   ['/login', { sun: '50% 12%', depth: '50% 100%', ornament: <OrnamentLogin />, ornamentClass: CENTER_LOW }],
   ['/', CORE_SCENE],

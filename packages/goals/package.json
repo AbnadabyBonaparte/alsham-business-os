@@ -1,0 +1,26 @@
+{
+  "name": "@alsham/goals",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "files": [
+    "src"
+  ],
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "node --experimental-strip-types --test src/**/*.test.ts"
+  },
+  "dependencies": {
+    "@alsham/core": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "typescript": "^5.7.2"
+  },
+  "description": "Módulo 23 — Metas. Domínio puro: o alvo declarado, o livro de check-ins imutáveis, o progresso como último check-in e o desfecho que é decisão de gente."
+}

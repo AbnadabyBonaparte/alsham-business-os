@@ -1553,7 +1553,66 @@ on conflict (module_id) do update set
   status          = excluded.status,
   updated_at      = now();
 
--- ⛔ Vinte e dois módulos no catálogo, zero permissão concedida pelo seed.
+-- -----------------------------------------------------------------------------
+-- 4.21 O MÓDULO `goal` NO CATÁLOGO DA STORE — o 23º cartão
+-- -----------------------------------------------------------------------------
+-- Metas (Domain bi — capacidade *Metas*). O alvo congela na ativação; o
+-- progresso é o último check-in (view, nunca coluna); bater ou perder é
+-- decisão de gente com número na mesa; os fins são terminais.
+-- `consumes` vazio por decisão de canon (Lei 7) — ver a spec §5.
+-- =============================================================================
+
+insert into core.module_registry (
+  module_id, name, version, summary,
+  layer, domain_key,
+  capabilities, permissions, events_emits, events_consumes, agents,
+  requires_core, status
+)
+values (
+  'goal',
+  'Metas',
+  '0.1.0',
+  'A ambição declarada do tenant: métrica em texto livre, alvo opcional que congela na ativação, check-ins como atos imutáveis — e o progresso sempre como o último check-in, calculado. Bater ou perder é decisão de gente, carimbada.',
+  'domain', 'bi',
+  '[
+     {"key":"goals","canonicalName":"Metas"}
+   ]'::jsonb,
+  '[
+     {"key":"goal.goal.manage","moduleId":"goal","description":"Declarar metas, editar o rascunho, ativar e atribuir dono."},
+     {"key":"goal.goal.report","moduleId":"goal","description":"Registrar check-ins — o número na mesa, ato carimbado e imutável."},
+     {"key":"goal.goal.decide","moduleId":"goal","description":"Fechar a época: batida, perdida (com check-in na mesa) ou cancelada com razão."}
+   ]'::jsonb,
+  '[
+     {"type":"goal.goal.opened","version":1,"description":"Uma ambição foi declarada — no rascunho, ainda sem correr."},
+     {"type":"goal.goal.activated","version":1,"description":"A meta passou a correr — alvo, métrica e período congelaram."},
+     {"type":"goal.goal.updated","version":1,"description":"A meta mudou no que segue vivo: título, dono, descrição."},
+     {"type":"goal.goal.reported","version":1,"description":"Um check-in entrou no livro — o número, a nota e o carimbo."},
+     {"type":"goal.goal.achieved","version":1,"description":"A época fechou BATIDA — decisão de gente, com número na mesa. Terminal."},
+     {"type":"goal.goal.missed","version":1,"description":"A época fechou PERDIDA — decisão de gente, com número na mesa. Terminal."},
+     {"type":"goal.goal.cancelled","version":1,"description":"A ambição foi desistida — com a razão escrita. Terminal."}
+   ]'::jsonb,
+  '[]'::jsonb,
+  '[]'::jsonb,
+  '0.0.x',
+  'published'
+)
+on conflict (module_id) do update set
+  name            = excluded.name,
+  version         = excluded.version,
+  summary         = excluded.summary,
+  layer           = excluded.layer,
+  domain_key      = excluded.domain_key,
+  vertical_key    = excluded.vertical_key,
+  capabilities    = excluded.capabilities,
+  permissions     = excluded.permissions,
+  events_emits    = excluded.events_emits,
+  events_consumes = excluded.events_consumes,
+  agents          = excluded.agents,
+  requires_core   = excluded.requires_core,
+  status          = excluded.status,
+  updated_at      = now();
+
+-- ⛔ Vinte e três módulos no catálogo, zero permissão concedida pelo seed.
 
 -- =============================================================================
 -- 5. PLANOS-BASE

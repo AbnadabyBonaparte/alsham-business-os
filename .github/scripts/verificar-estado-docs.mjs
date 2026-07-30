@@ -441,6 +441,18 @@ export const PECAS = [
     onde: 'packages/leads/',
   },
   {
+    nome: 'Módulo 23 — Metas',
+    detector: [
+      'packages/goals/src/manifest.ts',
+      'packages/goals/src/goals.ts',
+      'supabase/migrations/0038_goal.sql',
+    ],
+    // ⚠️ NUNCA "meta" solta: a palavra é prosa constante do canon (a meta
+    // disso, a meta daquilo). O padrão exige o NOME DA PEÇA.
+    padrao: /(m[óo]dulo 23|packages\/goals|@alsham\/goals|0038_goal)/i,
+    onde: 'packages/goals/',
+  },
+  {
     nome: 'Menu filtrado por permissão',
     detector: ['packages/permissions/src/menu.ts'],
     // A dívida da Etapa 10 foi paga: os itens de menu não são mais escritos à

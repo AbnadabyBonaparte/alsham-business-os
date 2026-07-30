@@ -29,6 +29,7 @@
     "@alsham/checklists": "workspace:*",
     "@alsham/spaces": "workspace:*",
     "@alsham/visits": "workspace:*",
+    "@alsham/goals": "workspace:*",
     "@alsham/leads": "workspace:*",
     "@alsham/maintenance": "workspace:*",
     "@alsham/marketing": "workspace:*",

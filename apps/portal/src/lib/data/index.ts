@@ -45,6 +45,8 @@ import { createVisMockPort } from './vis-mock';
 import { createVisSupabasePort } from './vis-supabase';
 import { createLeadMockPort } from './lead-mock';
 import { createLeadSupabasePort } from './lead-supabase';
+import { createGoalMockPort } from './goal-mock';
+import { createGoalSupabasePort } from './goal-supabase';
 import { createOccSupabasePort } from './occ-supabase';
 import { createCareSupabasePort } from './care-supabase';
 import { createCashSupabasePort } from './cash-supabase';
@@ -74,6 +76,7 @@ import type { ChkPort } from './chk-port';
 import type { SpcPort } from './spc-port';
 import type { VisPort } from './vis-port';
 import type { LeadPort } from './lead-port';
+import type { GoalPort } from './goal-port';
 import type { OpsPort } from './ops-port';
 import type { ForgePort } from './forge-port';
 import type { BrandPort } from './brand-port';
@@ -103,6 +106,7 @@ export type { ChkPort, ChkRunRow } from './chk-port';
 export type { SpcPort, ReservationRow } from './spc-port';
 export type { VisPort, VisitRow } from './vis-port';
 export type { LeadPort, LeadRow } from './lead-port';
+export type { GoalPort, GoalRow } from './goal-port';
 export type { OpsPort, PipelineWithStages } from './ops-port';
 export type { ForgePort, GenerationResponse } from './forge-port';
 export type { BrandPort } from './brand-port';
@@ -434,6 +438,16 @@ export async function getLeadPort(): Promise<LeadPort> {
   if (!db) return createLeadMockPort();
 
   return createLeadSupabasePort(db, session.activeTenant.id);
+}
+
+export async function getGoalPort(): Promise<GoalPort> {
+  const session = await resolveSession();
+  if (session.mode !== 'authenticated') return createGoalMockPort();
+
+  const db = await createSupabaseServerClient();
+  if (!db) return createGoalMockPort();
+
+  return createGoalSupabasePort(db, session.activeTenant.id);
 }
 
 /**
