@@ -1442,7 +1442,63 @@ on conflict (module_id) do update set
   status          = excluded.status,
   updated_at      = now();
 
--- ⛔ Vinte módulos no catálogo, zero permissão concedida pelo seed.
+-- -----------------------------------------------------------------------------
+-- 4.19 O MÓDULO `vis` NO CATÁLOGO DA STORE — o 21º cartão
+-- -----------------------------------------------------------------------------
+-- Visitas (Domain operations — a portaria é operação; a Visitas do CRM é a
+-- do vendedor). Entrada e saída carimbadas pelo servidor; o registro não se
+-- rasura (correção é registro novo); o documento não passeia pelo correio.
+-- `consumes` vazio por decisão de canon (Lei 7) — ver a spec §5.
+-- =============================================================================
+
+insert into core.module_registry (
+  module_id, name, version, summary,
+  layer, domain_key,
+  capabilities, permissions, events_emits, events_consumes, agents,
+  requires_core, status
+)
+values (
+  'vis',
+  'Visitas',
+  '0.1.0',
+  'O livro da portaria: visitante neutro, destino em texto livre, entrada e saída carimbadas pelo servidor, agendamento opcional antes — e o registro que não se rasura: corrigir é registrar de novo, apontando o errado.',
+  'domain', 'operations',
+  '[
+     {"key":"visitor-log","canonicalName":"Visitas"}
+   ]'::jsonb,
+  '[
+     {"key":"vis.visit.register","moduleId":"vis","description":"Operar a cancela: registrar entrada (walk-in), saída e o não-comparecimento."},
+     {"key":"vis.visit.schedule","moduleId":"vis","description":"Agendar visitas e desmarcá-las com razão escrita."}
+   ]'::jsonb,
+  '[
+     {"type":"vis.visit.scheduled","version":1,"description":"Uma visita foi agendada — nome e destino no envelope; o documento fica na portaria."},
+     {"type":"vis.visit.arrived","version":1,"description":"O visitante entrou — carimbo do servidor no ato."},
+     {"type":"vis.visit.departed","version":1,"description":"O visitante saiu — o segundo carimbo fecha a passagem. Terminal."},
+     {"type":"vis.visit.missed","version":1,"description":"O agendado não veio — observação da cancela. Terminal."},
+     {"type":"vis.visit.cancelled","version":1,"description":"O agendamento foi desmarcado — com a razão escrita. Terminal."}
+   ]'::jsonb,
+  '[]'::jsonb,
+  '[]'::jsonb,
+  '0.0.x',
+  'published'
+)
+on conflict (module_id) do update set
+  name            = excluded.name,
+  version         = excluded.version,
+  summary         = excluded.summary,
+  layer           = excluded.layer,
+  domain_key      = excluded.domain_key,
+  vertical_key    = excluded.vertical_key,
+  capabilities    = excluded.capabilities,
+  permissions     = excluded.permissions,
+  events_emits    = excluded.events_emits,
+  events_consumes = excluded.events_consumes,
+  agents          = excluded.agents,
+  requires_core   = excluded.requires_core,
+  status          = excluded.status,
+  updated_at      = now();
+
+-- ⛔ Vinte e um módulos no catálogo, zero permissão concedida pelo seed.
 
 -- =============================================================================
 -- 5. PLANOS-BASE

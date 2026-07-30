@@ -316,6 +316,19 @@ function OrnamentSpc() {
   );
 }
 
+/** Visitas — a cancela: a linha da portaria e as duas setas da passagem. */
+function OrnamentVis() {
+  return (
+    <svg viewBox="0 0 400 400" aria-hidden {...stroke}>
+      <path d="M200 90 v220" strokeOpacity="0.3" strokeDasharray="2 8" />
+      <path d="M90 170 h84 m0 0 l-18 -14 m18 14 l-18 14" strokeOpacity="0.42" />
+      <path d="M310 230 h-84 m0 0 l18 -14 m-18 14 l18 14" strokeOpacity="0.3" />
+      <circle cx="200" cy="200" r="12" strokeOpacity="0.45" />
+      <path d="M120 310 h160" strokeOpacity="0.2" />
+    </svg>
+  );
+}
+
 /** Ajustes / a marca — o selo do tabelionato modernizado (§5.3). */
 function OrnamentSeal() {
   return (
@@ -376,6 +389,7 @@ const SCENES: readonly (readonly [string, Scene])[] = [
   ['/patrimonio', { sun: '88% 4%', depth: '8% 96%', ornament: <OrnamentPat />, ornamentClass: RIGHT }],
   ['/checklists', { sun: '22% 0%', depth: '88% 100%', ornament: <OrnamentChk />, ornamentClass: RIGHT }],
   ['/espacos', { sun: '65% 0%', depth: '18% 100%', ornament: <OrnamentSpc />, ornamentClass: RIGHT }],
+  ['/visitas', { sun: '15% 5%', depth: '85% 95%', ornament: <OrnamentVis />, ornamentClass: LEFT }],
   ['/ajustes', { sun: '50% 0%', depth: '50% 100%', ornament: <OrnamentSeal />, ornamentClass: RIGHT }],
   ['/login', { sun: '50% 12%', depth: '50% 100%', ornament: <OrnamentLogin />, ornamentClass: CENTER_LOW }],
   ['/', CORE_SCENE],

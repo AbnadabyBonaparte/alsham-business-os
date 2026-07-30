@@ -1278,8 +1278,9 @@ Store:
    - `0034_chk.sql` — Módulo 19, Checklists (schema `chk`)
    - `0035_spc.sql` — Módulo 20, Reserva de Espaços (schema `spc`) — ⚠️ cria
      a extensão `btree_gist` (contrib, presente em todo Supabase)
+   - `0036_vis.sql` — Módulo 21, Visitas (schema `vis`)
 2. **Reaplicar o seed** — os cartões novos entram no catálogo.
-3. ⚠️ **Expor os schemas novos na Data API**: `pat`, `chk`, `spc`. Sem isso as telas
+3. ⚠️ **Expor os schemas novos na Data API**: `pat`, `chk`, `spc`, `vis`. Sem isso as telas
    carregam vazias, sem erro que diga o motivo.
 4. **Instalar cada módulo pela Store**, no tenant que o contratou.
 5. Nenhum módulo desta onda consome evento — **não há redeploy obrigatório

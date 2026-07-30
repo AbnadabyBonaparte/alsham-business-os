@@ -416,6 +416,19 @@ export const PECAS = [
     onde: 'packages/spaces/',
   },
   {
+    nome: 'Módulo 21 — Visitas',
+    detector: [
+      'packages/visits/src/manifest.ts',
+      'packages/visits/src/visits.ts',
+      'supabase/migrations/0036_vis.sql',
+    ],
+    // ⚠️ NUNCA "visita" solta: a Taxonomia tem a Visitas do CRM (a do
+    // vendedor) e a prosa do canon usa a palavra. O padrão exige o NOME DA
+    // PEÇA.
+    padrao: /(m[óo]dulo 21|packages\/visits|@alsham\/visits|0036_vis)/i,
+    onde: 'packages/visits/',
+  },
+  {
     nome: 'Menu filtrado por permissão',
     detector: ['packages/permissions/src/menu.ts'],
     // A dívida da Etapa 10 foi paga: os itens de menu não são mais escritos à

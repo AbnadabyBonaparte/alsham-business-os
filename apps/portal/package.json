@@ -28,6 +28,7 @@
     "@alsham/assets": "workspace:*",
     "@alsham/checklists": "workspace:*",
     "@alsham/spaces": "workspace:*",
+    "@alsham/visits": "workspace:*",
     "@alsham/maintenance": "workspace:*",
     "@alsham/marketing": "workspace:*",
     "@alsham/occurrences": "workspace:*",
