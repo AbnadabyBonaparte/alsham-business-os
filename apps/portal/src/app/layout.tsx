@@ -4,13 +4,15 @@ import Link from 'next/link';
 
 import { PRODUCT, COMPANY } from '@alsham/config';
 
-import { visibleMenu } from '@alsham/permissions';
+import { visibleMenu, ALL_MENU_ITEMS, type MenuItem } from '@alsham/permissions';
 
 import { resolveSession } from '@/lib/session';
-import { loadAllPermissions } from '@/lib/data';
+import { loadAllPermissions, getStorePort } from '@/lib/data';
+import { groupModuleMenu } from '@/lib/menu-groups';
 import { TenantSwitcher } from '@/components/tenant-switcher';
 import { Atmosphere, Grain } from '@/components/atmosphere';
 import { NavLink } from '@/components/nav-link';
+import { ModulesMenu } from '@/components/modules-menu';
 
 import './globals.css';
 
@@ -54,12 +56,44 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
    * que toda rota existe e que todo módulo publicado tem tela.
    */
   const permissoes = logado ? await loadAllPermissions() : new Set<string>();
-  const menu = visibleMenu(permissoes);
 
   // ⚠️ A leitura por módulo que existia aqui para Compras foi ABSORVIDA pelo
   // menu de leitura única. Ela sobreviveria ao merge sem quebrar nada — e por
   // isso mesmo tinha de sair: duas fontes decidindo o mesmo item de menu é
   // exatamente a dívida que esta etapa pagou.
+  //
+  // ⭐ **Demonstração mostra o produto inteiro.** Sem banco (`mode: 'demo'`)
+  // não há permissões a ler, e filtrar por elas deixaria o topo com só os três
+  // itens de Core. O demo então usa o menu COMPLETO — a mesma escolha honesta
+  // da Store, que sem banco exibe o catálogo inteiro. Fora do demo, quem decide
+  // continua sendo `visibleMenu()` no pacote, intocado.
+  const menu = session.mode === 'demo' ? ALL_MENU_ITEMS : visibleMenu(permissoes);
+
+  // ⭐ **O topo, agrupado por domínio.** O `domain_key` de cada módulo vem do
+  // CATÁLOGO — a mesma fonte que a Store lê (`getStorePort().loadCatalog()`),
+  // nunca uma segunda tabela de rótulos (Sol Único). Os nomes e a ordem dos
+  // domínios são os de `store-taxonomy.ts` (PR #27).
+  //
+  // ⚠️ **O topo nunca cai.** Se o catálogo não vier, o mapa fica vazio e o menu
+  // volta a ser a fileira flat de antes — degradação, nunca tela quebrada.
+  const navVisivel = session.mode !== 'anonymous' && session.mode !== 'no-access';
+  let moduleDomain = new Map<string, string>();
+  if (navVisivel) {
+    try {
+      const catalogo = await (await getStorePort()).loadCatalog();
+      moduleDomain = new Map(
+        catalogo
+          .filter((e) => e.domainKey)
+          .map((e) => [e.moduleId, e.domainKey as string]),
+      );
+    } catch {
+      // Menu não derruba página: sem catálogo, cai no fallback flat abaixo.
+    }
+  }
+  const podeAgrupar = moduleDomain.size > 0;
+  const { core, groups } = groupModuleMenu(menu, moduleDomain);
+  const home = core.find((i: MenuItem) => i.href === '/');
+  const coreRestante = core.filter((i: MenuItem) => i.href !== '/');
 
   return (
     <html lang="pt-BR">
@@ -90,13 +124,29 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
                 </span>
               </Link>
 
-              {session.mode !== 'anonymous' && session.mode !== 'no-access' ? (
+              {navVisivel ? (
                 <nav className="flex flex-wrap items-center gap-1 text-sm">
-                  {menu.map((item) => (
-                    <NavLink key={item.href} href={item.href}>
-                      {item.label}
-                    </NavLink>
-                  ))}
+                  {podeAgrupar ? (
+                    <>
+                      {/* Core: links diretos, sempre visíveis, sem categoria. */}
+                      {home ? <NavLink href={home.href}>{home.label}</NavLink> : null}
+                      {/* Todo o resto: um gatilho só, mega-menu por domínio. */}
+                      <ModulesMenu groups={groups} />
+                      {coreRestante.map((item) => (
+                        <NavLink key={item.href} href={item.href}>
+                          {item.label}
+                        </NavLink>
+                      ))}
+                    </>
+                  ) : (
+                    // Fallback: catálogo indisponível — a fileira flat de antes,
+                    // para o topo nunca ficar sem navegação.
+                    menu.map((item) => (
+                      <NavLink key={item.href} href={item.href}>
+                        {item.label}
+                      </NavLink>
+                    ))
+                  )}
                 </nav>
               ) : null}
 
