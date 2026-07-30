@@ -401,6 +401,20 @@ function OrnamentMedia() {
   );
 }
 
+/** Pesquisas — a régua do método e a voz que sobe ao livro. */
+function OrnamentNps() {
+  return (
+    <svg viewBox="0 0 400 400" aria-hidden {...stroke}>
+      <path d="M84 220 h232" strokeOpacity="0.35" />
+      <path d="M84 212 v16 M142 214 v12 M200 214 v12 M258 214 v12 M316 212 v16" strokeOpacity="0.3" />
+      <circle cx="287" cy="220" r="9" strokeOpacity="0.5" />
+      <path d="M120 300 a12 12 0 1 1 24 0 M186 300 a12 12 0 1 1 24 0 M252 300 a12 12 0 1 1 24 0" strokeOpacity="0.2" />
+      <path d="M164 160 q36 -44 72 0" strokeOpacity="0.3" />
+      <path d="M176 150 q24 -26 48 0" strokeOpacity="0.2" strokeDasharray="2 6" />
+    </svg>
+  );
+}
+
 /** Ajustes / a marca — o selo do tabelionato modernizado (§5.3). */
 function OrnamentSeal() {
   return (
@@ -467,6 +481,7 @@ const SCENES: readonly (readonly [string, Scene])[] = [
   ['/comunicados', { sun: '25% 0%', depth: '82% 100%', ornament: <OrnamentComm />, ornamentClass: RIGHT }],
   ['/calendario', { sun: '72% 0%', depth: '18% 100%', ornament: <OrnamentEdcal />, ornamentClass: RIGHT }],
   ['/midia', { sun: '18% 0%', depth: '85% 100%', ornament: <OrnamentMedia />, ornamentClass: LEFT }],
+  ['/pesquisas', { sun: '78% 0%', depth: '12% 100%', ornament: <OrnamentNps />, ornamentClass: RIGHT }],
   ['/ajustes', { sun: '50% 0%', depth: '50% 100%', ornament: <OrnamentSeal />, ornamentClass: RIGHT }],
   ['/login', { sun: '50% 12%', depth: '50% 100%', ornament: <OrnamentLogin />, ornamentClass: CENTER_LOW }],
   ['/', CORE_SCENE],

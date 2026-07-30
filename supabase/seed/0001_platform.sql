@@ -1780,7 +1780,63 @@ on conflict (module_id) do update set
   status          = excluded.status,
   updated_at      = now();
 
--- ⛔ Vinte e seis módulos no catálogo, zero permissão concedida pelo seed.
+-- =============================================================================
+-- 4.25 O MÓDULO `nps` NO CATÁLOGO DA STORE — o 27º cartão
+-- -----------------------------------------------------------------------------
+-- Pesquisas (Domain cx — capacidade *Pesquisas NPS/CSAT*). A régua 0-10 é
+-- física do método (CHECK argumentado); o placar é view calculada do
+-- livro; abrir congela a pergunta; closed é terminal (o DIVERGE assinado
+-- do care); anon não recebe nada — o link público é integração futura.
+-- `consumes` vazio por decisão de canon (Lei 7) — ver a spec §5.
+-- =============================================================================
+
+insert into core.module_registry (
+  module_id, name, version, summary,
+  layer, domain_key,
+  capabilities, permissions, events_emits, events_consumes, agents,
+  requires_core, status
+)
+values (
+  'nps',
+  'Pesquisas',
+  '0.1.0',
+  'A voz do cliente em rodadas de medição: a pergunta é do tenant e a régua 0–10 é do método; cada resposta é ato imutável no livro; o placar (%promotores − %detratores) é sempre calculado, nunca guardado; e a rodada fechada não reabre — a que volta é pesquisa nova.',
+  'domain', 'cx',
+  '[
+     {"key":"surveys","canonicalName":"Pesquisas NPS/CSAT"}
+   ]'::jsonb,
+  '[
+     {"key":"nps.survey.manage","moduleId":"nps","description":"Redigir rodadas, abrir a coleta (congela a pergunta) e encerrar a medição. Terminal."},
+     {"key":"nps.response.record","moduleId":"nps","description":"Registrar uma resposta na rodada ABERTA — ato imutável, nota 0–10, carimbado pelo servidor."}
+   ]'::jsonb,
+  '[
+     {"type":"nps.survey.drafted","version":1,"description":"Uma rodada nasceu no rascunho — a pergunta ainda é plano."},
+     {"type":"nps.survey.opened","version":1,"description":"A coleta abriu — a pergunta congelou."},
+     {"type":"nps.survey.closed","version":1,"description":"A medição encerrou — o placar está lido. Terminal."},
+     {"type":"nps.response.recorded","version":1,"description":"Uma voz entrou no livro — a NOTA no envelope; comentário e respondente ficam em casa."}
+   ]'::jsonb,
+  '[]'::jsonb,
+  '[]'::jsonb,
+  '0.0.x',
+  'published'
+)
+on conflict (module_id) do update set
+  name            = excluded.name,
+  version         = excluded.version,
+  summary         = excluded.summary,
+  layer           = excluded.layer,
+  domain_key      = excluded.domain_key,
+  vertical_key    = excluded.vertical_key,
+  capabilities    = excluded.capabilities,
+  permissions     = excluded.permissions,
+  events_emits    = excluded.events_emits,
+  events_consumes = excluded.events_consumes,
+  agents          = excluded.agents,
+  requires_core   = excluded.requires_core,
+  status          = excluded.status,
+  updated_at      = now();
+
+-- ⛔ Vinte e sete módulos no catálogo, zero permissão concedida pelo seed.
 
 -- =============================================================================
 -- 5. PLANOS-BASE

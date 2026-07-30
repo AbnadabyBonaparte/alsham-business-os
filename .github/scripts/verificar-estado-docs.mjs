@@ -489,6 +489,18 @@ export const PECAS = [
     onde: 'packages/media/',
   },
   {
+    nome: 'Módulo 27 — Pesquisas',
+    detector: [
+      'packages/nps/src/manifest.ts',
+      'packages/nps/src/nps.ts',
+      'supabase/migrations/0042_nps.sql',
+    ],
+    // ⚠️ NUNCA "pesquisa" solta: a palavra é prosa do canon (pesquisa de
+    // mercado, pesquisar). O padrão exige o NOME DA PEÇA.
+    padrao: /(m[óo]dulo 27|packages\/nps|@alsham\/nps|0042_nps)/i,
+    onde: 'packages/nps/',
+  },
+  {
     nome: 'Menu filtrado por permissão',
     detector: ['packages/permissions/src/menu.ts'],
     // A dívida da Etapa 10 foi paga: os itens de menu não são mais escritos à

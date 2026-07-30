@@ -132,6 +132,9 @@ importers:
       '@alsham/media':
         specifier: workspace:*
         version: link:../../packages/media
+      '@alsham/nps':
+        specifier: workspace:*
+        version: link:../../packages/nps
       '@alsham/occurrences':
         specifier: workspace:*
         version: link:../../packages/occurrences
@@ -483,6 +486,19 @@ importers:
         version: 5.9.3
 
   packages/media:
+    dependencies:
+      '@alsham/core':
+        specifier: workspace:*
+        version: link:../core
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.2
+        version: 22.20.1
+      typescript:
+        specifier: ^5.7.2
+        version: 5.9.3
+
+  packages/nps:
     dependencies:
       '@alsham/core':
         specifier: workspace:*

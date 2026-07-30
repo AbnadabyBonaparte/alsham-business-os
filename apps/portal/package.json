@@ -33,6 +33,7 @@
     "@alsham/comms": "workspace:*",
     "@alsham/editorial": "workspace:*",
     "@alsham/media": "workspace:*",
+    "@alsham/nps": "workspace:*",
     "@alsham/leads": "workspace:*",
     "@alsham/maintenance": "workspace:*",
     "@alsham/marketing": "workspace:*",
