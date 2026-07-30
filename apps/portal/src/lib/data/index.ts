@@ -63,6 +63,8 @@ import { createBankMockPort } from './bank-mock';
 import { createBankSupabasePort } from './bank-supabase';
 import { createInvestMockPort } from './invest-mock';
 import { createInvestSupabasePort } from './invest-supabase';
+import { createDreMockPort } from './dre-mock';
+import { createDreSupabasePort } from './dre-supabase';
 import { createOccSupabasePort } from './occ-supabase';
 import { createCareSupabasePort } from './care-supabase';
 import { createCashSupabasePort } from './cash-supabase';
@@ -101,6 +103,7 @@ import type { CcPort } from './cc-port';
 import type { BudPort } from './bud-port';
 import type { BankPort } from './bank-port';
 import type { InvestPort } from './invest-port';
+import type { DrePort } from './dre-port';
 import type { OpsPort } from './ops-port';
 import type { ForgePort } from './forge-port';
 import type { BrandPort } from './brand-port';
@@ -139,6 +142,7 @@ export type { CcPort, CenterRow, RuleRow, ExecutionRow, ByCenterRow } from './cc
 export type { BudPort, BudgetRow } from './bud-port';
 export type { BankPort, AccountRow, BalanceRow, MovementRow as BankMovementRow } from './bank-port';
 export type { InvestPort, HoldingRow, PositionRow } from './invest-port';
+export type { DrePort, DreLineRow, DreStatementRow, DreResultRow } from './dre-port';
 export type { OpsPort, PipelineWithStages } from './ops-port';
 export type { ForgePort, GenerationResponse } from './forge-port';
 export type { BrandPort } from './brand-port';
@@ -562,6 +566,16 @@ export async function getInvestPort(): Promise<InvestPort> {
   if (!db) return createInvestMockPort();
 
   return createInvestSupabasePort(db, session.activeTenant.id);
+}
+
+export async function getDrePort(): Promise<DrePort> {
+  const session = await resolveSession();
+  if (session.mode !== 'authenticated') return createDreMockPort();
+
+  const db = await createSupabaseServerClient();
+  if (!db) return createDreMockPort();
+
+  return createDreSupabasePort(db, session.activeTenant.id);
 }
 
 /**

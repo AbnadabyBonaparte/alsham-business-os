@@ -541,6 +541,16 @@ export const PECAS = [
     onde: 'packages/investments/',
   },
   {
+    nome: 'Módulo 32 — DRE Gerencial',
+    detector: [
+      'packages/dre/src/manifest.ts',
+      'packages/dre/src/realized.ts',
+      'supabase/migrations/0047_dre.sql',
+    ],
+    padrao: /(m[óo]dulo 32|packages\/dre|@alsham\/dre|0047_dre)/i,
+    onde: 'packages/dre/',
+  },
+  {
     nome: 'Menu filtrado por permissão',
     detector: ['packages/permissions/src/menu.ts'],
     // A dívida da Etapa 10 foi paga: os itens de menu não são mais escritos à

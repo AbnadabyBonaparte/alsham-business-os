@@ -1321,17 +1321,23 @@ O rito é o mesmo — migration na ordem, seed, Data API, Store:
    - `0044_bud.sql` — Módulo 29, Orçamentos (schema `bud`)
    - `0045_bank.sql` — Módulo 30, Contas Bancárias (schema `bank`)
    - `0046_invest.sql` — Módulo 31, Investimentos (schema `invest`)
+   - `0047_dre.sql` — Módulo 32, DRE Gerencial (schema `dre`)
 2. **Reaplicar o seed** — os cartões novos entram no catálogo.
-3. ⚠️ **Expor os schemas novos na Data API**: `cc`, `bud`, `bank`, `invest`.
-   Sem isso as telas carregam vazias, sem erro que diga o motivo.
-4. ⛔🔴 **REDEPLOYAR o `apps/api` — ESTA ONDA EXIGE.** O Módulo 29 (`bud`)
-   é CONSUMIDOR: ele escuta `cash.entry.registered` e projeta o realizado.
-   A inscrição (`cash.*` → `bud.record_external_movement`) só existe no
-   **build novo** do `apps/api`. Aplicar a migration sem redeployar deixa o
-   realizado nascer **sempre zero**, sem erro que diga o motivo — o
-   orçamento carrega, mas nunca "vê" o gasto. **Redeploy obrigatório**,
-   como foi na Missão Trina (o `dun`). O `cc` não exige redeploy (`consumes`
-   vazio); o `bud`, sim.
+3. ⚠️ **Expor os schemas novos na Data API**: `cc`, `bud`, `bank`, `invest`,
+   `dre`. Sem isso as telas carregam vazias, sem erro que diga o motivo.
+4. ⛔🔴 **REDEPLOYAR o `apps/api` — ESTA ONDA EXIGE (DOIS módulos).** Há DOIS
+   consumidores nesta onda, e as inscrições só existem no **build novo** do
+   `apps/api`:
+   - O Módulo 29 (`bud`) escuta `cash.entry.registered` e projeta o
+     realizado (`cash.*` → `bud.record_external_movement`).
+   - O Módulo 32 (`dre`) escuta `cash.entry.registered` **e**
+     `cc.rateio.executed` e projeta os valores das linhas (`cash.*` e `cc.*`
+     → `dre.record_external_entry`).
+   Aplicar as migrations sem redeployar deixa o realizado do orçamento e o
+   demonstrativo da DRE nascerem **sempre vazios**, sem erro que diga o
+   motivo. **Redeploy obrigatório**, como foi na Missão Trina (o `dun`). O
+   `cc`, o `bank` e o `invest` não exigem redeploy (`consumes` vazio); o
+   `bud` e o `dre`, sim.
 5. **Instalar cada módulo pela Store**, no tenant que o contratou.
 
 Nenhum agente aplica em produção. A conferência de segurança do PASSO 15
@@ -1377,6 +1383,8 @@ Honestidade de escopo, para você não procurar o que não foi construído:
 | Módulo 29 — Orçamentos (`0044_bud.sql`) | ✅ **CONSTRUÍDO** — arquivo, ainda não aplicado (§20). **Expor schema `bud`.** ⛔🔴 **CONSUMIDOR: EXIGE redeploy do `apps/api`** (a projeção `cash.*` → `bud.record_external_movement`) |
 | Módulo 30 — Contas Bancárias (`0045_bank.sql`) | ✅ **CONSTRUÍDO** — arquivo, ainda não aplicado (§20). **Expor schema `bank`.** `consumes` vazio (SOL ÚNICO: a conciliação é do recon): sem redeploy do `apps/api` |
 | Módulo 31 — Investimentos (`0046_invest.sql`) | ✅ **CONSTRUÍDO** — arquivo, ainda não aplicado (§20). **Expor schema `invest`.** `consumes` vazio: sem redeploy do `apps/api` |
+| Módulo 32 — DRE Gerencial (`0047_dre.sql`) | ✅ **CONSTRUÍDO** — arquivo, ainda não aplicado (§20). **Expor schema `dre`.** ⛔🔴 **CONSUMIDOR de DOIS produtores: EXIGE redeploy do `apps/api`** (`cash.*` e `cc.*` → `dre.record_external_entry`) |
+| DRE FISCAL (SPED/ECD/ECF) / plano de contas / tributos | **NÃO CONSTRUÍDO, por Lei 3** — ofício do contador, integração; ver `MODULO-DRE-SPEC §5` |
 | Cotação de mercado / rentabilidade projetada / índice no `invest` | **NÃO CONSTRUÍDO** — provedor de dados, integração (Lei 3); ver `MODULO-INVEST-SPEC §5` |
 | Conciliação bancária refeita no `bank` | **NÃO EXISTE, por lei** — a mesa/OFX/casamento são do `recon` (Sol Único) |
 | Realizado do orçamento por CENTRO / orçamento de RECEITA / forecast | **NÃO CONSTRUÍDO** — ver `MODULO-BUD-SPEC §5` |

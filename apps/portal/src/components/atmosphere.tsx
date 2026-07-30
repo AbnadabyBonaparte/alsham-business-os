@@ -480,6 +480,24 @@ function OrnamentInvest() {
   );
 }
 
+/** DRE — a régua do resultado: receita para cima, custo e despesa para baixo. */
+function OrnamentDre() {
+  return (
+    <svg viewBox="0 0 400 400" aria-hidden {...stroke}>
+      {/* A linha do zero — o eixo do resultado. */}
+      <path d="M96 230 h208" strokeOpacity="0.4" />
+      {/* A receita — a barra que sobe. */}
+      <path d="M150 230 v-70" strokeOpacity="0.34" />
+      {/* Custo e despesa — as barras que descem. */}
+      <path d="M200 230 v40" strokeOpacity="0.34" />
+      <path d="M250 230 v24" strokeOpacity="0.34" />
+      {/* O resultado — o traço que sobra. */}
+      <path d="M296 200 h-16" strokeOpacity="0.5" />
+      <path d="M296 200 v30" strokeOpacity="0.2" strokeDasharray="2 6" />
+    </svg>
+  );
+}
+
 /** Ajustes / a marca — o selo do tabelionato modernizado (§5.3). */
 function OrnamentSeal() {
   return (
@@ -551,6 +569,7 @@ const SCENES: readonly (readonly [string, Scene])[] = [
   ['/orcamentos', { sun: '42% 0%', depth: '76% 100%', ornament: <OrnamentBud />, ornamentClass: LEFT }],
   ['/contas-bancarias', { sun: '62% 0%', depth: '30% 100%', ornament: <OrnamentBank />, ornamentClass: RIGHT }],
   ['/investimentos', { sun: '38% 0%', depth: '70% 100%', ornament: <OrnamentInvest />, ornamentClass: LEFT }],
+  ['/dre', { sun: '50% 0%', depth: '50% 100%', ornament: <OrnamentDre />, ornamentClass: RIGHT }],
   ['/ajustes', { sun: '50% 0%', depth: '50% 100%', ornament: <OrnamentSeal />, ornamentClass: RIGHT }],
   ['/login', { sun: '50% 12%', depth: '50% 100%', ornament: <OrnamentLogin />, ornamentClass: CENTER_LOW }],
   ['/', CORE_SCENE],

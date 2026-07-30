@@ -27,6 +27,10 @@ import type {
   BudMovement,
   BudMovementPort,
 } from '@alsham/budgets';
+import type {
+  DreEntry,
+  DreEntryPort,
+} from '@alsham/dre';
 
 /**
  * Os adaptadores reais dos consumidores.
@@ -353,6 +357,39 @@ export function createBudMovementPort(pool: Pool): BudMovementPort {
       const efeito = rows[0]?.efeito;
       if (efeito === undefined) {
         throw new Error('bud.record_external_movement não devolveu desfecho');
+      }
+      return efeito;
+    },
+  };
+}
+
+/**
+ * Projeção da DRE a partir de DOIS livros (cash e cc).
+ * Chama `dre.record_external_entry()`; origem por parâmetro (envelope).
+ * Zero decisão aqui — os totais são views calculadas, e quem soma é o banco.
+ */
+export function createDreEntryPort(pool: Pool): DreEntryPort {
+  return {
+    async recordExternalEntry(entry: DreEntry) {
+      const { rows } = await pool.query<{ efeito: 'projected' | 'unchanged' }>(
+        `select dre.record_external_entry(
+                  $1::uuid, $2::text, $3::text, $4::text, $5::text,
+                  $6::char(3), $7::date, $8::bigint) as efeito`,
+        [
+          entry.tenantId,
+          entry.sourceModuleId,
+          entry.sourceKind,
+          entry.externalRef,
+          entry.categoryName,
+          entry.currency,
+          entry.occurredOn,
+          entry.signedAmountCents,
+        ],
+      );
+
+      const efeito = rows[0]?.efeito;
+      if (efeito === undefined) {
+        throw new Error('dre.record_external_entry não devolveu desfecho');
       }
       return efeito;
     },

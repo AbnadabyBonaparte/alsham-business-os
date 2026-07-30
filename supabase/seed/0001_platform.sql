@@ -2071,6 +2071,65 @@ on conflict (module_id) do update set
 -- ⛔ Trinta e um módulos no catálogo, zero permissão concedida pelo seed.
 
 -- =============================================================================
+-- 4.30 O MÓDULO `dre` NO CATÁLOGO DA STORE — o 32º cartão
+-- -----------------------------------------------------------------------------
+-- DRE Gerencial (Domain finance — o quinto e último da Missão Sete). ⛔ NÃO é
+-- fiscal (Lei 3). O plano de linhas é desenho do tenant; ⭐⭐ os valores nascem
+-- dos livros do cash E do cc, projetados por evento com handler real; totais
+-- são views; linha sem lançamento não aparece. ⚠️ Consumidor — o apps/api
+-- precisa de redeploy no apply.
+-- =============================================================================
+
+insert into core.module_registry (
+  module_id, name, version, summary,
+  layer, domain_key,
+  capabilities, permissions, events_emits, events_consumes, agents,
+  requires_core, status
+)
+values (
+  'dre',
+  'DRE Gerencial',
+  '0.1.0',
+  'A leitura gerencial do resultado (não fiscal): as linhas que o tenant desenha, com os valores nascendo dos livros do Fluxo de Caixa e dos Rateios — projetados por evento. Totais e subtotais são calculados; linha sem lançamento não aparece.',
+  'domain', 'finance',
+  '[
+     {"key":"income-statement","canonicalName":"DRE"}
+   ]'::jsonb,
+  '[
+     {"key":"dre.line.manage","moduleId":"dre","description":"Desenhar o plano de linhas da DRE: nome, natureza (receita/custo/despesa) e a categoria que casa."},
+     {"key":"dre.statement.read","moduleId":"dre","description":"Ler o demonstrativo e o resultado — sem poder alterar o plano."}
+   ]'::jsonb,
+  '[
+     {"type":"dre.line.registered","version":1,"description":"Uma linha entrou no plano da DRE."},
+     {"type":"dre.line.archived","version":1,"description":"Uma linha saiu do plano — o histórico dela continua nos livros."}
+   ]'::jsonb,
+  '[
+     {"type":"cash.entry.registered","version":1,"description":"Um lançamento de caixa — vira valor da linha que casa a categoria."},
+     {"type":"cc.rateio.executed","version":1,"description":"Um custo rateado — vira valor (negativo) da linha que casa a origem do rateio."}
+   ]'::jsonb,
+  '[]'::jsonb,
+  '0.0.x',
+  'published'
+)
+on conflict (module_id) do update set
+  name            = excluded.name,
+  version         = excluded.version,
+  summary         = excluded.summary,
+  layer           = excluded.layer,
+  domain_key      = excluded.domain_key,
+  vertical_key    = excluded.vertical_key,
+  capabilities    = excluded.capabilities,
+  permissions     = excluded.permissions,
+  events_emits    = excluded.events_emits,
+  events_consumes = excluded.events_consumes,
+  agents          = excluded.agents,
+  requires_core   = excluded.requires_core,
+  status          = excluded.status,
+  updated_at      = now();
+
+-- ⛔ Trinta e dois módulos no catálogo, zero permissão concedida pelo seed.
+
+-- =============================================================================
 -- 5. PLANOS-BASE
 -- Minerado de: `plan_limits` (5 planos) do kraken-v2 (PROVADO em produção).
 -- -----------------------------------------------------------------------------
