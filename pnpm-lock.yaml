@@ -551,6 +551,19 @@ importers:
         specifier: ^5.7.2
         version: 5.9.3
 
+  packages/esg:
+    dependencies:
+      '@alsham/core':
+        specifier: workspace:*
+        version: link:../core
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.2
+        version: 22.20.1
+      typescript:
+        specifier: ^5.7.2
+        version: 5.9.3
+
   packages/event-management:
     dependencies:
       '@alsham/core':

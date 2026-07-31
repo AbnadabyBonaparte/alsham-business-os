@@ -1557,6 +1557,35 @@ da Onda Quatorze), e o **Domain Qualidade nasce com 4 módulos próprios**.
 Nenhum agente aplica em produção. A conferência de segurança do PASSO 15
 (§ pós-apply) vale para os schemas novos.
 
+## PASSO 28 — A ONDA QUINZE: ABRE o Domain ESG & Sustentabilidade (`0082`) — Fase 2
+
+⭐ A Onda Quinze **abre território novo do mapa: o Domain 🌱 ESG &
+Sustentabilidade** (`esg`). Ela entrega **UM módulo** (Módulo 67), e a decisão de
+canon está na conta: das 6 capacidades do Domain, **quatro são a mesma leitura**
+(Inventário de carbono · Gestão de resíduos · Consumo de água · Consumo de
+energia — quantidade + unidade + período) e viram um schema só, com o tipo num
+CHECK; as outras duas — **Indicadores ESG** (é o `goal`) e **Relatórios ESG** (é
+o `pol`) — **NÃO viram módulo novo** (Lei do Reaproveitamento, anti-duplicação).
+O rito é o mesmo:
+
+1. **Aplicar a migration** no SQL Editor:
+   - `0082_esg.sql` — Módulo 67, Métricas Ambientais (schema `esg`)
+2. **Reaplicar o seed** — o cartão novo entra no catálogo, `domain_key='esg'`. A
+   Store gradua a seção ESG & Sustentabilidade.
+3. ⚠️ **Expor o schema novo na Data API**: `esg`. Sem isso a tela carrega vazia,
+   sem erro que diga o motivo.
+4. ✅ **SEM redeploy do `apps/api`** — `consumes` VAZIO (nenhum handler de
+   consumo novo; Lei 7). Guarda de CI confere. ⚠️ A fonte da leitura é por ID
+   SOLTO (`source_id`) — a guarda SCHEMA_DE do CI reprova se a migration ler
+   schema alheio.
+5. **Instalar o módulo pela Store**, no tenant que o contratou.
+
+⭐ **Ao concluir este apply, o catálogo chega a 67 módulos publicados** (66 + 1
+da Onda Quinze), e o **Domain ESG & Sustentabilidade nasce com 1 módulo próprio**.
+
+Nenhum agente aplica em produção. A conferência de segurança do PASSO 15
+(§ pós-apply) vale para o schema novo.
+
 ## O QUE AINDA NÃO EXISTE
 
 Honestidade de escopo, para você não procurar o que não foi construído:
