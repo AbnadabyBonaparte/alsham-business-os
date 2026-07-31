@@ -813,6 +813,59 @@ on conflict (module_id) do update set
   status          = excluded.status,
   updated_at      = now();
 
+-- =============================================================================
+-- 4.4g ONDA ONZE — o Domain SUPPLY CHAIN (Módulos 48–52, domain_key
+-- 'supply-chain'). Território SEPARADO de Compras (Taxonomia §5). Cinco cartões
+-- novos. Todos `consumes` vazio. Cadeia de fornecimento (= vendor) e
+-- Abastecimento (= reorder + po) ficam FORA por anti-duplicação.
+-- =============================================================================
+
+-- ---------------------------------------------------------------------------
+-- O MÓDULO `dem` (Planejamento de Demanda) — o 48º cartão. Abre a Onda Onze.
+-- ---------------------------------------------------------------------------
+insert into core.module_registry (
+  module_id, name, version, summary, layer, domain_key,
+  capabilities, permissions, events_emits, events_consumes, agents,
+  requires_core, status
+)
+values (
+  'dem',
+  'Planejamento de Demanda',
+  '0.1.0',
+  'O plano de demanda por período (texto livre — "Q1 2027") e as linhas planejadas (produto e quantidade em texto livre). Nasce rascunho; PUBLICAR congela as linhas e é terminal — o próximo período é plano novo (a física do bud). O DIVERGE do rfq: não há segundo ato (nada de premiar). Previsão estatística (Engine de IA) e integração com vendas históricas ficam de fora.',
+  'domain', 'supply-chain',
+  '[
+     {"key":"demand-planning","canonicalName":"Planejamento de demanda"}
+   ]'::jsonb,
+  '[
+     {"key":"dem.plan.manage","moduleId":"dem","description":"Criar e editar o plano em rascunho, incluir linhas, publicar e cancelar."}
+   ]'::jsonb,
+  '[
+     {"type":"dem.plan.registered","version":1,"description":"Um plano de demanda nasceu (sempre em rascunho)."},
+     {"type":"dem.plan.published","version":1,"description":"O plano foi publicado à cadeia — as linhas congelaram. Terminal."},
+     {"type":"dem.plan.cancelled","version":1,"description":"O rascunho do plano foi abandonado, com razão. Terminal."}
+   ]'::jsonb,
+  '[]'::jsonb,
+  '[]'::jsonb,
+  '0.0.x',
+  'published'
+)
+on conflict (module_id) do update set
+  name            = excluded.name,
+  version         = excluded.version,
+  summary         = excluded.summary,
+  layer           = excluded.layer,
+  domain_key      = excluded.domain_key,
+  vertical_key    = excluded.vertical_key,
+  capabilities    = excluded.capabilities,
+  permissions     = excluded.permissions,
+  events_emits    = excluded.events_emits,
+  events_consumes = excluded.events_consumes,
+  agents          = excluded.agents,
+  requires_core   = excluded.requires_core,
+  status          = excluded.status,
+  updated_at      = now();
+
 -- ⛔ Onze módulos de Compras+ no catálogo, zero permissão concedida pelo seed.
 
 -- =============================================================================
