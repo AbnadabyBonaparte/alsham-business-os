@@ -94,6 +94,11 @@ const MENU: readonly MenuItem[] = [
   { href: '/recebimentos', label: 'Recebimento', moduleId: 'recv' },
   { href: '/avaliacao-fornecedores', label: 'Avaliação de Fornecedores', moduleId: 'vperf' },
   { href: '/estoque-minimo', label: 'Estoque Mínimo', moduleId: 'reorder' },
+  { href: '/planejamento-demanda', label: 'Planejamento de Demanda', moduleId: 'dem' },
+  { href: '/sop', label: 'S&OP', moduleId: 'sop' },
+  { href: '/centros-distribuicao', label: 'Centros de Distribuição', moduleId: 'dc' },
+  { href: '/despachos', label: 'Despacho', moduleId: 'disp' },
+  { href: '/performance-logistica', label: 'Performance Logística', moduleId: 'logperf' },
   { href: '/store', label: 'Store', moduleId: null },
   { href: '/ajustes', label: 'Ajustes', moduleId: null },
 ];

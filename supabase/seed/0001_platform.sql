@@ -813,6 +813,242 @@ on conflict (module_id) do update set
   status          = excluded.status,
   updated_at      = now();
 
+-- =============================================================================
+-- 4.4g ONDA ONZE — o Domain SUPPLY CHAIN (Módulos 48–52, domain_key
+-- 'supply-chain'). Território SEPARADO de Compras (Taxonomia §5). Cinco cartões
+-- novos. Todos `consumes` vazio. Cadeia de fornecimento (= vendor) e
+-- Abastecimento (= reorder + po) ficam FORA por anti-duplicação.
+-- =============================================================================
+
+-- ---------------------------------------------------------------------------
+-- O MÓDULO `dem` (Planejamento de Demanda) — o 48º cartão. Abre a Onda Onze.
+-- ---------------------------------------------------------------------------
+insert into core.module_registry (
+  module_id, name, version, summary, layer, domain_key,
+  capabilities, permissions, events_emits, events_consumes, agents,
+  requires_core, status
+)
+values (
+  'dem',
+  'Planejamento de Demanda',
+  '0.1.0',
+  'O plano de demanda por período (texto livre — "Q1 2027") e as linhas planejadas (produto e quantidade em texto livre). Nasce rascunho; PUBLICAR congela as linhas e é terminal — o próximo período é plano novo (a física do bud). O DIVERGE do rfq: não há segundo ato (nada de premiar). Previsão estatística (Engine de IA) e integração com vendas históricas ficam de fora.',
+  'domain', 'supply-chain',
+  '[
+     {"key":"demand-planning","canonicalName":"Planejamento de demanda"}
+   ]'::jsonb,
+  '[
+     {"key":"dem.plan.manage","moduleId":"dem","description":"Criar e editar o plano em rascunho, incluir linhas, publicar e cancelar."}
+   ]'::jsonb,
+  '[
+     {"type":"dem.plan.registered","version":1,"description":"Um plano de demanda nasceu (sempre em rascunho)."},
+     {"type":"dem.plan.published","version":1,"description":"O plano foi publicado à cadeia — as linhas congelaram. Terminal."},
+     {"type":"dem.plan.cancelled","version":1,"description":"O rascunho do plano foi abandonado, com razão. Terminal."}
+   ]'::jsonb,
+  '[]'::jsonb,
+  '[]'::jsonb,
+  '0.0.x',
+  'published'
+)
+on conflict (module_id) do update set
+  name            = excluded.name,
+  version         = excluded.version,
+  summary         = excluded.summary,
+  layer           = excluded.layer,
+  domain_key      = excluded.domain_key,
+  vertical_key    = excluded.vertical_key,
+  capabilities    = excluded.capabilities,
+  permissions     = excluded.permissions,
+  events_emits    = excluded.events_emits,
+  events_consumes = excluded.events_consumes,
+  agents          = excluded.agents,
+  requires_core   = excluded.requires_core,
+  status          = excluded.status,
+  updated_at      = now();
+
+-- ---------------------------------------------------------------------------
+-- O MÓDULO `sop` (S&OP / Rodadas de Consenso) — o 49º cartão.
+-- ---------------------------------------------------------------------------
+insert into core.module_registry (
+  module_id, name, version, summary, layer, domain_key,
+  capabilities, permissions, events_emits, events_consumes, agents,
+  requires_core, status
+)
+values (
+  'sop',
+  'S&OP / Rodadas de Consenso',
+  '0.1.0',
+  'A rodada de consenso de S&OP por período (texto livre — "Q1 2027"), que referencia um plano de demanda por id SOLTO + nome carimbado. Nasce rascunho; APROVAR fecha o consenso e é terminal — a próxima rodada é rodada nova. Aprovar é permissão SEPARADA de quem desenha (papel mais sênior). O consenso é registrado por gente: reconciliação automática de vendas × produção × finanças fica de fora.',
+  'domain', 'supply-chain',
+  '[
+     {"key":"sop","canonicalName":"S&OP"}
+   ]'::jsonb,
+  '[
+     {"key":"sop.round.manage","moduleId":"sop","description":"Criar e editar a rodada em rascunho, vincular o plano de demanda e cancelar."},
+     {"key":"sop.round.approve","moduleId":"sop","description":"Aprovar o consenso da rodada — o carimbo de governança, papel mais sênior do que desenhar."}
+   ]'::jsonb,
+  '[
+     {"type":"sop.round.registered","version":1,"description":"Uma rodada de consenso nasceu (sempre em rascunho)."},
+     {"type":"sop.round.approved","version":1,"description":"O consenso da rodada foi aprovado — carimbado pelo servidor. Terminal."},
+     {"type":"sop.round.cancelled","version":1,"description":"A rodada foi abandonada, com razão. Terminal."}
+   ]'::jsonb,
+  '[]'::jsonb,
+  '[]'::jsonb,
+  '0.0.x',
+  'published'
+)
+on conflict (module_id) do update set
+  name            = excluded.name,
+  version         = excluded.version,
+  summary         = excluded.summary,
+  layer           = excluded.layer,
+  domain_key      = excluded.domain_key,
+  vertical_key    = excluded.vertical_key,
+  capabilities    = excluded.capabilities,
+  permissions     = excluded.permissions,
+  events_emits    = excluded.events_emits,
+  events_consumes = excluded.events_consumes,
+  agents          = excluded.agents,
+  requires_core   = excluded.requires_core,
+  status          = excluded.status,
+  updated_at      = now();
+
+-- ---------------------------------------------------------------------------
+-- O MÓDULO `dc` (Centros de Distribuição) — o 50º cartão.
+-- ---------------------------------------------------------------------------
+insert into core.module_registry (
+  module_id, name, version, summary, layer, domain_key,
+  capabilities, permissions, events_emits, events_consumes, agents,
+  requires_core, status
+)
+values (
+  'dc',
+  'Centros de Distribuição',
+  '0.1.0',
+  'O cadastro de centros de distribuição da empresa: nome e endereço em texto livre (o lugar de cada CD), e o ciclo active ↔ archived — o CD é ativo que volta a operar (o DIVERGE do hr, onde o desligamento é terminal). Capacidade volumétrica estruturada e zoneamento interno ficam de fora.',
+  'domain', 'supply-chain',
+  '[
+     {"key":"distribution-centers","canonicalName":"Centros de distribuição"}
+   ]'::jsonb,
+  '[
+     {"key":"dc.center.manage","moduleId":"dc","description":"Cadastrar e editar centros de distribuição (nome e endereço em texto livre)."},
+     {"key":"dc.center.decide","moduleId":"dc","description":"Arquivar ou reativar um centro de distribuição — o ativo que sai e volta a operar."}
+   ]'::jsonb,
+  '[
+     {"type":"dc.center.registered","version":1,"description":"Um centro de distribuição nasceu no cadastro (sempre ativo)."},
+     {"type":"dc.center.updated","version":1,"description":"Mudou o nome ou o endereço do centro de distribuição."},
+     {"type":"dc.center.archived","version":1,"description":"O centro de distribuição foi arquivado. Continua no banco; nunca DELETE."},
+     {"type":"dc.center.reopened","version":1,"description":"O centro arquivado voltou ao cadastro vivo — o mesmo ativo."}
+   ]'::jsonb,
+  '[]'::jsonb,
+  '[]'::jsonb,
+  '0.0.x',
+  'published'
+)
+on conflict (module_id) do update set
+  name            = excluded.name,
+  version         = excluded.version,
+  summary         = excluded.summary,
+  layer           = excluded.layer,
+  domain_key      = excluded.domain_key,
+  vertical_key    = excluded.vertical_key,
+  capabilities    = excluded.capabilities,
+  permissions     = excluded.permissions,
+  events_emits    = excluded.events_emits,
+  events_consumes = excluded.events_consumes,
+  agents          = excluded.agents,
+  requires_core   = excluded.requires_core,
+  status          = excluded.status,
+  updated_at      = now();
+
+-- ---------------------------------------------------------------------------
+-- O MÓDULO `disp` (Distribuição / Despacho) — o 51º cartão.
+-- ---------------------------------------------------------------------------
+insert into core.module_registry (
+  module_id, name, version, summary, layer, domain_key,
+  capabilities, permissions, events_emits, events_consumes, agents,
+  requires_core, status
+)
+values (
+  'disp',
+  'Despacho',
+  '0.1.0',
+  'O livro de despachos da empresa: cada despacho é um ato pontual imutável — o que saiu, para onde (destino, texto livre), por qual transportadora, quanto e quando. É o espelho invertido do recebimento (o recv é a chegada; o disp é a saída). O vínculo com o centro de distribuição é por id solto + nome carimbado pela tela. Roteirização, rastreio e conciliação despacho→pedido/estoque ficam de fora.',
+  'domain', 'supply-chain',
+  '[
+     {"key":"distribution","canonicalName":"Distribuição"}
+   ]'::jsonb,
+  '[
+     {"key":"disp.dispatch.record","moduleId":"disp","description":"Registrar um despacho — o que saiu, para onde, quanto e quando."}
+   ]'::jsonb,
+  '[
+     {"type":"disp.dispatch.recorded","version":1,"description":"Um despacho foi registrado. Ato pontual, imutável desde o instante 1."}
+   ]'::jsonb,
+  '[]'::jsonb,
+  '[]'::jsonb,
+  '0.0.x',
+  'published'
+)
+on conflict (module_id) do update set
+  name            = excluded.name,
+  version         = excluded.version,
+  summary         = excluded.summary,
+  layer           = excluded.layer,
+  domain_key      = excluded.domain_key,
+  vertical_key    = excluded.vertical_key,
+  capabilities    = excluded.capabilities,
+  permissions     = excluded.permissions,
+  events_emits    = excluded.events_emits,
+  events_consumes = excluded.events_consumes,
+  agents          = excluded.agents,
+  requires_core   = excluded.requires_core,
+  status          = excluded.status,
+  updated_at      = now();
+
+-- ---------------------------------------------------------------------------
+-- O MÓDULO `logperf` (Performance Logística) — o 52º cartão.
+-- ---------------------------------------------------------------------------
+insert into core.module_registry (
+  module_id, name, version, summary, layer, domain_key,
+  capabilities, permissions, events_emits, events_consumes, agents,
+  requires_core, status
+)
+values (
+  'logperf',
+  'Performance Logística',
+  '0.1.0',
+  'A avaliação PONTUAL da performance logística: nota 0–100 obrigatória (a régua do método), parecer em texto livre e o avaliado em texto livre (uma rota, uma transportadora, um centro de distribuição), com vínculo OPCIONAL a um centro por id solto. Ato imutável, carimbado pelo servidor — o REUSO do vperf, cujo avaliado é um fornecedor. Scorecard estruturado e KPIs calculados de OTIF/lead time ficam de fora.',
+  'domain', 'supply-chain',
+  '[
+     {"key":"logistics-performance","canonicalName":"Performance logística"}
+   ]'::jsonb,
+  '[
+     {"key":"logperf.appraisal.record","moduleId":"logperf","description":"Registrar avaliações de performance logística — ato imutável, com nota 0–100 e o avaliador carimbado pelo servidor."}
+   ]'::jsonb,
+  '[
+     {"type":"logperf.appraisal.recorded","version":1,"description":"Uma avaliação de performance logística foi registrada — o avaliado (subject + id solto opcional do centro), a nota e a data no envelope. O parecer não vai no correio."}
+   ]'::jsonb,
+  '[]'::jsonb,
+  '[]'::jsonb,
+  '0.0.x',
+  'published'
+)
+on conflict (module_id) do update set
+  name            = excluded.name,
+  version         = excluded.version,
+  summary         = excluded.summary,
+  layer           = excluded.layer,
+  domain_key      = excluded.domain_key,
+  vertical_key    = excluded.vertical_key,
+  capabilities    = excluded.capabilities,
+  permissions     = excluded.permissions,
+  events_emits    = excluded.events_emits,
+  events_consumes = excluded.events_consumes,
+  agents          = excluded.agents,
+  requires_core   = excluded.requires_core,
+  status          = excluded.status,
+  updated_at      = now();
+
 -- ⛔ Onze módulos de Compras+ no catálogo, zero permissão concedida pelo seed.
 
 -- =============================================================================
