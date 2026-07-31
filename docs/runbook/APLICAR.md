@@ -1495,6 +1495,37 @@ capacidades; as outras 5 vêm na Onda Treze.
 Nenhum agente aplica em produção. A conferência de segurança do PASSO 15
 (§ pós-apply) vale para os schemas novos.
 
+## PASSO 26 — A ONDA TREZE (parte 2/2): FECHA o Domain PMO & Projetos (`0073` em diante) — Fase 2
+
+⭐⭐ A Onda Treze **FECHA o MAIOR domínio do mapa**: com ela, **PMO & Projetos**
+(`pmo`) passa a ter as **10 capacidades completas** (10/10). Esta onda cobre as
+5 restantes — Scrum · Gantt · Riscos · Timesheet · Portfólio. O rito é o mesmo:
+
+1. **Aplicar a migration** no SQL Editor, na ordem:
+   - `0073_scrum.sql` — Módulo 58, Scrum / Sprints (schema `scrum`)
+   - `0074_gantt.sql` — Módulo 59, Gantt / Dependências entre marcos (schema `gantt`)
+   - `0075_risk.sql` — Módulo 60, Riscos do projeto (schema `risk`)
+   - `0076_timesheet.sql` — Módulo 61, Timesheet / Apontamento de horas (schema `timesheet`)
+   - `0077_pfolio.sql` — Módulo 62, Portfólio de projetos (schema `pfolio`)
+2. **Reaplicar o seed** — os cinco cartões novos entram no catálogo, todos
+   `domain_key='pmo'`. A Store completa a seção PMO & Projetos.
+3. ⚠️ **Expor os schemas novos na Data API**: `scrum`, `gantt`, `risk`,
+   `timesheet`, `pfolio`. Sem isso as telas carregam vazias, sem erro que diga o motivo.
+4. ✅ **SEM redeploy do `apps/api`** — os cinco têm `consumes` VAZIO (nenhum
+   handler de consumo novo; Lei 7). Guarda de CI confere. ⚠️ Os vínculos são por
+   ID SOLTO (o `gantt` aos marcos do `sched`; o `risk`/`timesheet`/`pfolio` ao
+   projeto do `proj`; o `timesheet` também ao colaborador do `hr`) — a guarda
+   SCHEMA_DE do CI reprova se qualquer migration ler o schema do outro. A FK do
+   `pfolio.members` para o `pfolio.portfolios` é INTRA-schema, e é permitida.
+5. **Instalar cada módulo pela Store**, no tenant que o contratou.
+
+⭐⭐ **Ao concluir este apply, o catálogo chega a 62 módulos publicados** (57 +
+5 da Onda Treze parte 2/2), e o **Domain PMO & Projetos fica COMPLETO — 10/10
+capacidades**.
+
+Nenhum agente aplica em produção. A conferência de segurança do PASSO 15
+(§ pós-apply) vale para os schemas novos.
+
 ## O QUE AINDA NÃO EXISTE
 
 Honestidade de escopo, para você não procurar o que não foi construído:

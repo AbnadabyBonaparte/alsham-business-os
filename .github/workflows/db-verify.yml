@@ -428,6 +428,22 @@ jobs:
       - name: aplicar 0072_pcost.sql
         run: $PSQL -f supabase/migrations/0072_pcost.sql
 
+      # ONDA TREZE (parte 2/2) — FECHA o Domain PMO & Projetos (Módulos 58–62).
+      # Scrum · Gantt · Riscos · Timesheet · Portfólio — com esta onda o PMO
+      # tem as 10 capacidades. Todos `consumes` vazio — sem redeploy do apps/api.
+      # ⚠️ gantt→sched, risk/timesheet/pfolio→proj e timesheet→hr são id solto —
+      # NÃO leem o schema alheio (guarda SCHEMA_DE abaixo).
+      - name: aplicar 0073_scrum.sql
+        run: $PSQL -f supabase/migrations/0073_scrum.sql
+      - name: aplicar 0074_gantt.sql
+        run: $PSQL -f supabase/migrations/0074_gantt.sql
+      - name: aplicar 0075_risk.sql
+        run: $PSQL -f supabase/migrations/0075_risk.sql
+      - name: aplicar 0076_timesheet.sql
+        run: $PSQL -f supabase/migrations/0076_timesheet.sql
+      - name: aplicar 0077_pfolio.sql
+        run: $PSQL -f supabase/migrations/0077_pfolio.sql
+
       # ---------------------------------------------------------------------
       # 2. SEED — e a prova de que reaplicar não muda nada
       # ---------------------------------------------------------------------
@@ -455,12 +471,12 @@ jobs:
           FALTA=$($PSQL -tAc "
             select coalesce(string_agg(n.nspname||'.'||c.relname, ', '), '')
               from pg_class c join pg_namespace n on n.oid = c.relnamespace
-             where n.nspname in ('core','recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt','dun','ctr','cash','care','occ','mnt','pat','chk','spc','vis','lead','goal','comm','edcal','media','nps','cc','bud','bank','invest','dre','hr','shift','train','perf','pol','mall','lease','fund','park','sec','vendor','rfq','recv','vperf','reorder','dem','sop','dc','disp','logperf','proj','sched','kanban','alloc','pcost') and c.relkind = 'r'
+             where n.nspname in ('core','recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt','dun','ctr','cash','care','occ','mnt','pat','chk','spc','vis','lead','goal','comm','edcal','media','nps','cc','bud','bank','invest','dre','hr','shift','train','perf','pol','mall','lease','fund','park','sec','vendor','rfq','recv','vperf','reorder','dem','sop','dc','disp','logperf','proj','sched','kanban','alloc','pcost','scrum','gantt','risk','timesheet','pfolio') and c.relkind = 'r'
                and (not c.relrowsecurity or not c.relforcerowsecurity);")
           [ -z "$FALTA" ] || { echo "::error::sem RLS enable+force: $FALTA"; exit 1; }
           $PSQL -c "select n.nspname as schema, count(*) as tabelas
                       from pg_class c join pg_namespace n on n.oid=c.relnamespace
-                     where n.nspname in ('core','recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt','dun','ctr','cash','care','occ','mnt','pat','chk','spc','vis','lead','goal','comm','edcal','media','nps','cc','bud','bank','invest','dre','hr','shift','train','perf','pol','mall','lease','fund','park','sec','vendor','rfq','recv','vperf','reorder','dem','sop','dc','disp','logperf','proj','sched','kanban','alloc','pcost') and c.relkind='r'
+                     where n.nspname in ('core','recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt','dun','ctr','cash','care','occ','mnt','pat','chk','spc','vis','lead','goal','comm','edcal','media','nps','cc','bud','bank','invest','dre','hr','shift','train','perf','pol','mall','lease','fund','park','sec','vendor','rfq','recv','vperf','reorder','dem','sop','dc','disp','logperf','proj','sched','kanban','alloc','pcost','scrum','gantt','risk','timesheet','pfolio') and c.relkind='r'
                      group by 1 order by 1;"
 
       - name: nenhuma policy USING (true)
@@ -470,7 +486,7 @@ jobs:
               from pg_policy p
               join pg_class c on c.oid = p.polrelid
               join pg_namespace n on n.oid = c.relnamespace
-             where n.nspname in ('core','recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt','dun','ctr','cash','care','occ','mnt','pat','chk','spc','vis','lead','goal','comm','edcal','media','nps','cc','bud','bank','invest','dre','hr','shift','train','perf','pol','mall','lease','fund','park','sec','vendor','rfq','recv','vperf','reorder','dem','sop','dc','disp','logperf','proj','sched','kanban','alloc','pcost')
+             where n.nspname in ('core','recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt','dun','ctr','cash','care','occ','mnt','pat','chk','spc','vis','lead','goal','comm','edcal','media','nps','cc','bud','bank','invest','dre','hr','shift','train','perf','pol','mall','lease','fund','park','sec','vendor','rfq','recv','vperf','reorder','dem','sop','dc','disp','logperf','proj','sched','kanban','alloc','pcost','scrum','gantt','risk','timesheet','pfolio')
                and pg_get_expr(p.polqual, p.polrelid) = 'true';")
           [ -z "$ABERTAS" ] || { echo "::error::policy aberta (lição paga do suna-core): $ABERTAS"; exit 1; }
 
@@ -481,7 +497,7 @@ jobs:
                              where n.nspname='public' and c.relkind='r';")
           [ "$PUB" = "0" ] || { echo "::error::$PUB tabela(s) em public — expostas via API"; exit 1; }
           ANON=$($PSQL -tAc "select count(*) from information_schema.role_table_grants
-                              where grantee='anon' and table_schema in ('core','recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt','dun','ctr','cash','care','occ','mnt','pat','chk','spc','vis','lead','goal','comm','edcal','media','nps','cc','bud','bank','invest','dre','hr','shift','train','perf','pol','mall','lease','fund','park','sec','vendor','rfq','recv','vperf','reorder','dem','sop','dc','disp','logperf','proj','sched','kanban','alloc','pcost');")
+                              where grantee='anon' and table_schema in ('core','recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt','dun','ctr','cash','care','occ','mnt','pat','chk','spc','vis','lead','goal','comm','edcal','media','nps','cc','bud','bank','invest','dre','hr','shift','train','perf','pol','mall','lease','fund','park','sec','vendor','rfq','recv','vperf','reorder','dem','sop','dc','disp','logperf','proj','sched','kanban','alloc','pcost','scrum','gantt','risk','timesheet','pfolio');")
           [ "$ANON" = "0" ] || { echo "::error::anon tem $ANON grant(s) no Business OS"; exit 1; }
 
       - name: o seed não semeou tenant nem usuário
@@ -1810,6 +1826,41 @@ jobs:
       - name: teste de custos do projeto (pcost)
         run: $PSQL -f supabase/tests/62_pcost_isolation.sql
 
+      # =====================================================================
+      # ⭐ ONDA TREZE parte 2/2 — FECHA o Domain PMO & Projetos (Módulos 58–62)
+      # =====================================================================
+      - name: teste de scrum / sprints (scrum)
+        run: $PSQL -f supabase/tests/63_scrum_isolation.sql
+
+      - name: teste de gantt / dependências (gantt)
+        run: $PSQL -f supabase/tests/64_gantt_isolation.sql
+
+      - name: teste de riscos (risk)
+        run: $PSQL -f supabase/tests/65_risk_isolation.sql
+
+      - name: teste de timesheet / apontamentos (timesheet)
+        run: $PSQL -f supabase/tests/66_timesheet_isolation.sql
+
+      - name: teste de portfólio (pfolio)
+        run: $PSQL -f supabase/tests/67_pfolio_isolation.sql
+
+      # ⭐ Os cinco cartões da Onda Treze são DOMAIN pmo — e FECHAM o Domain.
+      - name: os cinco módulos da Onda Treze são domain pmo (PMO 10/10)
+        run: |
+          N=$($PSQL -tAc "select count(*) from core.module_registry
+                           where layer='domain' and domain_key='pmo'
+                             and module_id in ('scrum','gantt','risk','timesheet','pfolio');")
+          [ "$N" = "5" ] || { echo "::error::esperava 5 cartões domain pmo na Onda Treze: [$N]"; exit 1; }
+          # ⭐⭐ o Domain PMO agora tem os 10 módulos completos.
+          TOT=$($PSQL -tAc "select count(*) from core.module_registry
+                             where layer='domain' and domain_key='pmo';")
+          [ "$TOT" = "10" ] || { echo "::error::o Domain PMO deveria ter 10 módulos: [$TOT]"; exit 1; }
+          # ⛔ domain não pode ter vertical_key (CHECK do 0001), e vice-versa.
+          BAD=$($PSQL -tAc "select count(*) from core.module_registry
+                             where module_id in ('scrum','gantt','risk','timesheet','pfolio')
+                               and vertical_key is not null;")
+          [ "$BAD" = "0" ] || { echo "::error::um cartão da Onda Treze carregou vertical_key"; exit 1; }
+
       # ⭐ Os cinco cartões da Onda Doze são DOMAIN pmo.
       - name: os cinco módulos da Onda Doze são domain pmo
         run: |
@@ -2088,15 +2139,16 @@ jobs:
           # aparece na vitrine) e um `terceiro` publicado (para provar o teto do
           # plano). Uma contagem ingênua de `status='published'` daria 48+ e
           # reprovaria o repositório inteiro, por causa do fixture de outro
-          # teste. Por isso conta a whitelist dos 57 reais (42 da Campanha das
+          # teste. Por isso conta a whitelist dos 62 reais (42 da Campanha das
           # 6 Ondas + 5 da Onda Dez, Compras; + 5 da Onda Onze, Supply Chain;
-          # + 5 da Onda Doze parte 1/2, PMO & Projetos).
+          # + 5 da Onda Doze parte 1/2, PMO & Projetos; + 5 da Onda Treze parte
+          # 2/2, que FECHA o PMO em 10/10).
           #
           # Só apareceu porque os números foram conferidos contra o banco.
           N=$($PSQL -tAc "select count(*) from core.module_registry
                            where status='published'
-                             and module_id in ('recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt','dun','ctr','cash','care','occ','mnt','pat','chk','spc','vis','lead','goal','comm','edcal','media','nps','cc','bud','bank','invest','dre','hr','shift','train','perf','pol','mall','lease','fund','park','sec','vendor','rfq','recv','vperf','reorder','dem','sop','dc','disp','logperf','proj','sched','kanban','alloc','pcost');")
-          [ "$N" = "57" ] || { echo "::error::o catálogo tem $N dos 57 módulos reais publicados"; exit 1; }
+                             and module_id in ('recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt','dun','ctr','cash','care','occ','mnt','pat','chk','spc','vis','lead','goal','comm','edcal','media','nps','cc','bud','bank','invest','dre','hr','shift','train','perf','pol','mall','lease','fund','park','sec','vendor','rfq','recv','vperf','reorder','dem','sop','dc','disp','logperf','proj','sched','kanban','alloc','pcost','scrum','gantt','risk','timesheet','pfolio');")
+          [ "$N" = "62" ] || { echo "::error::o catálogo tem $N dos 62 módulos reais publicados"; exit 1; }
           C=$($PSQL -tAc "select jsonb_array_length(events_consumes)
                             from core.module_registry where module_id='crm';")
           [ "$C" = "0" ] || {
@@ -2235,7 +2287,7 @@ jobs:
           ABERTAS=$($PSQL -tAc "
             select coalesce(string_agg(n.nspname||'.'||p.proname, ', ' order by p.proname), '')
               from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-             where n.nspname in ('core','recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt','dun','ctr','cash','care','occ','mnt','pat','chk','spc','vis','lead','goal','comm','edcal','media','nps','cc','bud','bank','invest','dre','hr','shift','train','perf','pol','mall','lease','fund','park','sec','vendor','rfq','recv','vperf','reorder','dem','sop','dc','disp','logperf','proj','sched','kanban','alloc','pcost')
+             where n.nspname in ('core','recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt','dun','ctr','cash','care','occ','mnt','pat','chk','spc','vis','lead','goal','comm','edcal','media','nps','cc','bud','bank','invest','dre','hr','shift','train','perf','pol','mall','lease','fund','park','sec','vendor','rfq','recv','vperf','reorder','dem','sop','dc','disp','logperf','proj','sched','kanban','alloc','pcost','scrum','gantt','risk','timesheet','pfolio')
                and has_function_privilege('anon', p.oid, 'execute');")
           [ -z "$ABERTAS" ] || { echo "::error::função executável por anon: $ABERTAS"; exit 1; }
 
@@ -2246,7 +2298,7 @@ jobs:
             OK=$($PSQL -tAc "
               select count(*) from pg_proc p join pg_namespace n on n.oid = p.pronamespace
                where p.proname = '$FN'
-                 and n.nspname in ('core','recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt','dun','ctr','cash','care','occ','mnt','pat','chk','spc','vis','lead','goal','comm','edcal','media','nps','cc','bud','bank','invest','dre','hr','shift','train','perf','pol','mall','lease','fund','park','sec','vendor','rfq','recv','vperf','reorder','dem','sop','dc','disp','logperf','proj','sched','kanban','alloc','pcost')
+                 and n.nspname in ('core','recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt','dun','ctr','cash','care','occ','mnt','pat','chk','spc','vis','lead','goal','comm','edcal','media','nps','cc','bud','bank','invest','dre','hr','shift','train','perf','pol','mall','lease','fund','park','sec','vendor','rfq','recv','vperf','reorder','dem','sop','dc','disp','logperf','proj','sched','kanban','alloc','pcost','scrum','gantt','risk','timesheet','pfolio')
                  and has_function_privilege('authenticated', p.oid, 'execute');")
             [ "$OK" -ge 1 ] || { echo "::error::$FN() deixou de ser chamável pelo portal"; exit 1; }
           done
@@ -2912,7 +2964,7 @@ jobs:
       - name: módulo não conhece módulo
         run: |
           FALHOU=0
-          MODULOS="finance-reconciliation marketing accounts-payable crm accounts-receivable purchase-orders ops inventory quotes deals event-management dunning contracts cashflow care occurrences maintenance assets checklists spaces visits leads goals comms editorial media nps cost-centers budgets bank-accounts investments dre hr shift-scheduling training performance policies mall lease fund park sec vendor rfq recv vperf reorder dem sop dc disp logperf proj sched kanban alloc pcost"
+          MODULOS="finance-reconciliation marketing accounts-payable crm accounts-receivable purchase-orders ops inventory quotes deals event-management dunning contracts cashflow care occurrences maintenance assets checklists spaces visits leads goals comms editorial media nps cost-centers budgets bank-accounts investments dre hr shift-scheduling training performance policies mall lease fund park sec vendor rfq recv vperf reorder dem sop dc disp logperf proj sched kanban alloc pcost scrum gantt risk timesheet pfolio"
 
           # 1. Nenhum módulo importa outro módulo, em nenhuma forma.
           for MOD in $MODULOS; do
@@ -3004,6 +3056,11 @@ jobs:
             [0070_kanban.sql]=kanban
             [0071_alloc.sql]=alloc
             [0072_pcost.sql]=pcost
+            [0073_scrum.sql]=scrum
+            [0074_gantt.sql]=gantt
+            [0075_risk.sql]=risk
+            [0076_timesheet.sql]=timesheet
+            [0077_pfolio.sql]=pfolio
           )
           for ARQUIVO in "${!SCHEMA_DE[@]}"; do
             DONO="${SCHEMA_DE[$ARQUIVO]}"
