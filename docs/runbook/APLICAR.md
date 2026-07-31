@@ -1463,6 +1463,38 @@ rito é o mesmo:
 Nenhum agente aplica em produção. A conferência de segurança do PASSO 15
 (§ pós-apply) vale para os schemas novos.
 
+## PASSO 25 — A ONDA DOZE (parte 1/2): abrir o Domain PMO & Projetos (`0068` em diante) — Fase 2
+
+⭐ A Onda Doze abre o **MAIOR domínio do mapa**: **PMO & Projetos** (`pmo`), 10
+capacidades ("mercado bilionário próprio", Taxonomia §5). Por ser o maior, vira
+DUAS ondas — esta cobre as 5 primeiras (Projetos · Cronogramas · Kanban ·
+Recursos · Custos); a Onda Treze cobre as outras 5 (Scrum · Gantt · Riscos ·
+Timesheet · Portfólio). O rito é o mesmo:
+
+1. **Aplicar a migration** no SQL Editor, na ordem:
+   - `0068_proj.sql` — Módulo 53, Projetos (schema `proj`)
+   - `0069_sched.sql` — Módulo 54, Cronogramas (schema `sched`)
+   - `0070_kanban.sql` — Módulo 55, Kanban / Quadro de Tarefas (schema `kanban`)
+   - `0071_alloc.sql` — Módulo 56, Recursos / Alocação (schema `alloc`)
+   - `0072_pcost.sql` — Módulo 57, Custos do Projeto (schema `pcost`)
+2. **Reaplicar o seed** — os cinco cartões novos entram no catálogo, todos
+   `domain_key='pmo'`. A Store gradua a seção PMO & Projetos.
+3. ⚠️ **Expor os schemas novos na Data API**: `proj`, `sched`, `kanban`,
+   `alloc`, `pcost`. Sem isso as telas carregam vazias, sem erro que diga o motivo.
+4. ✅ **SEM redeploy do `apps/api`** — os cinco têm `consumes` VAZIO (nenhum
+   handler de consumo novo; Lei 7). Guarda de CI confere. ⚠️ Os vínculos são por
+   ID SOLTO (o `sched`/`kanban`/`alloc`/`pcost` ao projeto do `proj`; o `alloc`
+   também ao colaborador do `hr`) — a guarda SCHEMA_DE do CI reprova se qualquer
+   migration ler o schema do outro.
+5. **Instalar cada módulo pela Store**, no tenant que o contratou.
+
+⭐ **Ao concluir este apply, o catálogo chega a 57 módulos publicados** (52 +
+5 da Onda Doze parte 1/2). O Domain PMO & Projetos nasce com 5 das 10
+capacidades; as outras 5 vêm na Onda Treze.
+
+Nenhum agente aplica em produção. A conferência de segurança do PASSO 15
+(§ pós-apply) vale para os schemas novos.
+
 ## O QUE AINDA NÃO EXISTE
 
 Honestidade de escopo, para você não procurar o que não foi construído:

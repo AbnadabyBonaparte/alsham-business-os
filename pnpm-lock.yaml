@@ -257,6 +257,19 @@ importers:
         specifier: ^5.7.2
         version: 5.9.3
 
+  packages/alloc:
+    dependencies:
+      '@alsham/core':
+        specifier: workspace:*
+        version: link:../core
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.2
+        version: 22.20.1
+      typescript:
+        specifier: ^5.7.2
+        version: 5.9.3
+
   packages/assets:
     dependencies:
       '@alsham/core':
@@ -603,6 +616,19 @@ importers:
         specifier: ^5.7.2
         version: 5.9.3
 
+  packages/kanban:
+    dependencies:
+      '@alsham/core':
+        specifier: workspace:*
+        version: link:../core
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.2
+        version: 22.20.1
+      typescript:
+        specifier: ^5.7.2
+        version: 5.9.3
+
   packages/leads:
     dependencies:
       '@alsham/core':
@@ -752,6 +778,19 @@ importers:
         specifier: ^5.7.2
         version: 5.9.3
 
+  packages/pcost:
+    dependencies:
+      '@alsham/core':
+        specifier: workspace:*
+        version: link:../core
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.2
+        version: 22.20.1
+      typescript:
+        specifier: ^5.7.2
+        version: 5.9.3
+
   packages/performance:
     dependencies:
       '@alsham/core':
@@ -779,6 +818,19 @@ importers:
         version: 5.9.3
 
   packages/policies:
+    dependencies:
+      '@alsham/core':
+        specifier: workspace:*
+        version: link:../core
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.2
+        version: 22.20.1
+      typescript:
+        specifier: ^5.7.2
+        version: 5.9.3
+
+  packages/proj:
     dependencies:
       '@alsham/core':
         specifier: workspace:*
@@ -844,6 +896,19 @@ importers:
         version: 5.9.3
 
   packages/rfq:
+    dependencies:
+      '@alsham/core':
+        specifier: workspace:*
+        version: link:../core
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.2
+        version: 22.20.1
+      typescript:
+        specifier: ^5.7.2
+        version: 5.9.3
+
+  packages/sched:
     dependencies:
       '@alsham/core':
         specifier: workspace:*

@@ -99,6 +99,11 @@ const MENU: readonly MenuItem[] = [
   { href: '/centros-distribuicao', label: 'Centros de Distribuição', moduleId: 'dc' },
   { href: '/despachos', label: 'Despacho', moduleId: 'disp' },
   { href: '/performance-logistica', label: 'Performance Logística', moduleId: 'logperf' },
+  { href: '/projetos', label: 'Projetos', moduleId: 'proj' },
+  { href: '/cronogramas', label: 'Cronogramas', moduleId: 'sched' },
+  { href: '/kanban', label: 'Kanban', moduleId: 'kanban' },
+  { href: '/recursos', label: 'Recursos', moduleId: 'alloc' },
+  { href: '/custos-projeto', label: 'Custos do Projeto', moduleId: 'pcost' },
   { href: '/store', label: 'Store', moduleId: null },
   { href: '/ajustes', label: 'Ajustes', moduleId: null },
 ];
