@@ -374,6 +374,32 @@ importers:
         specifier: ^5.7.2
         version: 5.9.3
 
+  packages/cashregister:
+    dependencies:
+      '@alsham/core':
+        specifier: workspace:*
+        version: link:../core
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.2
+        version: 22.20.1
+      typescript:
+        specifier: ^5.7.2
+        version: 5.9.3
+
+  packages/catalog:
+    dependencies:
+      '@alsham/core':
+        specifier: workspace:*
+        version: link:../core
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.2
+        version: 22.20.1
+      typescript:
+        specifier: ^5.7.2
+        version: 5.9.3
+
   packages/checklists:
     dependencies:
       '@alsham/core':
@@ -772,6 +798,19 @@ importers:
         specifier: ^5.7.2
         version: 5.9.3
 
+  packages/loyalty:
+    dependencies:
+      '@alsham/core':
+        specifier: workspace:*
+        version: link:../core
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.2
+        version: 22.20.1
+      typescript:
+        specifier: ^5.7.2
+        version: 5.9.3
+
   packages/maintenance:
     dependencies:
       '@alsham/core':
@@ -896,6 +935,19 @@ importers:
         version: 5.9.3
 
   packages/pcost:
+    dependencies:
+      '@alsham/core':
+        specifier: workspace:*
+        version: link:../core
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.2
+        version: 22.20.1
+      typescript:
+        specifier: ^5.7.2
+        version: 5.9.3
+
+  packages/pdv:
     dependencies:
       '@alsham/core':
         specifier: workspace:*

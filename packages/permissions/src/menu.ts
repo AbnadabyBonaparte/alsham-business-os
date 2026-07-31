@@ -117,6 +117,10 @@ const MENU: readonly MenuItem[] = [
   { href: '/ideias', label: 'Ideias & Inovação', moduleId: 'idea' },
   { href: '/propriedade-intelectual', label: 'Propriedade Intelectual', moduleId: 'ip' },
   { href: '/certificados', label: 'Certificado Digital', moduleId: 'fiscalcert' },
+  { href: '/pdv', label: 'Ponto de Venda', moduleId: 'pdv' },
+  { href: '/catalogo', label: 'Catálogo', moduleId: 'catalog' },
+  { href: '/caixa-sessao', label: 'Sessão de Caixa', moduleId: 'cashregister' },
+  { href: '/fidelidade', label: 'Fidelidade', moduleId: 'loyalty' },
   { href: '/store', label: 'Store', moduleId: null },
   { href: '/ajustes', label: 'Ajustes', moduleId: null },
 ];
