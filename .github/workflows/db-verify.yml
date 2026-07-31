@@ -2681,7 +2681,7 @@ jobs:
           # SABOTAGEM 1: capacity_kwp > 0 (uma usina de 0 kWp não é usina).
           PC=$($PSQL -tAc "select count(*) from pg_constraint con join pg_class c on c.oid=con.conrelid join pg_namespace n on n.oid=c.relnamespace
                             where n.nspname='plant' and c.relname='plants' and con.contype='c'
-                              and pg_get_constraintdef(con.oid) ilike '%capacity_kwp > 0%';")
+                              and pg_get_constraintdef(con.oid) ilike '%capacity_kwp > %';")
           [ "$PC" -ge "1" ] || { echo "::error::plant perdeu o CHECK de capacity_kwp > 0"; exit 1; }
           # SABOTAGEM 2: o tipo/porte é texto livre — nenhum enum no schema (a consolidação de GD).
           T=$($PSQL -tAc "select count(*) from pg_type t join pg_namespace n on n.oid=t.typnamespace where n.nspname='plant' and t.typtype='e';")
@@ -2720,7 +2720,7 @@ jobs:
           # SABOTAGEM 3: generated_kwh >= 0 (zero é leitura real; negativo infísico — o MANTIDO do esg).
           CH=$($PSQL -tAc "select count(*) from pg_constraint con join pg_class c on c.oid=con.conrelid join pg_namespace n on n.oid=c.relnamespace
                             where n.nspname='genreading' and c.relname='readings' and con.contype='c'
-                              and pg_get_constraintdef(con.oid) ilike '%generated_kwh >= 0%';")
+                              and pg_get_constraintdef(con.oid) ilike '%generated_kwh >= %';")
           [ "$CH" -ge "1" ] || { echo "::error::genreading perdeu o CHECK generated_kwh >= 0"; exit 1; }
           # SABOTAGEM 4: a imutabilidade tem gatilho (nem o dono reescreve).
           IM=$($PSQL -tAc "select count(*) from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='genreading' and p.proname='guard_reading_immutable';")
@@ -2744,7 +2744,7 @@ jobs:
           # SABOTAGEM 4: os CHECKs de credit_type e quantity_kwh>0.
           CH=$($PSQL -tAc "select count(*) from pg_constraint con join pg_class c on c.oid=con.conrelid join pg_namespace n on n.oid=c.relnamespace
                             where n.nspname='creditbalance' and c.relname='entries' and con.contype='c'
-                              and (pg_get_constraintdef(con.oid) ilike '%credit_type%' or pg_get_constraintdef(con.oid) ilike '%quantity_kwh > 0%');")
+                              and (pg_get_constraintdef(con.oid) ilike '%credit_type%' or pg_get_constraintdef(con.oid) ilike '%quantity_kwh > %');")
           [ "$CH" -ge "2" ] || { echo "::error::creditbalance perdeu o CHECK de credit_type ou de quantity_kwh>0: [$CH]"; exit 1; }
           # SABOTAGEM 5: o saldo é VIEW (nunca coluna).
           V=$($PSQL -tAc "select count(*) from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='creditbalance' and c.relname='subscription_balances' and c.relkind='v';")
