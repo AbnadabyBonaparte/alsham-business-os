@@ -2020,10 +2020,11 @@ jobs:
                              where table_schema='idea' and column_name='project_id';")
           [ "$PID" = "0" ] || { echo "::error::apareceu project_id no idea — a ideia não pertence a projeto"; exit 1; }
           # SABOTAGEM 2: mas o elo de DESTINO existe (promoted_project_id), opcional.
-          PPID=$($PSQL -tAc "select count(*) from information_schema.columns
+          # ⚠️ NÃO usar o nome de variável PPID — é readonly no bash (o PID do pai).
+          PROMOCOL=$($PSQL -tAc "select count(*) from information_schema.columns
                               where table_schema='idea' and table_name='ideas'
                                 and column_name='promoted_project_id' and is_nullable='YES';")
-          [ "$PPID" = "1" ] || { echo "::error::promoted_project_id sumiu ou virou obrigatório"; exit 1; }
+          [ "$PROMOCOL" = "1" ] || { echo "::error::promoted_project_id sumiu ou virou obrigatório"; exit 1; }
           # SABOTAGEM 3: a etapa é FK INTRA-schema (ideas → stages), não enum.
           FK=$($PSQL -tAc "select count(*) from pg_constraint c
                             join pg_class t on t.oid=c.conrelid
