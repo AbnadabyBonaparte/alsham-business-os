@@ -1430,6 +1430,39 @@ Campanha das 6 Ondas + 5 da Onda Dez). O Domain Compras deixa de ter só o `po`.
 Nenhum agente aplica em produção. A conferência de segurança do PASSO 15
 (§ pós-apply) vale para os schemas novos.
 
+## PASSO 24 — A ONDA ONZE: abrir o Domain Supply Chain (`0063` em diante) — Fase 2
+
+⭐ A Onda Onze abre um **território novo**: **Supply Chain** (`supply-chain`),
+SEPARADO de Compras na própria Taxonomia (§5). Cinco capacidades novas. Duas das
+sete capacidades do território ficam FORA por anti-duplicação: **Cadeia de
+fornecimento** já é o `vendor` (o fornecedor É a cadeia nesta granularidade), e
+**Abastecimento** já é o `reorder` (ponto de reposição) + `po` (o pedido). O
+rito é o mesmo:
+
+1. **Aplicar a migration** no SQL Editor, na ordem:
+   - `0063_dem.sql` — Módulo 48, Planejamento de Demanda (schema `dem`)
+   - `0064_sop.sql` — Módulo 49, S&OP / Rodadas de Consenso (schema `sop`)
+   - `0065_dc.sql` — Módulo 50, Centros de Distribuição (schema `dc`)
+   - `0066_disp.sql` — Módulo 51, Distribuição / Despacho (schema `disp`)
+   - `0067_logperf.sql` — Módulo 52, Performance Logística (schema `logperf`)
+2. **Reaplicar o seed** — os cinco cartões novos entram no catálogo, todos
+   `domain_key='supply-chain'`. A Store gradua a seção Supply Chain (que era
+   "Em breve") para seção viva.
+3. ⚠️ **Expor os schemas novos na Data API**: `dem`, `sop`, `dc`, `disp`,
+   `logperf`. Sem isso as telas carregam vazias, sem erro que diga o motivo.
+4. ✅ **SEM redeploy do `apps/api`** — os cinco têm `consumes` VAZIO (nenhum
+   handler de consumo novo; Lei 7). Guarda de CI confere. ⚠️ Os vínculos entre
+   os módulos são por ID SOLTO (o `sop` ao plano do `dem`; o `disp` e o
+   `logperf` ao `dc`) — a guarda SCHEMA_DE do CI reprova se qualquer migration
+   ler o schema do outro.
+5. **Instalar cada módulo pela Store**, no tenant que o contratou.
+
+⭐ **Ao concluir este apply, o catálogo chega a 52 módulos publicados** (47 +
+5 da Onda Onze). O Domain Supply Chain nasce com 5 das 7 capacidades.
+
+Nenhum agente aplica em produção. A conferência de segurança do PASSO 15
+(§ pós-apply) vale para os schemas novos.
+
 ## O QUE AINDA NÃO EXISTE
 
 Honestidade de escopo, para você não procurar o que não foi construído:
