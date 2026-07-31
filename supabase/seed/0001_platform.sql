@@ -4201,9 +4201,296 @@ on conflict (module_id) do update set
   status          = excluded.status,
   updated_at      = now();
 
--- ⛔ Setenta e quatro módulos no catálogo (65 domain + 9 vertical), zero
--- permissão concedida pelo seed. ⭐ Onda Dezoito: o Vertical Varejo &
--- Supermercados aberto (pdv · catalog · cashregister · loyalty).
+-- =============================================================================
+-- ⭐ ONDA DEZENOVE (Fase 3) — os 3 Domains pendentes: IA Aplicada, GRC,
+-- Segurança da Informação. ⚠️ A investigação fechou IA Aplicada com ZERO módulo
+-- (tudo é Core/Engine/AI-Marketplace/Engenheiro — declarado FORA na spec do
+-- domínio). Sobram SEIS módulos genuínos: GRC (erisk · control · whistle) e
+-- InfoSec (vuln · secincident · continuity).
+-- =============================================================================
+
+insert into core.module_registry (
+  module_id, name, version, summary,
+  layer, domain_key,
+  capabilities, permissions, events_emits, events_consumes, agents,
+  requires_core, status
+)
+values (
+  'erisk',
+  'Risco Corporativo',
+  '0.1.0',
+  'O registro de riscos corporativos: o risco ESTRATÉGICO do negócio, com descrição em texto livre, dono, categoria, e a probabilidade e o impacto na régua 1–5 (física do método). O DIVERGE do risk (Módulo 60, PMO): NÃO tem projeto — o risk é o risco de entrega de um projeto, o erisk é o risco do negócio que vive enquanto a empresa vive. MANTIDO do risk: a régua 1–5, a severidade como leitura (a Matriz de riscos, probabilidade × impacto) e a física do ciclo — open → mitigated → closed, com mitigated que REABRE (mitigated → open, o mesmo risco) e closed TERMINAL. O treatment traz os 4 Ts da ISO 31000 (accept/mitigate/transfer/avoid). consumes VAZIO.',
+  'domain', 'grc',
+  '[
+     {"key":"enterprise-risk","canonicalName":"Gestão de riscos"},
+     {"key":"risk-matrix","canonicalName":"Matriz de riscos"}
+   ]'::jsonb,
+  '[
+     {"key":"erisk.entry.manage","moduleId":"erisk","description":"Registrar e editar riscos corporativos, definir tratamento, mitigar, reabrir e encerrar."}
+   ]'::jsonb,
+  '[
+     {"type":"erisk.entry.registered","version":1,"description":"Um risco corporativo nasceu (sempre aberto)."},
+     {"type":"erisk.entry.mitigated","version":1,"description":"O risco passou a mitigado (a mitigação está em vigor)."},
+     {"type":"erisk.entry.reopened","version":1,"description":"O risco mitigado REABRIU — o mesmo risco voltou (a mitigação parou de funcionar)."},
+     {"type":"erisk.entry.closed","version":1,"description":"O risco foi encerrado. Terminal — o que recorre é risco novo."}
+   ]'::jsonb,
+  '[]'::jsonb,
+  '[]'::jsonb,
+  '0.0.x',
+  'published'
+)
+on conflict (module_id) do update set
+  name            = excluded.name,
+  version         = excluded.version,
+  summary         = excluded.summary,
+  layer           = excluded.layer,
+  domain_key      = excluded.domain_key,
+  vertical_key    = excluded.vertical_key,
+  capabilities    = excluded.capabilities,
+  permissions     = excluded.permissions,
+  events_emits    = excluded.events_emits,
+  events_consumes = excluded.events_consumes,
+  agents          = excluded.agents,
+  requires_core   = excluded.requires_core,
+  status          = excluded.status,
+  updated_at      = now();
+
+insert into core.module_registry (
+  module_id, name, version, summary,
+  layer, domain_key,
+  capabilities, permissions, events_emits, events_consumes, agents,
+  requires_core, status
+)
+values (
+  'control',
+  'Controles Internos',
+  '0.1.0',
+  'O cadastro dos controles internos da empresa: a rotina de verificação que se desenha para se proteger, com nome, dono e frequência em texto livre e o tipo na régua preventive/detective/corrective (física do COSO, CHECK). O ciclo é active ↔ archived — o controle descontinuado volta (a física do vendor). Cada teste do controle é um FATO CONSUMADO (data, resultado pass/fail, nota) num livro IMUTÁVEL (a física do timesheet): corrigir é registrar outro teste, nunca reescrever. Vínculo opcional ao risco por id solto. Não é a política versionada (pol), não é a auditoria com achados (audit), não é o risco em si (erisk).',
+  'domain', 'grc',
+  '[
+     {"key":"internal-controls","canonicalName":"Controles internos"}
+   ]'::jsonb,
+  '[
+     {"key":"control.control.manage","moduleId":"control","description":"Cadastrar e editar controles internos, e registrar testes no livro imutável."},
+     {"key":"control.control.decide","moduleId":"control","description":"Arquivar ou reativar um controle — a rotina de verificação que sai e volta."}
+   ]'::jsonb,
+  '[
+     {"type":"control.control.registered","version":1,"description":"Um controle interno nasceu no cadastro (sempre ativo)."},
+     {"type":"control.control.archived","version":1,"description":"O controle foi arquivado. Continua no banco; nunca DELETE."},
+     {"type":"control.control.reopened","version":1,"description":"O controle arquivado voltou ao cadastro vivo — a mesma rotina."},
+     {"type":"control.test.recorded","version":1,"description":"Um teste do controle foi registrado no livro imutável (data, resultado pass/fail)."}
+   ]'::jsonb,
+  '[]'::jsonb,
+  '[]'::jsonb,
+  '0.0.x',
+  'published'
+)
+on conflict (module_id) do update set
+  name            = excluded.name,
+  version         = excluded.version,
+  summary         = excluded.summary,
+  layer           = excluded.layer,
+  domain_key      = excluded.domain_key,
+  vertical_key    = excluded.vertical_key,
+  capabilities    = excluded.capabilities,
+  permissions     = excluded.permissions,
+  events_emits    = excluded.events_emits,
+  events_consumes = excluded.events_consumes,
+  agents          = excluded.agents,
+  requires_core   = excluded.requires_core,
+  status          = excluded.status,
+  updated_at      = now();
+
+insert into core.module_registry (
+  module_id, name, version, summary,
+  layer, domain_key,
+  capabilities, permissions, events_emits, events_consumes, agents,
+  requires_core, status
+)
+values (
+  'whistle',
+  'Canal de Denúncias',
+  '0.1.0',
+  'O canal de denúncias do tenant: o relato nasce IMUTÁVEL (fato consumado) e só o tratamento anda (open → under_review → resolved/dismissed, terminais, com desfecho escrito). ⭐⭐ O anonimato é físico: se a denúncia é anônima, o denunciante NUNCA é gravado — não é "não mostra", é NÃO GRAVA (a única forma de nunca vazar é nunca ter). A confidencialidade mora na RLS: só o comitê de ética (report.handle) lê todas as denúncias. consumes VAZIO.',
+  'domain', 'grc',
+  '[
+     {"key":"whistleblower","canonicalName":"Canal de denúncias"}
+   ]'::jsonb,
+  '[
+     {"key":"whistle.report.submit","moduleId":"whistle","description":"Registrar uma denúncia (anônima ou identificada) e acompanhar a própria, quando não-anônima."},
+     {"key":"whistle.report.handle","moduleId":"whistle","description":"Tratar denúncias — o comitê de ética lê todas e move o status (analisar, resolver, arquivar) com o desfecho escrito."}
+   ]'::jsonb,
+  '[
+     {"type":"whistle.report.registered","version":1,"description":"Uma denúncia nasceu (sempre aberta). O envelope leva SÓ metadado seguro — nunca o relato nem o denunciante."},
+     {"type":"whistle.report.reviewed","version":1,"description":"A denúncia entrou em análise (open → under_review)."},
+     {"type":"whistle.report.resolved","version":1,"description":"A denúncia foi resolvida — terminal, com o desfecho escrito."},
+     {"type":"whistle.report.dismissed","version":1,"description":"A denúncia foi arquivada — terminal, com o desfecho escrito."}
+   ]'::jsonb,
+  '[]'::jsonb,
+  '[]'::jsonb,
+  '0.0.x',
+  'published'
+)
+on conflict (module_id) do update set
+  name            = excluded.name,
+  version         = excluded.version,
+  summary         = excluded.summary,
+  layer           = excluded.layer,
+  domain_key      = excluded.domain_key,
+  vertical_key    = excluded.vertical_key,
+  capabilities    = excluded.capabilities,
+  permissions     = excluded.permissions,
+  events_emits    = excluded.events_emits,
+  events_consumes = excluded.events_consumes,
+  agents          = excluded.agents,
+  requires_core   = excluded.requires_core,
+  status          = excluded.status,
+  updated_at      = now();
+
+insert into core.module_registry (
+  module_id, name, version, summary,
+  layer, domain_key,
+  capabilities, permissions, events_emits, events_consumes, agents,
+  requires_core, status
+)
+values (
+  'vuln',
+  'Gestão de Vulnerabilidades',
+  '0.1.0',
+  'O registro da vulnerabilidade constatada nos SISTEMAS DO TENANT (IAM/Cofre/SIEM/Backup da plataforma ficam FORA) — a identidade do nc/capa: título e descrição obrigatórios, sistema afetado e plano de remediação em texto livre, severidade 1–5 (CHECK argumentado, a física do método). O ciclo é open → in_progress → remediated/accepted_risk, com in_progress voltando a open (reavaliar). São DUAS respostas TERMINAIS, cada uma com a justificativa escrita: remediated (corrigi-a) e accepted_risk (decidi conviver com o risco). A que reaparece é registro novo. O vínculo ao incidente de segurança é por id solto. consumes VAZIO.',
+  'domain', 'infosec',
+  '[
+     {"key":"vulnerability-management","canonicalName":"Gestão de vulnerabilidades"}
+   ]'::jsonb,
+  '[
+     {"key":"vuln.finding.manage","moduleId":"vuln","description":"Registrar e tratar vulnerabilidades — avançar para em progresso, reavaliar, remediar ou aceitar o risco."}
+   ]'::jsonb,
+  '[
+     {"type":"vuln.finding.registered","version":1,"description":"Uma vulnerabilidade foi registrada — o desvio constatado num sistema do tenant (sempre aberta)."},
+     {"type":"vuln.finding.progressed","version":1,"description":"A vulnerabilidade passou a em progresso — a remediação começou."},
+     {"type":"vuln.finding.remediated","version":1,"description":"A vulnerabilidade foi remediada, com a nota de remediação. Terminal — a que reaparece é registro novo."},
+     {"type":"vuln.finding.accepted","version":1,"description":"O risco da vulnerabilidade foi aceito, com a justificativa. Terminal — a segunda resposta."},
+     {"type":"vuln.finding.reopened","version":1,"description":"A vulnerabilidade em progresso voltou a aberta — reavaliada (o carimbo de encerramento nunca chegou)."}
+   ]'::jsonb,
+  '[]'::jsonb,
+  '[]'::jsonb,
+  '0.0.x',
+  'published'
+)
+on conflict (module_id) do update set
+  name            = excluded.name,
+  version         = excluded.version,
+  summary         = excluded.summary,
+  layer           = excluded.layer,
+  domain_key      = excluded.domain_key,
+  vertical_key    = excluded.vertical_key,
+  capabilities    = excluded.capabilities,
+  permissions     = excluded.permissions,
+  events_emits    = excluded.events_emits,
+  events_consumes = excluded.events_consumes,
+  agents          = excluded.agents,
+  requires_core   = excluded.requires_core,
+  status          = excluded.status,
+  updated_at      = now();
+
+insert into core.module_registry (
+  module_id, name, version, summary,
+  layer, domain_key,
+  capabilities, permissions, events_emits, events_consumes, agents,
+  requires_core, status
+)
+values (
+  'secincident',
+  'Resposta a Incidentes',
+  '0.1.0',
+  'O registro e a condução de incidentes de segurança dos sistemas do tenant: título e descrição em texto livre, os campos PRÓPRIOS attack_vector (como entraram) e affected_data (o que foi comprometido), e a severity na régua 1–5 (física do método). A timeline é o ciclo NIST — detected → contained → eradicated → recovered → closed, com o atalho de falso-positivo detected → closed; closed é TERMINAL. O DIVERGE assinado do occ (Módulo 16): a ocorrência é FATO CONSUMADO (1 par, imutável desde o nascimento); o incidente é uma OPERAÇÃO de resposta (5 estados) editável enquanto aberto e congelada no fechamento (a física do risk). A resposta é livro IMUTÁVEL de atos (a tratativa do occ — o MANTIDO). consumes VAZIO.',
+  'domain', 'infosec',
+  '[
+     {"key":"incident-response","canonicalName":"Resposta a incidentes"}
+   ]'::jsonb,
+  '[
+     {"key":"secincident.incident.manage","moduleId":"secincident","description":"Registrar e editar incidentes, conduzir a timeline (conter, erradicar, recuperar, fechar) e registrar ações de resposta."}
+   ]'::jsonb,
+  '[
+     {"type":"secincident.incident.registered","version":1,"description":"Um incidente de segurança nasceu (sempre detectado)."},
+     {"type":"secincident.incident.contained","version":1,"description":"O incidente foi contido — a ameaça deixou de se espalhar."},
+     {"type":"secincident.incident.eradicated","version":1,"description":"A causa do incidente foi erradicada dos sistemas."},
+     {"type":"secincident.incident.recovered","version":1,"description":"Os sistemas afetados foram recuperados à operação normal."},
+     {"type":"secincident.incident.closed","version":1,"description":"O incidente foi encerrado com a nota de encerramento. Terminal — o que recorre é incidente novo."},
+     {"type":"secincident.action.recorded","version":1,"description":"Um passo da timeline de resposta foi registrado — ato imutável."}
+   ]'::jsonb,
+  '[]'::jsonb,
+  '[]'::jsonb,
+  '0.0.x',
+  'published'
+)
+on conflict (module_id) do update set
+  name            = excluded.name,
+  version         = excluded.version,
+  summary         = excluded.summary,
+  layer           = excluded.layer,
+  domain_key      = excluded.domain_key,
+  vertical_key    = excluded.vertical_key,
+  capabilities    = excluded.capabilities,
+  permissions     = excluded.permissions,
+  events_emits    = excluded.events_emits,
+  events_consumes = excluded.events_consumes,
+  agents          = excluded.agents,
+  requires_core   = excluded.requires_core,
+  status          = excluded.status,
+  updated_at      = now();
+
+insert into core.module_registry (
+  module_id, name, version, summary,
+  layer, domain_key,
+  capabilities, permissions, events_emits, events_consumes, agents,
+  requires_core, status
+)
+values (
+  'continuity',
+  'Continuidade de Negócios',
+  '0.1.0',
+  'O plano de continuidade da empresa (BCP/DRP): nome, escopo e os alvos RTO/RPO em texto livre, com o ciclo active ↔ archived (o plano descontinuado que a empresa retoma é o mesmo — a física do vendor). E o livro IMUTÁVEL de drills — cada teste do plano é um lançamento consumado (data, cenário, desfecho, nota — a física do timesheet), a prova de que o plano funciona. O documento detalhado do plano é o pol (documento versionado com ciência), declarado fora; failover automático e árvore de chamadas também ficam de fora.',
+  'domain', 'infosec',
+  '[
+     {"key":"business-continuity","canonicalName":"Continuidade de negócios"}
+   ]'::jsonb,
+  '[
+     {"key":"continuity.plan.manage","moduleId":"continuity","description":"Cadastrar e editar planos de continuidade e registrar drills (data, cenário, desfecho)."},
+     {"key":"continuity.plan.decide","moduleId":"continuity","description":"Arquivar ou reativar um plano de continuidade — o plano que sai e volta."}
+   ]'::jsonb,
+  '[
+     {"type":"continuity.plan.registered","version":1,"description":"Um plano de continuidade nasceu no cadastro (sempre ativo)."},
+     {"type":"continuity.plan.archived","version":1,"description":"O plano foi arquivado. Continua no banco; nunca DELETE."},
+     {"type":"continuity.plan.reopened","version":1,"description":"O plano arquivado voltou ao cadastro vivo — o mesmo plano."},
+     {"type":"continuity.drill.recorded","version":1,"description":"Um drill do plano foi registrado. Lançamento imutável desde o instante 1."}
+   ]'::jsonb,
+  '[]'::jsonb,
+  '[]'::jsonb,
+  '0.0.x',
+  'published'
+)
+on conflict (module_id) do update set
+  name            = excluded.name,
+  version         = excluded.version,
+  summary         = excluded.summary,
+  layer           = excluded.layer,
+  domain_key      = excluded.domain_key,
+  vertical_key    = excluded.vertical_key,
+  capabilities    = excluded.capabilities,
+  permissions     = excluded.permissions,
+  events_emits    = excluded.events_emits,
+  events_consumes = excluded.events_consumes,
+  agents          = excluded.agents,
+  requires_core   = excluded.requires_core,
+  status          = excluded.status,
+  updated_at      = now();
+
+-- ⛔ Oitenta módulos no catálogo (71 domain + 9 vertical), zero permissão
+-- concedida pelo seed. ⭐ Onda Dezenove (Fase 3): GRC (erisk · control ·
+-- whistle) e Segurança da Informação (vuln · secincident · continuity)
+-- abertos. IA Aplicada fechou com ZERO módulo — tudo é Core/Engine/AI-
+-- Marketplace/Engenheiro, declarado FORA (honestidade, não falha).
 
 -- =============================================================================
 -- 5. PLANOS-BASE

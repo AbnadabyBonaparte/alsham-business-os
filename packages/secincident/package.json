@@ -1,0 +1,24 @@
+{
+  "name": "@alsham/secincident",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "files": ["src"],
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "node --experimental-strip-types --test src/**/*.test.ts"
+  },
+  "dependencies": {
+    "@alsham/core": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "typescript": "^5.7.2"
+  },
+  "description": "Módulo 79 — Resposta a Incidentes de Segurança. Domain Segurança da Informação. Timeline NIST (detected→contained→eradicated→recovered→closed) — o DIVERGE do occ (5 estados vs 1 par; editável enquanto aberto vs imutável). Campos próprios: attack_vector, affected_data, severity 1-5."
+}

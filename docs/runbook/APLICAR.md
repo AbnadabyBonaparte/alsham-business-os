@@ -1682,6 +1682,52 @@ o catálogo passa a ter **9 cartões vertical** (5 shopping-centers + 4 retail).
 Nenhum agente aplica em produção. A conferência de segurança do PASSO 15
 (§ pós-apply) vale para os schemas novos.
 
+## PASSO 32 — A ONDA DEZENOVE: os 3 Domains pendentes (`0090`–`0095`) — Fase 3
+
+⭐ A Onda Dezenove fecha os **ÚLTIMOS 3 dos 18 Domains Universais**: 🤖 IA
+Aplicada, 🏛 GRC e 🔐 Segurança da Informação — os que ficaram por último
+justamente pela forte sobreposição com Core/Engines/módulos já construídos.
+
+⚠️ **A investigação fechou 🤖 IA Aplicada com ZERO módulo** — e isso é
+honestidade, não falha. As 9 capacidades já são plataforma: *Agentes* é a
+Dimensão 2 (AI Marketplace); *Chat/Automações/OCR/Pesquisa inteligente* são
+Engines; *Copiloto* é o Engenheiro; *Resumos/Análise/Classificação* são a IA
+Base (a Forja) + o Engenheiro via ferramenta. Nenhum recorte de DADO genuíno
+sobrou. Ver `docs/canon/ONDA-DEZENOVE-DECISOES.md` (as 23 capacidades, cada uma
+com a decisão e o porquê).
+
+Sobram **SEIS módulos genuínos**:
+
+1. **Aplicar as seis migrations** no SQL Editor, em ordem:
+   - `0090_erisk.sql` — Módulo 75, Risco Corporativo (schema `erisk`, GRC)
+   - `0091_control.sql` — Módulo 76, Controles Internos (schema `control`, GRC)
+   - `0092_whistle.sql` — Módulo 77, Canal de Denúncias (schema `whistle`, GRC)
+   - `0093_vuln.sql` — Módulo 78, Gestão de Vulnerabilidades (schema `vuln`, InfoSec)
+   - `0094_secincident.sql` — Módulo 79, Resposta a Incidentes (schema `secincident`, InfoSec)
+   - `0095_continuity.sql` — Módulo 80, Continuidade de Negócios (schema `continuity`, InfoSec)
+2. **Reaplicar o seed** — os seis cartões entram no catálogo (`grc`×3, `infosec`×3).
+   A Store gradua as seções GRC e Segurança da Informação.
+3. ⚠️ **Expor os schemas novos na Data API**: `erisk`, `control`, `whistle`,
+   `vuln`, `secincident`, `continuity`.
+4. ✅ **SEM redeploy do `apps/api`** — os seis têm `consumes` VAZIO (Lei 7).
+   Guarda de CI confere.
+5. **Instalar os módulos pela Store**, no tenant que os contratou.
+
+⭐⭐ **O `whistle` guarda a lei mais delicada da plataforma:** se a denúncia é
+anônima, o denunciante NUNCA é gravado (gatilho + constraint + política de
+leitura). Guardar quem denunciou anonimamente e só "esconder na tela" seria uma
+bomba — a única forma de nunca vazar é nunca ter.
+⭐ **Reaproveitamento, não duplicação:** *Auditorias* de compliance é o `audit`;
+*Compliance corporativo* é o `iso`; *Políticas* é o `pol`; *IAM* é o RBAC do
+Core; *Cofre/SIEM/Backup* é a infra da plataforma — todos declarados FORA por
+escrito.
+
+⭐ **Ao concluir este apply, o catálogo chega a 80 módulos publicados** (74 + 6
+da Onda Dezenove), e o mapa dos **18 Domains Universais fica COMPLETO**.
+
+Nenhum agente aplica em produção. A conferência de segurança do PASSO 15
+(§ pós-apply) vale para os schemas novos.
+
 ## O QUE AINDA NÃO EXISTE
 
 Honestidade de escopo, para você não procurar o que não foi construído:

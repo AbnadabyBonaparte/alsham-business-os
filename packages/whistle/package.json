@@ -1,0 +1,24 @@
+{
+  "name": "@alsham/whistle",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "files": ["src"],
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "node --experimental-strip-types --test src/**/*.test.ts"
+  },
+  "dependencies": {
+    "@alsham/core": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "typescript": "^5.7.2"
+  },
+  "description": "Módulo 77 — Canal de Denúncias. Domain GRC. O relato nasce imutável; o tratamento anda (open→under_review→resolved/dismissed). ⭐⭐ Anonimato físico: se anônima, o denunciante NUNCA é gravado (nem na tela, nem no banco). Confidencialidade na RLS."
+}

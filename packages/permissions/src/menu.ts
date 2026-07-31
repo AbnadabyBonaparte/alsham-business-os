@@ -121,6 +121,12 @@ const MENU: readonly MenuItem[] = [
   { href: '/catalogo', label: 'Catálogo', moduleId: 'catalog' },
   { href: '/caixa-sessao', label: 'Sessão de Caixa', moduleId: 'cashregister' },
   { href: '/fidelidade', label: 'Fidelidade', moduleId: 'loyalty' },
+  { href: '/riscos-corporativos', label: 'Riscos Corporativos', moduleId: 'erisk' },
+  { href: '/controles-internos', label: 'Controles Internos', moduleId: 'control' },
+  { href: '/denuncias', label: 'Canal de Denúncias', moduleId: 'whistle' },
+  { href: '/vulnerabilidades', label: 'Vulnerabilidades', moduleId: 'vuln' },
+  { href: '/incidentes-seguranca', label: 'Resposta a Incidentes', moduleId: 'secincident' },
+  { href: '/continuidade', label: 'Continuidade', moduleId: 'continuity' },
   { href: '/store', label: 'Store', moduleId: null },
   { href: '/ajustes', label: 'Ajustes', moduleId: null },
 ];
