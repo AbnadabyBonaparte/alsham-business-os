@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import Link from 'next/link';
 
 import { usageBand } from '@alsham/billing';
@@ -6,7 +7,7 @@ import { visibleMenu } from '@alsham/permissions';
 import type { ShelfItem } from '@alsham/permissions';
 
 import { getPanelPort, loadAllPermissions } from '@/lib/data';
-import type { AuditRow, CourierSummary, PlanUsageRow } from '@/lib/data/panel-port';
+import type { AuditRow, CourierSummary, OverviewCard, PlanUsageRow } from '@/lib/data/panel-port';
 import { resolveSession } from '@/lib/session';
 import { Badge, DemoNotice, EmptyState, Panel, SectionHeader } from '@/components/states';
 
@@ -56,11 +57,12 @@ export default async function Painel() {
 
   // ⚠️ `Promise.allSettled`, não `all`: uma seção que não carrega não pode
   // apagar as outras. O Painel é a home — ele degrada por partes.
-  const [correio, consumo, trilha, prateleira, permissoes] = await Promise.allSettled([
+  const [correio, consumo, trilha, prateleira, visao, permissoes] = await Promise.allSettled([
     port.loadCourier(),
     port.loadPlanUsage(),
     port.loadRecentAudit(),
     port.loadShelf(),
+    port.loadOverview(),
     loadAllPermissions(),
   ]);
 
@@ -68,6 +70,10 @@ export default async function Painel() {
   const metricas = consumo.status === 'fulfilled' ? consumo.value : null;
   const linhas = trilha.status === 'fulfilled' ? trilha.value : [];
   const modulos = prateleira.status === 'fulfilled' ? prateleira.value : null;
+  // ⭐ A Visão Geral degrada por partes como todo o resto: se a leitura inteira
+  // falhar, a seção some (nunca inventa cartão). Cada cartão de dentro já vem
+  // isolado do adapter — um que falhou vem com value=null e diz "sem leitura".
+  const cartoes = visao.status === 'fulfilled' ? visao.value : [];
   const permissoesDoUsuario =
     permissoes.status === 'fulfilled' ? permissoes.value : new Set<string>();
 
@@ -85,6 +91,8 @@ export default async function Painel() {
       <PainelHero
         titulo={session.mode === 'authenticated' ? `${session.activeTenant.name}.` : 'Painel.'}
       />
+
+      <VisaoGeral cartoes={cartoes} />
 
       <div className="grid gap-4 lg:grid-cols-3">
         <div className="lg:col-span-2">
@@ -146,6 +154,135 @@ function PainelHero({ titulo }: { titulo: string }) {
         </p>
       </div>
     </header>
+  );
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+ * ⭐ A VISÃO GERAL — os números do negócio, um por módulo instalado
+ * ──────────────────────────────────────────────────────────────────────
+ * Lei 7 no desenho: cada cartão sai de uma leitura REAL do módulo-fonte, sob
+ * RLS. Módulo não instalado ⇒ o cartão nem aparece (nunca um zero fabricado).
+ * Módulo instalado com leitura falha ⇒ "sem leitura", jamais "0".
+ *
+ * ⚠️ Fronteira Lego (Opção A, aprovada): esta é leitura da PELE sobre views
+ * públicas de módulos — como um BI. Nenhuma escrita, nenhuma transação entre
+ * módulos, nenhuma FK. A Regra de Ouro segue intacta.
+ *
+ * Ícones: SVG de TRAÇO inline (geometria Lucide, MIT), no mesmo idioma do
+ * portal — zero emoji, zero raster, zero dependência nova.
+ */
+const CARD_ICON: Record<string, ReactNode> = {
+  'caixa-disponivel': (
+    <>
+      <path d="M3 6.5A2.5 2.5 0 0 1 5.5 4H18a1 1 0 0 1 1 1v2" />
+      <path d="M3 6.5V18a2 2 0 0 0 2 2h14a1 1 0 0 0 1-1v-3" />
+      <path d="M20 10h-4a2 2 0 0 0 0 4h4a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1Z" />
+    </>
+  ),
+  'receita-mes': (
+    <>
+      <path d="M3 17 9 11l4 4 8-8" />
+      <path d="M15 4h6v6" />
+    </>
+  ),
+  'contas-vencendo': (
+    <>
+      <rect x="3" y="4.5" width="18" height="17" rx="2" />
+      <path d="M3 9.5h18M8 2.5v4M16 2.5v4M12 13.5v3l2 1.5" />
+    </>
+  ),
+  'estoque-critico': (
+    <>
+      <path d="M21 8 12 3 3 8v8l9 5 9-5V8Z" />
+      <path d="M3 8l9 5 9-5M12 13v8" />
+    </>
+  ),
+  'clientes-ativos': (
+    <>
+      <circle cx="9" cy="8" r="3.2" />
+      <path d="M2.5 20a6.5 6.5 0 0 1 13 0" />
+      <path d="M16 5.2a3.2 3.2 0 0 1 0 5.6M17.5 20a6.5 6.5 0 0 0-3-5.5" />
+    </>
+  ),
+};
+
+const CARD_TOM = {
+  neutral: 'text-bos-text',
+  warning: 'text-bos-warning',
+  danger: 'text-bos-danger',
+} as const;
+
+function VisaoGeral({ cartoes }: { cartoes: readonly OverviewCard[] }) {
+  // Nenhum módulo-fonte instalado ⇒ a seção inteira não aparece. Honesto: não
+  // há visão geral a dar antes do primeiro módulo de dado entrar.
+  if (cartoes.length === 0) return null;
+
+  return (
+    <section className="mb-4">
+      <h2 className="bos-eyebrow mb-3">Visão geral</h2>
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
+        {cartoes.map((c) => (
+          <CartaoVisao key={c.key} c={c} />
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function formatarValor(c: OverviewCard): string {
+  if (c.value === null) return '—';
+  if (c.kind === 'currency') {
+    return (c.value / 100).toLocaleString('pt-BR', {
+      style: 'currency',
+      currency: c.currency ?? 'BRL',
+      maximumFractionDigits: 0,
+    });
+  }
+  return c.value.toLocaleString('pt-BR');
+}
+
+function CartaoVisao({ c }: { c: OverviewCard }) {
+  const tom = CARD_TOM[c.tone ?? 'neutral'];
+  const corpo = (
+    <Panel className="bos-sheen h-full px-4 py-4 transition-colors duration-200 hover:border-bos-accent/50">
+      <div className="flex items-start justify-between gap-2">
+        <p className="text-xs text-bos-muted">{c.label}</p>
+        <svg
+          aria-hidden
+          viewBox="0 0 24 24"
+          className="size-4 shrink-0 text-bos-muted"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          {CARD_ICON[c.key] ?? null}
+        </svg>
+      </div>
+
+      {c.value === null ? (
+        <>
+          <p className="tabular mt-2 font-display text-2xl text-bos-muted">—</p>
+          <p className="mt-1 text-[11px] text-bos-muted">
+            sem leitura agora — o dado existe, esta tela não conseguiu lê-lo
+          </p>
+        </>
+      ) : (
+        <>
+          <p className={`tabular mt-2 font-display text-2xl ${tom}`}>{formatarValor(c)}</p>
+          {c.hint ? <p className="mt-1 text-[11px] text-bos-muted">{c.hint}</p> : null}
+        </>
+      )}
+    </Panel>
+  );
+
+  return c.href ? (
+    <Link href={c.href} className="block focus:outline-none focus-visible:ring-1 focus-visible:ring-bos-accent/60 rounded-lg">
+      {corpo}
+    </Link>
+  ) : (
+    corpo
   );
 }
 

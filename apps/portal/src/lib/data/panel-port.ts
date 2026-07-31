@@ -18,6 +18,36 @@ export interface PlanUsageRow {
   readonly onExceed: 'block' | 'meter';
 }
 
+/**
+ * ⭐ **Um cartão da Visão Geral — um número REAL do tenant, de um módulo que ele
+ * instalou.** (Onda UX Viva.)
+ *
+ * A regra de Lei 7 mora no tipo: um cartão só existe para um módulo INSTALADO
+ * (a leitura cruza cartões disponíveis × módulos do tenant, o padrão
+ * `buildShelf`). Módulo não instalado ⇒ o cartão nem nasce — **nunca um zero
+ * fabricado**. Módulo instalado com dado zero ⇒ o cartão mostra `0`, que é
+ * verdade. Módulo instalado mas cuja leitura falhou ⇒ `value === null`, e a
+ * tela diz "sem leitura" — jamais inventa "0" nem "OK".
+ */
+export interface OverviewCard {
+  readonly key: string;
+  readonly label: string;
+  /** O módulo FONTE — precisa estar instalado no tenant para o cartão existir. */
+  readonly moduleId: string;
+  /** `currency` mostra centavos formatados; `count` mostra uma contagem. */
+  readonly kind: 'currency' | 'count';
+  /** O valor REAL. `null` = módulo instalado, mas a leitura falhou (degrada só este cartão). */
+  readonly value: number | null;
+  /** ISO 4217, quando `kind === 'currency'`. */
+  readonly currency?: string;
+  /** Uma linha de contexto curta. */
+  readonly hint?: string;
+  /** Link para a tela do módulo. */
+  readonly href?: string;
+  /** Realce de estado — nunca decorativo (vencendo/crítico). O ouro fica de fora. */
+  readonly tone?: 'neutral' | 'warning' | 'danger';
+}
+
 /** Uma linha da trilha DO TENANT. */
 export interface AuditRow {
   readonly id: string;
@@ -43,5 +73,11 @@ export interface PanelPort {
   loadRecentAudit(): Promise<AuditRow[]>;
   /** Os módulos do catálogo cruzados com o que este tenant instalou. */
   loadShelf(): Promise<ShelfItem[]>;
+  /**
+   * ⭐ Os cartões da Visão Geral — só dos módulos INSTALADOS, cada leitura
+   * ISOLADA (uma view que muda de formato degrada só o próprio cartão, nunca
+   * derruba os outros nem a página). Módulo não instalado ⇒ sem cartão.
+   */
+  loadOverview(): Promise<OverviewCard[]>;
   readonly planCode: string;
 }
