@@ -88,6 +88,10 @@ export function StoreShelf({
   // seguir um inexistente seria inventar convenção. Clicar no badge ativo
   // desliga o filtro.
   const [filtro, setFiltro] = useState<FiltroGrupo | null>(null);
+  // ⭐ A busca por texto — combina com o filtro (os dois se somam), sem lib
+  // fuzzy (includes() basta para um catálogo deste tamanho) e sem query param
+  // (mesmo padrão do filtro dos badges). Filtra a cada tecla.
+  const [busca, setBusca] = useState('');
 
   if (items.length === 0) {
     return (
@@ -99,20 +103,43 @@ export function StoreShelf({
   }
 
   const { domains, verticals } = mapShelfToTaxonomy(items);
-  const nenhumVisivel =
-    filtro !== null && !items.some((i) => grupoDoEstado(i.state) === filtro);
+
+  // ⭐ Os dois casadores da busca: um módulo casa por NOME ou por moduleId; um
+  // território "Em breve" casa por nome. Busca vazia casa tudo.
+  const q = busca.trim().toLowerCase();
+  const casaItem = (i: ShelfItem) =>
+    q === '' ||
+    i.entry.name.toLowerCase().includes(q) ||
+    i.entry.moduleId.toLowerCase().includes(q);
+  const casaTerritorio = (t: Territory) => q === '' || t.name.toLowerCase().includes(q);
+
+  // O filtro de badges some com "Em breve" (Lei 7 — é mapa, não card); a busca,
+  // NÃO: um território que casa a busca aparece mesmo sem filtro de estado.
+  const algumVivo = items.some((i) => (filtro ? grupoDoEstado(i.state) === filtro : true) && casaItem(i));
+  const algumEmBreve =
+    filtro === null && [...domains.upcoming, ...verticals.upcoming].some(casaTerritorio);
+
+  // Filtro de estado sem nenhum card (independe da busca).
+  const nenhumVisivel = filtro !== null && !items.some((i) => grupoDoEstado(i.state) === filtro);
+  // Busca sem resultado nenhum — nem vivo, nem em breve.
+  const nadaNaBusca = q !== '' && !algumVivo && !algumEmBreve;
 
   return (
     <div className="flex flex-col gap-10">
-      <FiltroBadges
-        filtro={filtro}
-        onToggle={(g) => setFiltro((atual) => (atual === g ? null : g))}
-        resumo={resumo}
-        limite={limite}
-        canInstall={canInstall}
-      />
+      <div className="flex flex-col gap-3">
+        <SearchField value={busca} onChange={setBusca} />
+        <FiltroBadges
+          filtro={filtro}
+          onToggle={(g) => setFiltro((atual) => (atual === g ? null : g))}
+          resumo={resumo}
+          limite={limite}
+          canInstall={canInstall}
+        />
+      </div>
 
-      {nenhumVisivel ? (
+      {nadaNaBusca ? (
+        <p className="text-sm text-bos-muted">Nenhum módulo encontrado.</p>
+      ) : nenhumVisivel ? (
         <EmptyState
           title={
             filtro === 'em-uso'
@@ -131,6 +158,8 @@ export function StoreShelf({
             roles={roles}
             canInstall={canInstall}
             filtro={filtro}
+            casaItem={casaItem}
+            casaTerritorio={casaTerritorio}
           />
           <GalleryView
             gallery={verticals}
@@ -140,10 +169,33 @@ export function StoreShelf({
             roles={roles}
             canInstall={canInstall}
             filtro={filtro}
+            casaItem={casaItem}
+            casaTerritorio={casaTerritorio}
           />
         </div>
       )}
     </div>
+  );
+}
+
+/**
+ * O campo de busca do topo da Store — texto livre, filtra a cada tecla (sem
+ * enter). Só tokens `--bos-*`, nenhuma cor nova (IDENTIDADE-VISUAL §2). Casa por
+ * nome do módulo e por moduleId; sem lib fuzzy — `includes()` basta.
+ */
+function SearchField({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  return (
+    <label className="flex flex-col gap-1">
+      <span className="sr-only">Buscar módulo por nome ou id</span>
+      <input
+        type="search"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder="Buscar módulo por nome ou id (ex.: estoque, hr, dem)…"
+        aria-label="Buscar módulo por nome ou id"
+        className="w-full max-w-md rounded-md border border-bos-border bg-bos-bg px-3 py-2 text-sm text-bos-text placeholder:text-bos-muted focus:border-bos-accent focus:outline-none"
+      />
+    </label>
   );
 }
 
@@ -236,6 +288,8 @@ function GalleryView({
   roles,
   canInstall,
   filtro,
+  casaItem,
+  casaTerritorio,
 }: {
   gallery: Gallery;
   eyebrow: string;
@@ -244,24 +298,29 @@ function GalleryView({
   roles: readonly { key: string; name: string }[];
   canInstall: boolean;
   filtro: FiltroGrupo | null;
+  casaItem: (i: ShelfItem) => boolean;
+  casaTerritorio: (t: Territory) => boolean;
 }) {
   const rotuloCamada = gallery.layer === 'domain' ? 'Domínio' : 'Vertical';
 
   // O filtro é de EXIBIÇÃO, por cima do que buildShelf()/mapShelfToTaxonomy já
-  // decidiram: cada seção mostra só os cards do grupo escolhido, e uma seção que
-  // fica sem card some. Território "Em breve" (sem módulo) não participa do
-  // filtro — some enquanto ele estiver ativo (Lei 7: é mapa, não card).
+  // decidiram: cada seção mostra só os cards do grupo escolhido E que casam a
+  // busca; uma seção que fica sem card some. Território "Em breve" (sem módulo)
+  // não participa do filtro de estado — some enquanto ele estiver ativo (Lei 7:
+  // é mapa, não card) —, mas PARTICIPA da busca.
   const secoesVisiveis = gallery.live
     .map((secao) => ({
       ...secao,
-      items: filtro
-        ? secao.items.filter((i) => grupoDoEstado(i.state) === filtro)
-        : secao.items,
+      items: secao.items.filter(
+        (i) => (filtro ? grupoDoEstado(i.state) === filtro : true) && casaItem(i),
+      ),
     }))
     .filter((secao) => secao.items.length > 0);
 
-  // Com filtro ativo, uma galeria inteira sem card não vira cabeçalho órfão.
-  if (filtro !== null && secoesVisiveis.length === 0) return null;
+  const upcomingVisivel = filtro === null ? gallery.upcoming.filter(casaTerritorio) : [];
+
+  // Uma galeria inteira sem card nem pill não vira cabeçalho órfão.
+  if (secoesVisiveis.length === 0 && upcomingVisivel.length === 0) return null;
 
   return (
     <section>
@@ -287,8 +346,8 @@ function GalleryView({
         </div>
       ) : null}
 
-      {filtro === null && gallery.upcoming.length > 0 ? (
-        <UpcomingBlock territories={gallery.upcoming} rotuloCamada={rotuloCamada} />
+      {upcomingVisivel.length > 0 ? (
+        <UpcomingBlock territories={upcomingVisivel} rotuloCamada={rotuloCamada} />
       ) : null}
     </section>
   );
