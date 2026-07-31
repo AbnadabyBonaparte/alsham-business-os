@@ -629,7 +629,191 @@ on conflict (module_id) do update set
   status          = excluded.status,
   updated_at      = now();
 
--- ⛔ Seis módulos no catálogo, zero permissão concedida pelo seed.
+-- ---------------------------------------------------------------------------
+-- 4.4c O MÓDULO `rfq` (Cotações) — o 44º cartão. Transcrito do manifesto.
+-- ---------------------------------------------------------------------------
+insert into core.module_registry (
+  module_id, name, version, summary, layer, domain_key,
+  capabilities, permissions, events_emits, events_consumes, agents,
+  requires_core, status
+)
+values (
+  'rfq',
+  'Cotações',
+  '0.1.0',
+  'O pedido de cotação (RFQ): a empresa pergunta ao mercado o que precisa (itens em texto livre) e, ao final, PREMIA um fornecedor vencedor ou cancela sem vencedor. Enviar congela o conteúdo; premiar e cancelar são terminais. O DIVERGE do quote: aqui quem decide é o comprador (awarded), não o cliente. Coleta estruturada de preços por fornecedor fica de fora.',
+  'domain', 'procurement',
+  '[
+     {"key":"quotations","canonicalName":"Cotações"}
+   ]'::jsonb,
+  '[
+     {"key":"rfq.request.manage","moduleId":"rfq","description":"Criar e editar a cotação em rascunho, incluir itens, enviar ao mercado e cancelar."},
+     {"key":"rfq.request.award","moduleId":"rfq","description":"Premiar o fornecedor vencedor — a decisão de compra da cotação."}
+   ]'::jsonb,
+  '[
+     {"type":"rfq.request.registered","version":1,"description":"Uma cotação nasceu (sempre em rascunho)."},
+     {"type":"rfq.request.opened","version":1,"description":"A cotação foi enviada ao mercado (aberta para cotação) — o conteúdo congelou."},
+     {"type":"rfq.request.awarded","version":1,"description":"O comprador premiou um fornecedor vencedor. Terminal."},
+     {"type":"rfq.request.cancelled","version":1,"description":"A cotação foi encerrada sem vencedor, com razão. Terminal."}
+   ]'::jsonb,
+  '[]'::jsonb,
+  '[]'::jsonb,
+  '0.0.x',
+  'published'
+)
+on conflict (module_id) do update set
+  name            = excluded.name,
+  version         = excluded.version,
+  summary         = excluded.summary,
+  layer           = excluded.layer,
+  domain_key      = excluded.domain_key,
+  vertical_key    = excluded.vertical_key,
+  capabilities    = excluded.capabilities,
+  permissions     = excluded.permissions,
+  events_emits    = excluded.events_emits,
+  events_consumes = excluded.events_consumes,
+  agents          = excluded.agents,
+  requires_core   = excluded.requires_core,
+  status          = excluded.status,
+  updated_at      = now();
+
+-- ---------------------------------------------------------------------------
+-- 4.4d O MÓDULO `recv` (Recebimento) — o 45º cartão. Transcrito do manifesto.
+-- ---------------------------------------------------------------------------
+insert into core.module_registry (
+  module_id, name, version, summary, layer, domain_key,
+  capabilities, permissions, events_emits, events_consumes, agents,
+  requires_core, status
+)
+values (
+  'recv',
+  'Recebimento',
+  '0.1.0',
+  'O livro de recebimentos da empresa: cada recebimento é um ato pontual imutável — o que chegou (texto livre), quanto e quando. Receber a maior é permitido (a sobra é fato, a mesma física do overpay do ar); o módulo não lê o pedido, então não há quantidade pedida para comparar. O vínculo com o pedido é por id solto + referência. Conciliação recebimento→pedido/AP fica de fora.',
+  'domain', 'procurement',
+  '[
+     {"key":"goods-receipt","canonicalName":"Recebimento"}
+   ]'::jsonb,
+  '[
+     {"key":"recv.receipt.record","moduleId":"recv","description":"Registrar um recebimento — o que chegou, quanto e quando."}
+   ]'::jsonb,
+  '[
+     {"type":"recv.receipt.recorded","version":1,"description":"Um recebimento foi registrado. Ato pontual, imutável desde o instante 1."}
+   ]'::jsonb,
+  '[]'::jsonb,
+  '[]'::jsonb,
+  '0.0.x',
+  'published'
+)
+on conflict (module_id) do update set
+  name            = excluded.name,
+  version         = excluded.version,
+  summary         = excluded.summary,
+  layer           = excluded.layer,
+  domain_key      = excluded.domain_key,
+  vertical_key    = excluded.vertical_key,
+  capabilities    = excluded.capabilities,
+  permissions     = excluded.permissions,
+  events_emits    = excluded.events_emits,
+  events_consumes = excluded.events_consumes,
+  agents          = excluded.agents,
+  requires_core   = excluded.requires_core,
+  status          = excluded.status,
+  updated_at      = now();
+
+-- ---------------------------------------------------------------------------
+-- 4.4e O MÓDULO `vperf` (Avaliação de Fornecedores) — o 46º cartão.
+-- ---------------------------------------------------------------------------
+insert into core.module_registry (
+  module_id, name, version, summary, layer, domain_key,
+  capabilities, permissions, events_emits, events_consumes, agents,
+  requires_core, status
+)
+values (
+  'vperf',
+  'Avaliação de Fornecedores',
+  '0.1.0',
+  'A avaliação PONTUAL do fornecedor pelo comprador: nota 0–100 obrigatória (a régua do método), parecer em texto livre e a origem em texto livre (recebimento, cotação). Ato imutável, carimbado pelo servidor — diferente da avaliação de desempenho de gente, que pertence a um ciclo. Scorecard estruturado e homologação formal ficam de fora.',
+  'domain', 'procurement',
+  '[
+     {"key":"supplier-appraisals","canonicalName":"Avaliação de fornecedores"}
+   ]'::jsonb,
+  '[
+     {"key":"vperf.appraisal.record","moduleId":"vperf","description":"Registrar avaliações de fornecedor — ato imutável, com nota 0–100 e o avaliador carimbado pelo servidor."}
+   ]'::jsonb,
+  '[
+     {"type":"vperf.appraisal.recorded","version":1,"description":"Uma avaliação de fornecedor foi registrada — fornecedor (id solto + nome), nota e origem no envelope. O parecer não vai no correio."}
+   ]'::jsonb,
+  '[]'::jsonb,
+  '[]'::jsonb,
+  '0.0.x',
+  'published'
+)
+on conflict (module_id) do update set
+  name            = excluded.name,
+  version         = excluded.version,
+  summary         = excluded.summary,
+  layer           = excluded.layer,
+  domain_key      = excluded.domain_key,
+  vertical_key    = excluded.vertical_key,
+  capabilities    = excluded.capabilities,
+  permissions     = excluded.permissions,
+  events_emits    = excluded.events_emits,
+  events_consumes = excluded.events_consumes,
+  agents          = excluded.agents,
+  requires_core   = excluded.requires_core,
+  status          = excluded.status,
+  updated_at      = now();
+
+-- ---------------------------------------------------------------------------
+-- 4.4f O MÓDULO `reorder` (Estoque Mínimo) — o 47º cartão. Fecha a Onda Dez.
+-- ---------------------------------------------------------------------------
+insert into core.module_registry (
+  module_id, name, version, summary, layer, domain_key,
+  capabilities, permissions, events_emits, events_consumes, agents,
+  requires_core, status
+)
+values (
+  'reorder',
+  'Estoque Mínimo',
+  '0.1.0',
+  'A configuração do ponto de reabastecimento: produto em texto livre + quantidade mínima, com vínculo solto ao item de estoque. A comparação com o saldo é da tela — este módulo não lê o estoque. Ciclo active ↔ archived — a regra é configuração que volta (o DIVERGE do hr, onde o desligamento é terminal). Lote econômico, lead time e geração de pedido ficam de fora.',
+  'domain', 'procurement',
+  '[
+     {"key":"reorder-rules","canonicalName":"Estoque mínimo"}
+   ]'::jsonb,
+  '[
+     {"key":"reorder.rule.manage","moduleId":"reorder","description":"Cadastrar e editar regras de estoque mínimo (produto e quantidade mínima)."},
+     {"key":"reorder.rule.decide","moduleId":"reorder","description":"Arquivar ou reativar uma regra — a configuração que sai e volta."}
+   ]'::jsonb,
+  '[
+     {"type":"reorder.rule.registered","version":1,"description":"Uma regra de estoque mínimo nasceu no cadastro (sempre ativa)."},
+     {"type":"reorder.rule.updated","version":1,"description":"Mudou o produto, o vínculo com o item ou a quantidade mínima da regra."},
+     {"type":"reorder.rule.archived","version":1,"description":"A regra foi arquivada. Continua no banco; nunca DELETE."},
+     {"type":"reorder.rule.reopened","version":1,"description":"A regra arquivada voltou ao cadastro vivo — a mesma configuração."}
+   ]'::jsonb,
+  '[]'::jsonb,
+  '[]'::jsonb,
+  '0.0.x',
+  'published'
+)
+on conflict (module_id) do update set
+  name            = excluded.name,
+  version         = excluded.version,
+  summary         = excluded.summary,
+  layer           = excluded.layer,
+  domain_key      = excluded.domain_key,
+  vertical_key    = excluded.vertical_key,
+  capabilities    = excluded.capabilities,
+  permissions     = excluded.permissions,
+  events_emits    = excluded.events_emits,
+  events_consumes = excluded.events_consumes,
+  agents          = excluded.agents,
+  requires_core   = excluded.requires_core,
+  status          = excluded.status,
+  updated_at      = now();
+
+-- ⛔ Onze módulos de Compras+ no catálogo, zero permissão concedida pelo seed.
 
 -- =============================================================================
 -- 4.5 O MÓDULO `ops` NO CATÁLOGO DA STORE — o 7º cartão
