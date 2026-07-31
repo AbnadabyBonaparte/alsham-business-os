@@ -1,7 +1,13 @@
 import { buildShelf } from '@alsham/permissions';
 import type { CatalogEntry, ShelfItem } from '@alsham/permissions';
 
-import type { AuditRow, CourierSummary, PanelPort, PlanUsageRow } from './panel-port';
+import type {
+  AuditRow,
+  CourierSummary,
+  OverviewCard,
+  PanelPort,
+  PlanUsageRow,
+} from './panel-port';
 
 /**
  * Adapter MOCKADO do Painel.
@@ -33,6 +39,60 @@ const CATALOGO: CatalogEntry[] = [
     summary: 'A empresa desenha a própria esteira de trabalho e move cada ordem de serviço por ela.',
     layer: 'domain',
     domainKey: 'operations',
+    verticalKey: null,
+    capabilities: [],
+    permissions: [],
+    emits: [],
+    consumes: [],
+  },
+  // ⭐ Onda UX Viva — a Visão Geral lê estes módulos; o demo os instala para que
+  // a tela de demonstração mostre o padrão (números modestos, Lei 7).
+  {
+    moduleId: 'cash',
+    name: 'Fluxo de Caixa',
+    version: '0.1.0',
+    summary: 'O livro do dinheiro: lançamentos imutáveis, saldo calculado, fluxo por mês.',
+    layer: 'domain',
+    domainKey: 'finance',
+    verticalKey: null,
+    capabilities: [],
+    permissions: [],
+    emits: [],
+    consumes: [],
+  },
+  {
+    moduleId: 'ar',
+    name: 'Contas a Receber',
+    version: '0.1.0',
+    summary: 'Os títulos a receber, com vencimento e baixa — o espelho consciente do a pagar.',
+    layer: 'domain',
+    domainKey: 'finance',
+    verticalKey: null,
+    capabilities: [],
+    permissions: [],
+    emits: [],
+    consumes: [],
+  },
+  {
+    moduleId: 'inv',
+    name: 'Estoque',
+    version: '0.1.0',
+    summary: 'O livro de movimentos do físico; o saldo por item é consequência calculada.',
+    layer: 'domain',
+    domainKey: 'operations',
+    verticalKey: null,
+    capabilities: [],
+    permissions: [],
+    emits: [],
+    consumes: [],
+  },
+  {
+    moduleId: 'crm',
+    name: 'Relacionamentos',
+    version: '0.1.0',
+    summary: 'As contrapartes e o histórico de contato — a base do comercial.',
+    layer: 'domain',
+    domainKey: 'crm',
     verticalKey: null,
     capabilities: [],
     permissions: [],
@@ -90,7 +150,24 @@ export function createPanelMockPort(): PanelPort {
       return [
         ...buildShelf(CATALOGO, [
           { moduleId: 'ops', status: 'active', version: '0.1.0', installedAt: `${HOJE}T09:00:00.000Z` },
+          { moduleId: 'cash', status: 'active', version: '0.1.0', installedAt: `${HOJE}T09:00:00.000Z` },
+          { moduleId: 'ar', status: 'active', version: '0.1.0', installedAt: `${HOJE}T09:00:00.000Z` },
+          { moduleId: 'inv', status: 'active', version: '0.1.0', installedAt: `${HOJE}T09:00:00.000Z` },
+          { moduleId: 'crm', status: 'active', version: '0.1.0', installedAt: `${HOJE}T09:00:00.000Z` },
         ]),
+      ];
+    },
+
+    // ⭐ A Visão Geral do demo — números MODESTOS (Lei 7 vale na vitrine). Só os
+    // módulos que o demo instala têm cartão; `crm` sem 'estoque-critico' porque
+    // o inv é que dá esse cartão. Nenhum zero fabricado: são dados de exemplo.
+    async loadOverview(): Promise<OverviewCard[]> {
+      return [
+        { key: 'caixa-disponivel', label: 'Caixa disponível', moduleId: 'cash', kind: 'currency', value: 1845000, currency: 'BRL', href: '/caixa', hint: 'Saldo do livro-caixa.', tone: 'neutral' },
+        { key: 'receita-mes', label: 'Receita do mês', moduleId: 'cash', kind: 'currency', value: 732000, currency: 'BRL', href: '/caixa', hint: 'Entradas do mês corrente.', tone: 'neutral' },
+        { key: 'contas-vencendo', label: 'Contas vencendo', moduleId: 'ar', kind: 'count', value: 3, href: '/contas-a-receber', hint: 'A receber, em aberto, até 7 dias.', tone: 'warning' },
+        { key: 'estoque-critico', label: 'Estoque crítico', moduleId: 'inv', kind: 'count', value: 1, href: '/estoque', hint: 'Itens com saldo zerado ou negativo.', tone: 'danger' },
+        { key: 'clientes-ativos', label: 'Clientes ativos', moduleId: 'crm', kind: 'count', value: 12, href: '/relacionamentos', hint: 'Contrapartes ativas.', tone: 'neutral' },
       ];
     },
   };
