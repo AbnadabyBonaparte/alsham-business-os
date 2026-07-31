@@ -579,6 +579,56 @@ on conflict (module_id) do update set
   status          = excluded.status,
   updated_at      = now();
 
+-- =============================================================================
+-- 4.4b ONDA DEZ — completar o Domain Compras (Módulos 43–47, domain_key
+-- 'procurement'). Cinco cartões novos, ao lado do `po`. Todos `consumes` vazio.
+-- =============================================================================
+
+insert into core.module_registry (
+  module_id, name, version, summary, layer, domain_key,
+  capabilities, permissions, events_emits, events_consumes, agents,
+  requires_core, status
+)
+values (
+  'vendor',
+  'Fornecedores',
+  '0.1.0',
+  'O cadastro de fornecedores da empresa: nome e segmento em texto livre (vocabulário de cada compra), e o ciclo active ↔ archived — o fornecedor é relação comercial que volta (o DIVERGE do hr, onde o desligamento é terminal). Homologação formal e catálogo do fornecedor ficam de fora.',
+  'domain', 'procurement',
+  '[
+     {"key":"suppliers","canonicalName":"Fornecedores"}
+   ]'::jsonb,
+  '[
+     {"key":"vendor.supplier.manage","moduleId":"vendor","description":"Cadastrar e editar fornecedores (nome e segmento em texto livre)."},
+     {"key":"vendor.supplier.decide","moduleId":"vendor","description":"Arquivar ou reativar um fornecedor — a relação comercial que sai e volta."}
+   ]'::jsonb,
+  '[
+     {"type":"vendor.supplier.registered","version":1,"description":"Um fornecedor nasceu no cadastro (sempre ativo)."},
+     {"type":"vendor.supplier.updated","version":1,"description":"Mudou o nome ou o segmento do fornecedor."},
+     {"type":"vendor.supplier.archived","version":1,"description":"O fornecedor foi arquivado. Continua no banco; nunca DELETE."},
+     {"type":"vendor.supplier.reopened","version":1,"description":"O fornecedor arquivado voltou ao cadastro vivo — a mesma relação."}
+   ]'::jsonb,
+  '[]'::jsonb,
+  '[]'::jsonb,
+  '0.0.x',
+  'published'
+)
+on conflict (module_id) do update set
+  name            = excluded.name,
+  version         = excluded.version,
+  summary         = excluded.summary,
+  layer           = excluded.layer,
+  domain_key      = excluded.domain_key,
+  vertical_key    = excluded.vertical_key,
+  capabilities    = excluded.capabilities,
+  permissions     = excluded.permissions,
+  events_emits    = excluded.events_emits,
+  events_consumes = excluded.events_consumes,
+  agents          = excluded.agents,
+  requires_core   = excluded.requires_core,
+  status          = excluded.status,
+  updated_at      = now();
+
 -- ⛔ Seis módulos no catálogo, zero permissão concedida pelo seed.
 
 -- =============================================================================
