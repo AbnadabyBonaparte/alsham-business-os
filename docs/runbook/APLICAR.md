@@ -1728,6 +1728,45 @@ da Onda Dezenove), e o mapa dos **18 Domains Universais fica COMPLETO**.
 Nenhum agente aplica em produção. A conferência de segurança do PASSO 15
 (§ pós-apply) vale para os schemas novos.
 
+## PASSO 33 — A ONDA VINTE: ABRE o Vertical ☀️ Energia (`0096`–`0099`) — Fase 3
+
+⭐ A Onda Vinte abre o **Vertical ☀️ Energia** (`vertical_key='energy'`) — o
+terceiro bloco vertical do catálogo (depois de Shopping Centers e Varejo), a dor
+viva da Curva C Energia Solar. A Taxonomia §6 lista **8 capacidades**; a
+investigação (ver `docs/canon/ONDA-VINTE-DECISOES.md`) construiu **4 módulos** e
+declarou **4 capacidades FORA** por reaproveitamento:
+
+- *Geração distribuída* → **consolidada no `plant`** (o mesmo objeto, campo de porte).
+- *Manutenção de usina* → o `mnt` genérico (`asset_id` solto, pronto desde a Onda Quadra).
+- *Contratos de energia* → o `ctr` genérico (categoria "energia" — a decisão do `lease`).
+- *Comercialização e leads* → o `lead` genérico (origem "energia").
+
+1. **Aplicar as quatro migrations** no SQL Editor, em ordem:
+   - `0096_plant.sql` — Módulo 81, Usinas e Geração distribuída (schema `plant`)
+   - `0097_subscription.sql` — Módulo 82, Assinatura de Energia (schema `subscription`)
+   - `0098_genreading.sql` — Módulo 83, Monitoramento de Geração (schema `genreading`)
+   - `0099_creditbalance.sql` — Módulo 84, Créditos de Compensação (schema `creditbalance`)
+2. **Reaplicar o seed** — os quatro cartões entram no catálogo (`energy`×4). A
+   Store gradua a seção do Vertical Energia.
+3. ⚠️ **Expor os schemas novos na Data API**: `plant`, `subscription`,
+   `genreading`, `creditbalance`.
+4. ✅ **SEM redeploy do `apps/api`** — os quatro têm `consumes` VAZIO (Lei 7).
+   Guarda de CI confere.
+5. **Instalar os módulos pela Store**, no tenant que os contratou.
+
+⭐⭐ **A decisão do saldo negativo do `creditbalance`, argumentada:** consumir mais
+crédito do que o saldo é RECUSADO — não por cópia do `loyalty`, mas pela física
+da compensação (crédito é energia realmente gerada; saldo negativo inventaria
+energia inexistente — a razão infísica do `esg`). É a TERCEIRA resposta ao "pode
+ficar negativo?", por física própria.
+
+⭐ **Ao concluir este apply, o catálogo chega a 84 módulos publicados** (80 + 4 da
+Onda Vinte; 13 verticais: 5 shopping-centers + 4 retail + 4 energy). A próxima
+migration livre é **`0100`** (a lacuna `0015`–`0016` é proposital).
+
+Nenhum agente aplica em produção. A conferência de segurança do PASSO 15
+(§ pós-apply) vale para os schemas novos.
+
 ## O QUE AINDA NÃO EXISTE
 
 Honestidade de escopo, para você não procurar o que não foi construído:

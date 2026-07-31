@@ -282,7 +282,12 @@ A consequência é operacional e não é opinião:
   - `packages/vuln` é o **Módulo 78 — Gestão de Vulnerabilidades** (`vuln`, Domain `infosec`): a identidade do `nc`/`capa` (fato constatado + remediação) — severidade 1–5 CHECK, `open → in_progress → remediated/accepted_risk`, as DUAS respostas terminais com justificativa. A vulnerabilidade dos sistemas DO TENANT (IAM/Cofre/SIEM/Backup da plataforma FORA). Ver `MODULO-VULN-SPEC`.
   - `packages/secincident` é o **Módulo 79 — Resposta a Incidentes** (`secincident`, Domain `infosec`): ⭐⭐ **o DIVERGE do `occ`** — timeline NIST de 5 estados (`detected → contained → eradicated → recovered → closed`) vs 1 par do `occ`; editável-enquanto-aberto/congela-no-fim (a física do `risk`) vs imutável-do-nascimento. Campos próprios `attack_vector`/`affected_data`, `severity` 1–5. A resposta é livro imutável de atos (o MANTIDO do `occ`). O vetor/dados não passeiam no envelope. Ver `MODULO-SECINCIDENT-SPEC`.
   - `packages/continuity` é o **Módulo 80 — Continuidade de Negócios** (`continuity`, Domain `infosec`) — ⭐ **a ÚLTIMA peça dos 18 Domains**: o plano (`active ↔ archived`, RTO/RPO texto livre) + o livro IMUTÁVEL de drills (a física do `timesheet`) — a prova de que o plano funciona. O documento detalhado do plano é o `pol` (FORA); os drills justificam o módulo. Ver `MODULO-CONTINUITY-SPEC`.
-- ⚠️ **A lacuna `0015`/`0016` é proposital** e vem da main. Com a Onda Dezenove (`0090`–`0095`), a próxima numeração livre é **`0096`**.
+- ⭐ **A ONDA VINTE (Fase 3) entregou os Módulos 81–84 num PR só, um commit por módulo** (migrations `0096`–`0099`, ARQUIVO — apply do dono, runbook §33): **ABRE o Vertical ☀️ Energia** (`vertical_key='energy'`), o TERCEIRO bloco vertical (depois de Shopping Centers e Varejo), dor viva da Curva C solar. A Taxonomia §6 lista 8 capacidades; **4 viram módulo, 4 ficam FORA por reaproveitamento**: *Geração distribuída* (consolidada no `plant`), *Manutenção de usina* (=`mnt`, `asset_id` solto), *Contratos de energia* (=`ctr`, a decisão do `lease`), *Comercialização e leads* (=`lead`). Os QUATRO têm **`consumes` VAZIO** — sem redeploy do `apps/api`. O catálogo passa de 80 para **84 módulos publicados** (13 verticais: 5 shopping-centers + 4 retail + 4 energy). Ver `ONDA-VINTE-DECISOES.md`.
+  - `packages/plant` é o **Módulo 81 — Usinas (e Geração distribuída)** (`plant`, Vertical `energy`): ⭐⭐ **UM módulo, DUAS capacidades** — na física o MESMO objeto (a GD é uma usina de porte menor atrás do medidor), distinguido por `plant_type` TEXTO LIVRE (nunca enum — a consolidação do `esg`/`idea`/`ip`). `capacity_kwp > 0`; ⭐ `active ↔ archived` (a usina que volta a operar é a MESMA — a física do `catalog`/`vendor`, o DIVERGE do `hr`). Manutenção→`mnt`, Contrato→`ctr` FORA. Ver `MODULO-PLANT-SPEC`.
+  - `packages/subscription` é o **Módulo 82 — Assinatura de Energia** (`subscription`, Vertical `energy`): o consumidor assina uma FATIA (`allocation_percent` `0<x<=100`) da geração de uma usina (id solto ao `plant`), cliente por id solto ao `crm`. ⭐⭐ **Nasce ativa — SEM `pending`** (o intermediário seria viés de uma distribuidora); ⭐ `active → cancelled` **TERMINAL** — quem re-assina faz OUTRA (a física do `proj`, o DIVERGE consciente do `catalog`); cancelar exige razão + `.decide`. Desconto/faturamento FORA. Ver `MODULO-SUBSCRIPTION-SPEC`.
+  - `packages/genreading` é o **Módulo 83 — Monitoramento de Geração** (`genreading`, Vertical `energy`): ⭐ **reaproveita a identidade do `esg`** — leitura periódica IMUTÁVEL (duas camadas), `generated_kwh >= 0` (zero é leitura real — à noite; o MANTIDO do `esg`), unidade TEXTO LIVRE, sem ciclo. ⭐ **O DIVERGE do `esg`:** a usina é OBRIGATÓRIA (`plant_id NOT NULL` — não há geração no ar), por id solto. Performance ratio/alerta FORA. Ver `MODULO-GENREADING-SPEC`.
+  - `packages/creditbalance` é o **Módulo 84 — Créditos de Compensação** (`creditbalance`, Vertical `energy`) — ⭐ **FECHA a onda**: o livro de créditos do SCEE/ANEEL, a identidade do `loyalty` (direção no `credit_type`, `quantity_kwh > 0`, saldo é VIEW). ⭐⭐ **Consumir > saldo é RECUSADO — a TERCEIRA resposta, por física PRÓPRIA** (não copiada do `loyalty`): crédito é energia realmente gerada, saldo negativo inventaria energia inexistente (a razão infísica do `esg`); `bank`/`inv` permitem negativo, `loyalty`/`invest` recusam por promessa/posse, `creditbalance` recusa porque energia não se deve, se gera. Validade (60m)/abatimento na fatura FORA. Ver `MODULO-CREDITBALANCE-SPEC`.
+- ⚠️ **A lacuna `0015`/`0016` é proposital** e vem da main. Com a Onda Vinte (`0096`–`0099`), a próxima numeração livre é **`0100`**.
 - ⛔ **A limpeza do runbook §7.3 FOI EXECUTADA** em 28/07/2026: a concessão global de permissão de módulo **não existe mais em produção**. O tenant piloto tem papel próprio, com as permissões concedidas por `core.install_module()` — pela Store, com o clique do dono. Nunca volte a conceder permissão de módulo no seed.
 - `packages/workflow` é **o correio do Core** — o entregador da caixa de saída: idempotência por consumidor, backoff exponencial, `dead` sem apagar. **ENGINE, não módulo** (Taxonomia §4): não aparece na Store.
 - `apps/api` é **a COMPOSIÇÃO** — o único lugar do repositório onde os módulos se conhecem. Ele importa `workflow`, `marketing`, `finance-reconciliation`, `accounts-payable`, `accounts-receivable` e `billing`; **nenhum deles importa nenhum outro**. ⭐ Desde a Etapa 10 o mesmo pacote (`finance-reconciliation`) é PRODUTOR numa inscrição e CONSUMIDOR em outra — e continua sem conhecer ninguém. Traz a persistência real do correio (contra Postgres, com arrendamento e `skip locked`), os adaptadores dos consumidores, o endpoint protegido e a saúde da fila.
@@ -355,7 +360,10 @@ docs/canon/            taxonomia · roadmap · core-spec · identidade-visual
                        · modulo-erisk-spec · modulo-control-spec
                        · modulo-whistle-spec · modulo-vuln-spec
                        · modulo-secincident-spec · modulo-continuity-spec
+                       · modulo-plant-spec · modulo-subscription-spec
+                       · modulo-genreading-spec · modulo-creditbalance-spec
                        · ONDA-DEZENOVE-DECISOES (as 23 capacidades)
+                       · ONDA-VINTE-DECISOES (as 8 capacidades do Energia)
                                                         — leitura obrigatória
 docs/comercial/        VERTICAL-SHOPPING.md             — dossiê de venda
 docs/balancos/         tecnologia + supabase            — de onde minerar
@@ -419,7 +427,11 @@ supabase/migrations/   0001_core … 0014_ap_apply_recon_match
                                                             Domains: GRC + InfoSec;
                                                             IA Aplicada ZERO módulo);
                                                             apply do dono
-                       (lacuna 0015–0016 proposital; próxima livre: 0096)
+                       0096_plant · 0097_subscription
+                       · 0098_genreading · 0099_creditbalance  — Onda Vinte
+                                                            (Fase 3 — ABRE o Vertical
+                                                            ☀️ Energia); apply do dono
+                       (lacuna 0015–0016 proposital; próxima livre: 0100)
 supabase/seed/         0001_platform.sql                — catálogo, idempotente; zero tenant
 supabase/tests/        shim · isolamento · uso · consumo entre módulos
                        · instalador · triângulo · relacionamentos · a receber
@@ -538,6 +550,10 @@ packages/              core auth organizations workflow billing
                        vuln                             — Módulo 78 (vulnerabilidades; identidade nc/capa; duas respostas terminais)
                        secincident                      — Módulo 79 (resposta a incidentes; timeline NIST: o DIVERGE do occ)
                        continuity                       — Módulo 80 (continuidade; plano + livro de drills imutável; a última peça dos 18 Domains)
+                       plant                            — Módulo 81 (usinas + geração distribuída consolidada; plant_type texto livre; active↔archived)
+                       subscription                     — Módulo 82 (a fatia da geração; nasce ativa sem pending; cancelled terminal: o DIVERGE do catalog)
+                       genreading                       — Módulo 83 (a leitura de geração imutável: a identidade do esg; usina obrigatória: o DIVERGE)
+                       creditbalance                    — Módulo 84 (o livro de créditos SCEE; consumo>saldo recusado por física própria: a terceira resposta)
                        workflow (o correio) · billing (uso) · ai (a forja)
                                                         — Engines/capacidades do Core
 ```

@@ -530,6 +530,23 @@ jobs:
       - name: aplicar 0095_continuity.sql
         run: $PSQL -f supabase/migrations/0095_continuity.sql
 
+      # ⭐ ONDA VINTE (Fase 3) — o Vertical ☀️ ENERGIA (o terceiro bloco
+      # vertical). Quatro módulos: plant (usinas + geração distribuída
+      # consolidada), subscription (a fatia da geração — active→cancelled
+      # terminal), genreading (a leitura imutável — a identidade do esg) e
+      # creditbalance (o livro de créditos — a identidade do loyalty, com a
+      # recusa argumentada pela física da compensação). As outras 4 capacidades
+      # ficam FORA: Geração distribuída (consolidada no plant), Manutenção de
+      # usina (=mnt), Contratos de energia (=ctr), Comercialização e leads (=lead).
+      - name: aplicar 0096_plant.sql
+        run: $PSQL -f supabase/migrations/0096_plant.sql
+      - name: aplicar 0097_subscription.sql
+        run: $PSQL -f supabase/migrations/0097_subscription.sql
+      - name: aplicar 0098_genreading.sql
+        run: $PSQL -f supabase/migrations/0098_genreading.sql
+      - name: aplicar 0099_creditbalance.sql
+        run: $PSQL -f supabase/migrations/0099_creditbalance.sql
+
       # ---------------------------------------------------------------------
       # 2. SEED — e a prova de que reaplicar não muda nada
       # ---------------------------------------------------------------------
@@ -557,12 +574,12 @@ jobs:
           FALTA=$($PSQL -tAc "
             select coalesce(string_agg(n.nspname||'.'||c.relname, ', '), '')
               from pg_class c join pg_namespace n on n.oid = c.relnamespace
-             where n.nspname in ('core','recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt','dun','ctr','cash','care','occ','mnt','pat','chk','spc','vis','lead','goal','comm','edcal','media','nps','cc','bud','bank','invest','dre','hr','shift','train','perf','pol','mall','lease','fund','park','sec','vendor','rfq','recv','vperf','reorder','dem','sop','dc','disp','logperf','proj','sched','kanban','alloc','pcost','scrum','gantt','risk','timesheet','pfolio','nc','audit','capa','iso','esg','idea','ip','fiscalcert','pdv','catalog','cashregister','loyalty','erisk','control','whistle','vuln','secincident','continuity') and c.relkind = 'r'
+             where n.nspname in ('core','recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt','dun','ctr','cash','care','occ','mnt','pat','chk','spc','vis','lead','goal','comm','edcal','media','nps','cc','bud','bank','invest','dre','hr','shift','train','perf','pol','mall','lease','fund','park','sec','vendor','rfq','recv','vperf','reorder','dem','sop','dc','disp','logperf','proj','sched','kanban','alloc','pcost','scrum','gantt','risk','timesheet','pfolio','nc','audit','capa','iso','esg','idea','ip','fiscalcert','pdv','catalog','cashregister','loyalty','erisk','control','whistle','vuln','secincident','continuity','plant','subscription','genreading','creditbalance') and c.relkind = 'r'
                and (not c.relrowsecurity or not c.relforcerowsecurity);")
           [ -z "$FALTA" ] || { echo "::error::sem RLS enable+force: $FALTA"; exit 1; }
           $PSQL -c "select n.nspname as schema, count(*) as tabelas
                       from pg_class c join pg_namespace n on n.oid=c.relnamespace
-                     where n.nspname in ('core','recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt','dun','ctr','cash','care','occ','mnt','pat','chk','spc','vis','lead','goal','comm','edcal','media','nps','cc','bud','bank','invest','dre','hr','shift','train','perf','pol','mall','lease','fund','park','sec','vendor','rfq','recv','vperf','reorder','dem','sop','dc','disp','logperf','proj','sched','kanban','alloc','pcost','scrum','gantt','risk','timesheet','pfolio','nc','audit','capa','iso','esg','idea','ip','fiscalcert','pdv','catalog','cashregister','loyalty','erisk','control','whistle','vuln','secincident','continuity') and c.relkind='r'
+                     where n.nspname in ('core','recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt','dun','ctr','cash','care','occ','mnt','pat','chk','spc','vis','lead','goal','comm','edcal','media','nps','cc','bud','bank','invest','dre','hr','shift','train','perf','pol','mall','lease','fund','park','sec','vendor','rfq','recv','vperf','reorder','dem','sop','dc','disp','logperf','proj','sched','kanban','alloc','pcost','scrum','gantt','risk','timesheet','pfolio','nc','audit','capa','iso','esg','idea','ip','fiscalcert','pdv','catalog','cashregister','loyalty','erisk','control','whistle','vuln','secincident','continuity','plant','subscription','genreading','creditbalance') and c.relkind='r'
                      group by 1 order by 1;"
 
       - name: nenhuma policy USING (true)
@@ -572,7 +589,7 @@ jobs:
               from pg_policy p
               join pg_class c on c.oid = p.polrelid
               join pg_namespace n on n.oid = c.relnamespace
-             where n.nspname in ('core','recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt','dun','ctr','cash','care','occ','mnt','pat','chk','spc','vis','lead','goal','comm','edcal','media','nps','cc','bud','bank','invest','dre','hr','shift','train','perf','pol','mall','lease','fund','park','sec','vendor','rfq','recv','vperf','reorder','dem','sop','dc','disp','logperf','proj','sched','kanban','alloc','pcost','scrum','gantt','risk','timesheet','pfolio','nc','audit','capa','iso','esg','idea','ip','fiscalcert','pdv','catalog','cashregister','loyalty','erisk','control','whistle','vuln','secincident','continuity')
+             where n.nspname in ('core','recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt','dun','ctr','cash','care','occ','mnt','pat','chk','spc','vis','lead','goal','comm','edcal','media','nps','cc','bud','bank','invest','dre','hr','shift','train','perf','pol','mall','lease','fund','park','sec','vendor','rfq','recv','vperf','reorder','dem','sop','dc','disp','logperf','proj','sched','kanban','alloc','pcost','scrum','gantt','risk','timesheet','pfolio','nc','audit','capa','iso','esg','idea','ip','fiscalcert','pdv','catalog','cashregister','loyalty','erisk','control','whistle','vuln','secincident','continuity','plant','subscription','genreading','creditbalance')
                and pg_get_expr(p.polqual, p.polrelid) = 'true';")
           [ -z "$ABERTAS" ] || { echo "::error::policy aberta (lição paga do suna-core): $ABERTAS"; exit 1; }
 
@@ -583,7 +600,7 @@ jobs:
                              where n.nspname='public' and c.relkind='r';")
           [ "$PUB" = "0" ] || { echo "::error::$PUB tabela(s) em public — expostas via API"; exit 1; }
           ANON=$($PSQL -tAc "select count(*) from information_schema.role_table_grants
-                              where grantee='anon' and table_schema in ('core','recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt','dun','ctr','cash','care','occ','mnt','pat','chk','spc','vis','lead','goal','comm','edcal','media','nps','cc','bud','bank','invest','dre','hr','shift','train','perf','pol','mall','lease','fund','park','sec','vendor','rfq','recv','vperf','reorder','dem','sop','dc','disp','logperf','proj','sched','kanban','alloc','pcost','scrum','gantt','risk','timesheet','pfolio','nc','audit','capa','iso','esg','idea','ip','fiscalcert','pdv','catalog','cashregister','loyalty','erisk','control','whistle','vuln','secincident','continuity');")
+                              where grantee='anon' and table_schema in ('core','recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt','dun','ctr','cash','care','occ','mnt','pat','chk','spc','vis','lead','goal','comm','edcal','media','nps','cc','bud','bank','invest','dre','hr','shift','train','perf','pol','mall','lease','fund','park','sec','vendor','rfq','recv','vperf','reorder','dem','sop','dc','disp','logperf','proj','sched','kanban','alloc','pcost','scrum','gantt','risk','timesheet','pfolio','nc','audit','capa','iso','esg','idea','ip','fiscalcert','pdv','catalog','cashregister','loyalty','erisk','control','whistle','vuln','secincident','continuity','plant','subscription','genreading','creditbalance');")
           [ "$ANON" = "0" ] || { echo "::error::anon tem $ANON grant(s) no Business OS"; exit 1; }
 
       - name: o seed não semeou tenant nem usuário
@@ -1981,6 +1998,16 @@ jobs:
       - name: teste de continuidade (continuity)
         run: $PSQL -f supabase/tests/85_continuity_isolation.sql
 
+      # ⭐ Onda Vinte — o Vertical ☀️ Energia (plant·subscription·genreading·creditbalance).
+      - name: teste de usinas (plant)
+        run: $PSQL -f supabase/tests/86_plant_isolation.sql
+      - name: teste de assinatura de energia (subscription)
+        run: $PSQL -f supabase/tests/87_subscription_isolation.sql
+      - name: teste de monitoramento de geração (genreading)
+        run: $PSQL -f supabase/tests/88_genreading_isolation.sql
+      - name: teste de créditos de compensação (creditbalance)
+        run: $PSQL -f supabase/tests/89_creditbalance_isolation.sql
+
       # ⭐ Os quatro cartões da Onda Quatorze são DOMAIN quality — o território
       # novo. As outras 3 capacidades da Qualidade (Indicadores/Documentos/
       # Procedimentos) NÃO viraram módulo: são o goal/pol, anti-duplicação.
@@ -2505,7 +2532,7 @@ jobs:
           [ "$G" = "3" ] || { echo "::error::esperava 3 cartões domain grc: [$G]"; exit 1; }
           I=$($PSQL -tAc "select count(*) from core.module_registry
                            where layer='domain' and domain_key='infosec'
-                             and module_id in ('vuln','secincident','continuity');")
+                             and module_id in ('vuln','secincident','continuity','plant','subscription','genreading','creditbalance');")
           [ "$I" = "3" ] || { echo "::error::esperava 3 cartões domain infosec: [$I]"; exit 1; }
           for M in erisk control whistle vuln secincident continuity; do
             C=$($PSQL -tAc "select jsonb_array_length(events_consumes) from core.module_registry where module_id='$M';")
@@ -2622,6 +2649,111 @@ jobs:
           IM=$($PSQL -tAc "select count(*) from pg_proc p join pg_namespace n on n.oid=p.pronamespace
                             where n.nspname='continuity' and p.proname='guard_drill_immutable';")
           [ "$IM" = "1" ] || { echo "::error::continuity perdeu a imutabilidade do drill"; exit 1; }
+
+      # ═══════════════════════════════════════════════════════════════════════
+      # ⭐ ONDA VINTE — o Vertical ☀️ ENERGIA (plant·subscription·genreading·
+      # creditbalance). Os QUATRO cartões são `vertical_key='energy'`, consumes
+      # VAZIO. Abaixo, a física de cada um, com sabotagens.
+      # ═══════════════════════════════════════════════════════════════════════
+      - name: os quatro módulos do vertical energy existem, são vertical e consumes vazio
+        run: |
+          N=$($PSQL -tAc "select count(*) from core.module_registry
+                           where layer='vertical' and vertical_key='energy'
+                             and module_id in ('plant','subscription','genreading','creditbalance');")
+          [ "$N" = "4" ] || { echo "::error::esperava 4 cartões vertical energy na Onda Vinte: [$N]"; exit 1; }
+          # ⛔ vertical não pode ter domain_key (CHECK do 0001), e vice-versa.
+          BAD=$($PSQL -tAc "select count(*) from core.module_registry
+                             where module_id in ('plant','subscription','genreading','creditbalance')
+                               and domain_key is not null;")
+          [ "$BAD" = "0" ] || { echo "::error::um cartão da Onda Vinte carregou domain_key"; exit 1; }
+          for M in plant subscription genreading creditbalance; do
+            C=$($PSQL -tAc "select jsonb_array_length(events_consumes) from core.module_registry where module_id='$M';")
+            [ "$C" = "0" ] || { echo "::error::o módulo $M deveria ter consumes vazio: [$C]"; exit 1; }
+          done
+          echo "plant·subscription·genreading·creditbalance — vertical energy, consumes vazio (Lei 7)."
+
+      # ⭐ plant — a USINA: active↔archived (a física do catalog, a usina volta a
+      # operar), capacity_kwp>0, tipo texto livre (a consolidação de GD — nunca enum).
+      - name: a física do plant está de pé (active↔archived, capacity>0, sem enum de tipo)
+        run: |
+          [ "$($PSQL -tAc "select plant.allowed_transition('active','archived');")" = "t" ] || { echo "::error::plant perdeu active→archived"; exit 1; }
+          [ "$($PSQL -tAc "select plant.allowed_transition('archived','active');")" = "t" ] || { echo "::error::plant perdeu archived→active (a usina volta a operar)"; exit 1; }
+          # SABOTAGEM 1: capacity_kwp > 0 (uma usina de 0 kWp não é usina).
+          PC=$($PSQL -tAc "select count(*) from pg_constraint con join pg_class c on c.oid=con.conrelid join pg_namespace n on n.oid=c.relnamespace
+                            where n.nspname='plant' and c.relname='plants' and con.contype='c'
+                              and pg_get_constraintdef(con.oid) ilike '%capacity_kwp > %';")
+          [ "$PC" -ge "1" ] || { echo "::error::plant perdeu o CHECK de capacity_kwp > 0"; exit 1; }
+          # SABOTAGEM 2: o tipo/porte é texto livre — nenhum enum no schema (a consolidação de GD).
+          T=$($PSQL -tAc "select count(*) from pg_type t join pg_namespace n on n.oid=t.typnamespace where n.nspname='plant' and t.typtype='e';")
+          [ "$T" = "0" ] || { echo "::error::plant criou um enum — o tipo/porte é texto livre (a GD é o mesmo objeto)"; exit 1; }
+
+      # ⭐ subscription — a ASSINATURA: active → cancelled TERMINAL (a física do
+      # proj, o DIVERGE do catalog), allocation_percent 0<x<=100.
+      - name: a física do subscription está de pé (active→cancelled terminal, allocation bounded)
+        run: |
+          [ "$($PSQL -tAc "select subscription.allowed_transition('active','cancelled');")" = "t" ] || { echo "::error::subscription perdeu active→cancelled"; exit 1; }
+          # SABOTAGEM 1: cancelled é TERMINAL — não reabre (o DIVERGE do catalog).
+          [ "$($PSQL -tAc "select subscription.allowed_transition('cancelled','active');")" = "f" ] || { echo "::error::subscription deixou a assinatura cancelada reabrir (é o DIVERGE do catalog)"; exit 1; }
+          # SABOTAGEM 2: allocation_percent 0 < x <= 100.
+          AC=$($PSQL -tAc "select count(*) from pg_constraint con join pg_class c on c.oid=con.conrelid join pg_namespace n on n.oid=c.relnamespace
+                            where n.nspname='subscription' and c.relname='subscriptions' and con.contype='c'
+                              and pg_get_constraintdef(con.oid) ilike '%allocation_percent%';")
+          [ "$AC" -ge "1" ] || { echo "::error::subscription perdeu o CHECK de allocation_percent"; exit 1; }
+          # SABOTAGEM 3: cancelar exige razão (o gatilho da transição confere).
+          RR=$($PSQL -tAc "select count(*) from pg_proc p join pg_namespace n on n.oid=p.pronamespace
+                            where n.nspname='subscription' and p.proname='guard_subscription_transition'
+                              and pg_get_functiondef(p.oid) ilike '%cancel_reason%';")
+          [ "$RR" -ge "1" ] || { echo "::error::subscription perdeu a exigência de razão ao cancelar"; exit 1; }
+
+      # ⭐ genreading — a LEITURA DE GERAÇÃO: imutável (só INSERT,SELECT), sem
+      # ciclo (sem allowed_transition), generated_kwh >= 0 (o MANTIDO do esg).
+      - name: a física do genreading está de pé (imutável, sem ciclo, generated_kwh>=0)
+        run: |
+          # SABOTAGEM 1: a leitura é imutável — só INSERT,SELECT.
+          G=$($PSQL -tAc "select coalesce(string_agg(distinct privilege_type,',' order by privilege_type),'')
+                            from information_schema.role_table_grants
+                           where table_schema='genreading' and table_name='readings' and grantee='authenticated';")
+          [ "$G" = "INSERT,SELECT" ] || { echo "::error::genreading.readings tem privilégios além de INSERT,SELECT: [$G]"; exit 1; }
+          # SABOTAGEM 2: é livro imutável, não ciclo — NÃO tem allowed_transition.
+          AT=$($PSQL -tAc "select count(*) from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='genreading' and p.proname='allowed_transition';")
+          [ "$AT" = "0" ] || { echo "::error::genreading ganhou allowed_transition — é livro imutável, não ciclo"; exit 1; }
+          # SABOTAGEM 3: generated_kwh >= 0 (zero é leitura real; negativo infísico — o MANTIDO do esg).
+          CH=$($PSQL -tAc "select count(*) from pg_constraint con join pg_class c on c.oid=con.conrelid join pg_namespace n on n.oid=c.relnamespace
+                            where n.nspname='genreading' and c.relname='readings' and con.contype='c'
+                              and pg_get_constraintdef(con.oid) ilike '%generated_kwh >= %';")
+          [ "$CH" -ge "1" ] || { echo "::error::genreading perdeu o CHECK generated_kwh >= 0"; exit 1; }
+          # SABOTAGEM 4: a imutabilidade tem gatilho (nem o dono reescreve).
+          IM=$($PSQL -tAc "select count(*) from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='genreading' and p.proname='guard_reading_immutable';")
+          [ "$IM" = "1" ] || { echo "::error::genreading perdeu a imutabilidade da leitura"; exit 1; }
+
+      # ⭐ creditbalance — o LIVRO DE CRÉDITOS imutável: sem status, sem
+      # allowed_transition, saldo é VIEW, e consumir > saldo é RECUSADO.
+      - name: a física do creditbalance está de pé (imutável, saldo VIEW, consumo>saldo recusado)
+        run: |
+          # SABOTAGEM 1: só INSERT,SELECT (o lançamento é fato consumado).
+          G=$($PSQL -tAc "select coalesce(string_agg(distinct privilege_type,',' order by privilege_type),'')
+                            from information_schema.role_table_grants
+                           where table_schema='creditbalance' and table_name='entries' and grantee='authenticated';")
+          [ "$G" = "INSERT,SELECT" ] || { echo "::error::creditbalance.entries tem privilégios além de INSERT,SELECT: [$G]"; exit 1; }
+          # SABOTAGEM 2: é livro imutável, não ciclo — NÃO tem allowed_transition.
+          AT=$($PSQL -tAc "select count(*) from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='creditbalance' and p.proname='allowed_transition';")
+          [ "$AT" = "0" ] || { echo "::error::creditbalance ganhou allowed_transition — é livro imutável, não ciclo"; exit 1; }
+          # SABOTAGEM 3: sem coluna status (a direção mora no credit_type).
+          ST=$($PSQL -tAc "select count(*) from information_schema.columns where table_schema='creditbalance' and table_name='entries' and column_name='status';")
+          [ "$ST" = "0" ] || { echo "::error::creditbalance.entries ganhou coluna status — a direção é o credit_type"; exit 1; }
+          # SABOTAGEM 4: os CHECKs de credit_type e quantity_kwh>0.
+          CH=$($PSQL -tAc "select count(*) from pg_constraint con join pg_class c on c.oid=con.conrelid join pg_namespace n on n.oid=c.relnamespace
+                            where n.nspname='creditbalance' and c.relname='entries' and con.contype='c'
+                              and (pg_get_constraintdef(con.oid) ilike '%credit_type%' or pg_get_constraintdef(con.oid) ilike '%quantity_kwh > %');")
+          [ "$CH" -ge "2" ] || { echo "::error::creditbalance perdeu o CHECK de credit_type ou de quantity_kwh>0: [$CH]"; exit 1; }
+          # SABOTAGEM 5: o saldo é VIEW (nunca coluna).
+          V=$($PSQL -tAc "select count(*) from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='creditbalance' and c.relname='subscription_balances' and c.relkind='v';")
+          [ "$V" = "1" ] || { echo "::error::creditbalance.subscription_balances não é VIEW (o saldo virou coluna?)"; exit 1; }
+          # SABOTAGEM 6: consumir > saldo é RECUSADO (a física da compensação — energia não se deve, se gera).
+          RG=$($PSQL -tAc "select count(*) from pg_proc p join pg_namespace n on n.oid=p.pronamespace
+                            where n.nspname='creditbalance' and p.proname='guard_entry_insert'
+                              and pg_get_functiondef(p.oid) ilike '%saldo%';")
+          [ "$RG" -ge "1" ] || { echo "::error::creditbalance perdeu a recusa de consumo acima do saldo (a física da compensação)"; exit 1; }
 
       # ⚠️ IA APLICADA — a decisão de ZERO módulo, conferida: nenhum cartão sob
       # um domain_key de IA Aplicada (nem 'applied-ai' do core, nem 'ai-applied'
@@ -2829,8 +2961,8 @@ jobs:
           # Só apareceu porque os números foram conferidos contra o banco.
           N=$($PSQL -tAc "select count(*) from core.module_registry
                            where status='published'
-                             and module_id in ('recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt','dun','ctr','cash','care','occ','mnt','pat','chk','spc','vis','lead','goal','comm','edcal','media','nps','cc','bud','bank','invest','dre','hr','shift','train','perf','pol','mall','lease','fund','park','sec','vendor','rfq','recv','vperf','reorder','dem','sop','dc','disp','logperf','proj','sched','kanban','alloc','pcost','scrum','gantt','risk','timesheet','pfolio','nc','audit','capa','iso','esg','idea','ip','fiscalcert','pdv','catalog','cashregister','loyalty','erisk','control','whistle','vuln','secincident','continuity');")
-          [ "$N" = "80" ] || { echo "::error::o catálogo tem $N dos 80 módulos reais publicados"; exit 1; }
+                             and module_id in ('recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt','dun','ctr','cash','care','occ','mnt','pat','chk','spc','vis','lead','goal','comm','edcal','media','nps','cc','bud','bank','invest','dre','hr','shift','train','perf','pol','mall','lease','fund','park','sec','vendor','rfq','recv','vperf','reorder','dem','sop','dc','disp','logperf','proj','sched','kanban','alloc','pcost','scrum','gantt','risk','timesheet','pfolio','nc','audit','capa','iso','esg','idea','ip','fiscalcert','pdv','catalog','cashregister','loyalty','erisk','control','whistle','vuln','secincident','continuity','plant','subscription','genreading','creditbalance');")
+          [ "$N" = "84" ] || { echo "::error::o catálogo tem $N dos 84 módulos reais publicados"; exit 1; }
           C=$($PSQL -tAc "select jsonb_array_length(events_consumes)
                             from core.module_registry where module_id='crm';")
           [ "$C" = "0" ] || {
@@ -2969,7 +3101,7 @@ jobs:
           ABERTAS=$($PSQL -tAc "
             select coalesce(string_agg(n.nspname||'.'||p.proname, ', ' order by p.proname), '')
               from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-             where n.nspname in ('core','recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt','dun','ctr','cash','care','occ','mnt','pat','chk','spc','vis','lead','goal','comm','edcal','media','nps','cc','bud','bank','invest','dre','hr','shift','train','perf','pol','mall','lease','fund','park','sec','vendor','rfq','recv','vperf','reorder','dem','sop','dc','disp','logperf','proj','sched','kanban','alloc','pcost','scrum','gantt','risk','timesheet','pfolio','nc','audit','capa','iso','esg','idea','ip','fiscalcert','pdv','catalog','cashregister','loyalty','erisk','control','whistle','vuln','secincident','continuity')
+             where n.nspname in ('core','recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt','dun','ctr','cash','care','occ','mnt','pat','chk','spc','vis','lead','goal','comm','edcal','media','nps','cc','bud','bank','invest','dre','hr','shift','train','perf','pol','mall','lease','fund','park','sec','vendor','rfq','recv','vperf','reorder','dem','sop','dc','disp','logperf','proj','sched','kanban','alloc','pcost','scrum','gantt','risk','timesheet','pfolio','nc','audit','capa','iso','esg','idea','ip','fiscalcert','pdv','catalog','cashregister','loyalty','erisk','control','whistle','vuln','secincident','continuity','plant','subscription','genreading','creditbalance')
                and has_function_privilege('anon', p.oid, 'execute');")
           [ -z "$ABERTAS" ] || { echo "::error::função executável por anon: $ABERTAS"; exit 1; }
 
@@ -2980,7 +3112,7 @@ jobs:
             OK=$($PSQL -tAc "
               select count(*) from pg_proc p join pg_namespace n on n.oid = p.pronamespace
                where p.proname = '$FN'
-                 and n.nspname in ('core','recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt','dun','ctr','cash','care','occ','mnt','pat','chk','spc','vis','lead','goal','comm','edcal','media','nps','cc','bud','bank','invest','dre','hr','shift','train','perf','pol','mall','lease','fund','park','sec','vendor','rfq','recv','vperf','reorder','dem','sop','dc','disp','logperf','proj','sched','kanban','alloc','pcost','scrum','gantt','risk','timesheet','pfolio','nc','audit','capa','iso','esg','idea','ip','fiscalcert','pdv','catalog','cashregister','loyalty','erisk','control','whistle','vuln','secincident','continuity')
+                 and n.nspname in ('core','recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt','dun','ctr','cash','care','occ','mnt','pat','chk','spc','vis','lead','goal','comm','edcal','media','nps','cc','bud','bank','invest','dre','hr','shift','train','perf','pol','mall','lease','fund','park','sec','vendor','rfq','recv','vperf','reorder','dem','sop','dc','disp','logperf','proj','sched','kanban','alloc','pcost','scrum','gantt','risk','timesheet','pfolio','nc','audit','capa','iso','esg','idea','ip','fiscalcert','pdv','catalog','cashregister','loyalty','erisk','control','whistle','vuln','secincident','continuity','plant','subscription','genreading','creditbalance')
                  and has_function_privilege('authenticated', p.oid, 'execute');")
             [ "$OK" -ge 1 ] || { echo "::error::$FN() deixou de ser chamável pelo portal"; exit 1; }
           done
@@ -3646,7 +3778,7 @@ jobs:
       - name: módulo não conhece módulo
         run: |
           FALHOU=0
-          MODULOS="finance-reconciliation marketing accounts-payable crm accounts-receivable purchase-orders ops inventory quotes deals event-management dunning contracts cashflow care occurrences maintenance assets checklists spaces visits leads goals comms editorial media nps cost-centers budgets bank-accounts investments dre hr shift-scheduling training performance policies mall lease fund park sec vendor rfq recv vperf reorder dem sop dc disp logperf proj sched kanban alloc pcost scrum gantt risk timesheet pfolio non-conformities audits capa iso esg idea ip fiscalcert pdv catalog cashregister loyalty erisk control whistle vuln secincident continuity"
+          MODULOS="finance-reconciliation marketing accounts-payable crm accounts-receivable purchase-orders ops inventory quotes deals event-management dunning contracts cashflow care occurrences maintenance assets checklists spaces visits leads goals comms editorial media nps cost-centers budgets bank-accounts investments dre hr shift-scheduling training performance policies mall lease fund park sec vendor rfq recv vperf reorder dem sop dc disp logperf proj sched kanban alloc pcost scrum gantt risk timesheet pfolio non-conformities audits capa iso esg idea ip fiscalcert pdv catalog cashregister loyalty erisk control whistle vuln secincident continuity plant subscription genreading creditbalance"
 
           # 1. Nenhum módulo importa outro módulo, em nenhuma forma.
           for MOD in $MODULOS; do
@@ -3761,6 +3893,10 @@ jobs:
             [0093_vuln.sql]=vuln
             [0094_secincident.sql]=secincident
             [0095_continuity.sql]=continuity
+            [0096_plant.sql]=plant
+            [0097_subscription.sql]=subscription
+            [0098_genreading.sql]=genreading
+            [0099_creditbalance.sql]=creditbalance
           )
           for ARQUIVO in "${!SCHEMA_DE[@]}"; do
             DONO="${SCHEMA_DE[$ARQUIVO]}"

@@ -490,6 +490,19 @@ importers:
         specifier: ^5.7.2
         version: 5.9.3
 
+  packages/creditbalance:
+    dependencies:
+      '@alsham/core':
+        specifier: workspace:*
+        version: link:../core
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.2
+        version: 22.20.1
+      typescript:
+        specifier: ^5.7.2
+        version: 5.9.3
+
   packages/crm:
     dependencies:
       '@alsham/core':
@@ -682,6 +695,19 @@ importers:
         version: 5.9.3
 
   packages/gantt:
+    dependencies:
+      '@alsham/core':
+        specifier: workspace:*
+        version: link:../core
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.2
+        version: 22.20.1
+      typescript:
+        specifier: ^5.7.2
+        version: 5.9.3
+
+  packages/genreading:
     dependencies:
       '@alsham/core':
         specifier: workspace:*
@@ -1038,6 +1064,19 @@ importers:
         specifier: ^5.7.2
         version: 5.9.3
 
+  packages/plant:
+    dependencies:
+      '@alsham/core':
+        specifier: workspace:*
+        version: link:../core
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.2
+        version: 22.20.1
+      typescript:
+        specifier: ^5.7.2
+        version: 5.9.3
+
   packages/policies:
     dependencies:
       '@alsham/core':
@@ -1221,6 +1260,19 @@ importers:
         version: 5.9.3
 
   packages/spaces:
+    dependencies:
+      '@alsham/core':
+        specifier: workspace:*
+        version: link:../core
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.2
+        version: 22.20.1
+      typescript:
+        specifier: ^5.7.2
+        version: 5.9.3
+
+  packages/subscription:
     dependencies:
       '@alsham/core':
         specifier: workspace:*
