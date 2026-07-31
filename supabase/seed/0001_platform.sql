@@ -1288,7 +1288,245 @@ on conflict (module_id) do update set
   status          = excluded.status,
   updated_at      = now();
 
--- ⛔ Onze módulos de Compras+ no catálogo, zero permissão concedida pelo seed.
+-- =============================================================================
+-- 4.4i ONDA TREZE (parte 2/2) — FECHA o Domain PMO & PROJETOS (Módulos 58–62,
+-- domain_key 'pmo'). As 5 capacidades restantes: Scrum · Gantt · Riscos ·
+-- Timesheet · Portfólio. Com esta onda, PMO tem os 10 módulos completos.
+-- Todos `consumes` vazio.
+-- =============================================================================
+
+-- ---------------------------------------------------------------------------
+-- O MÓDULO `scrum` (Scrum / Sprints) — o 58º cartão. Abre a Onda Treze.
+-- ---------------------------------------------------------------------------
+insert into core.module_registry (
+  module_id, name, version, summary, layer, domain_key,
+  capabilities, permissions, events_emits, events_consumes, agents,
+  requires_core, status
+)
+values (
+  'scrum',
+  'Scrum',
+  '0.1.0',
+  'A moldura temporal (time-box) do projeto: o sprint com nome e objetivo em texto livre, janela de datas, e o vínculo ao projeto por id solto. UM projeto tem no máximo UM sprint ativo por vez (regra na constraint do banco). closed é terminal (a física do bud/proj). Os itens de trabalho são os cartões do kanban — este módulo NÃO os reconstrói; a composição é de tela, não de schema.',
+  'domain', 'pmo',
+  '[
+     {"key":"scrum","canonicalName":"Scrum"}
+   ]'::jsonb,
+  '[
+     {"key":"scrum.sprint.manage","moduleId":"scrum","description":"Criar e editar sprints, ativar e encerrar."}
+   ]'::jsonb,
+  '[
+     {"type":"scrum.sprint.registered","version":1,"description":"Um sprint nasceu (sempre planejado)."},
+     {"type":"scrum.sprint.activated","version":1,"description":"O sprint entrou em andamento (o único ativo do projeto)."},
+     {"type":"scrum.sprint.closed","version":1,"description":"O sprint foi encerrado. Terminal — o próximo é sprint novo."}
+   ]'::jsonb,
+  '[]'::jsonb,
+  '[]'::jsonb,
+  '0.0.x',
+  'published'
+)
+on conflict (module_id) do update set
+  name            = excluded.name,
+  version         = excluded.version,
+  summary         = excluded.summary,
+  layer           = excluded.layer,
+  domain_key      = excluded.domain_key,
+  vertical_key    = excluded.vertical_key,
+  capabilities    = excluded.capabilities,
+  permissions     = excluded.permissions,
+  events_emits    = excluded.events_emits,
+  events_consumes = excluded.events_consumes,
+  agents          = excluded.agents,
+  requires_core   = excluded.requires_core,
+  status          = excluded.status,
+  updated_at      = now();
+
+-- ---------------------------------------------------------------------------
+-- O MÓDULO `gantt` (Gantt / Dependências entre marcos) — o 59º cartão.
+-- ---------------------------------------------------------------------------
+insert into core.module_registry (
+  module_id, name, version, summary, layer, domain_key,
+  capabilities, permissions, events_emits, events_consumes, agents,
+  requires_core, status
+)
+values (
+  'gantt',
+  'Gantt',
+  '0.1.0',
+  'O grafo de dependências entre marcos do projeto: a aresta predecessor → sucessor, com o tipo entre as quatro relações clássicas de precedência (finish_to_start é o default). O marco entra por id solto ao sched — este módulo NÃO o reconstrói nem o lê. É um registro MUTÁVEL: a dependência é metadado do plano e some quando o plano muda (o DIVERGE dos livros imutáveis). Sem caminho crítico, sem cálculo de datas e sem motor de agenda — isso é vista de tela e frente futura, nunca dado novo aqui.',
+  'domain', 'pmo',
+  '[
+     {"key":"gantt","canonicalName":"Gantt"}
+   ]'::jsonb,
+  '[
+     {"key":"gantt.dependency.manage","moduleId":"gantt","description":"Registrar e remover dependências entre marcos."}
+   ]'::jsonb,
+  '[
+     {"type":"gantt.dependency.registered","version":1,"description":"Uma aresta de precedência entre dois marcos nasceu."},
+     {"type":"gantt.dependency.removed","version":1,"description":"Uma aresta de precedência foi removida (o plano mudou)."}
+   ]'::jsonb,
+  '[]'::jsonb,
+  '[]'::jsonb,
+  '0.0.x',
+  'published'
+)
+on conflict (module_id) do update set
+  name            = excluded.name,
+  version         = excluded.version,
+  summary         = excluded.summary,
+  layer           = excluded.layer,
+  domain_key      = excluded.domain_key,
+  vertical_key    = excluded.vertical_key,
+  capabilities    = excluded.capabilities,
+  permissions     = excluded.permissions,
+  events_emits    = excluded.events_emits,
+  events_consumes = excluded.events_consumes,
+  agents          = excluded.agents,
+  requires_core   = excluded.requires_core,
+  status          = excluded.status,
+  updated_at      = now();
+
+-- ---------------------------------------------------------------------------
+-- O MÓDULO `risk` (Riscos do projeto) — o 60º cartão.
+-- ---------------------------------------------------------------------------
+insert into core.module_registry (
+  module_id, name, version, summary, layer, domain_key,
+  capabilities, permissions, events_emits, events_consumes, agents,
+  requires_core, status
+)
+values (
+  'risk',
+  'Riscos',
+  '0.1.0',
+  'O registro de riscos do projeto: a descrição em texto livre, a probabilidade e o impacto na régua 1–5 (física do método), o plano de mitigação e o vínculo ao projeto por id solto. O ciclo é open → mitigated → closed, com a física NOVA de que mitigated REABRE (mitigated → open, o mesmo risco volta) enquanto closed é TERMINAL (o risco que passou está encerrado; o que recorre é registro novo). A severidade (probabilidade × impacto) é leitura, nunca decisão.',
+  'domain', 'pmo',
+  '[
+     {"key":"risk","canonicalName":"Riscos"}
+   ]'::jsonb,
+  '[
+     {"key":"risk.entry.manage","moduleId":"risk","description":"Registrar e editar riscos, mitigar, reabrir e encerrar."}
+   ]'::jsonb,
+  '[
+     {"type":"risk.entry.registered","version":1,"description":"Um risco nasceu (sempre aberto)."},
+     {"type":"risk.entry.mitigated","version":1,"description":"O risco passou a mitigado (a mitigação está em vigor)."},
+     {"type":"risk.entry.reopened","version":1,"description":"O risco mitigado REABRIU — o mesmo risco voltou (a mitigação parou de funcionar)."},
+     {"type":"risk.entry.closed","version":1,"description":"O risco foi encerrado. Terminal — o que recorre é risco novo."}
+   ]'::jsonb,
+  '[]'::jsonb,
+  '[]'::jsonb,
+  '0.0.x',
+  'published'
+)
+on conflict (module_id) do update set
+  name            = excluded.name,
+  version         = excluded.version,
+  summary         = excluded.summary,
+  layer           = excluded.layer,
+  domain_key      = excluded.domain_key,
+  vertical_key    = excluded.vertical_key,
+  capabilities    = excluded.capabilities,
+  permissions     = excluded.permissions,
+  events_emits    = excluded.events_emits,
+  events_consumes = excluded.events_consumes,
+  agents          = excluded.agents,
+  requires_core   = excluded.requires_core,
+  status          = excluded.status,
+  updated_at      = now();
+
+-- ---------------------------------------------------------------------------
+-- O MÓDULO `timesheet` (Apontamento de horas) — o 61º cartão.
+-- ---------------------------------------------------------------------------
+insert into core.module_registry (
+  module_id, name, version, summary, layer, domain_key,
+  capabilities, permissions, events_emits, events_consumes, agents,
+  requires_core, status
+)
+values (
+  'timesheet',
+  'Apontamento de horas',
+  '0.1.0',
+  'O livro de horas trabalhadas da empresa: cada apontamento é um lançamento imutável — o projeto (id solto + nome), quem trabalhou (texto livre, mais um id solto opcional ao colaborador), o dia e as horas (sempre > 0). Registrar é fato consumado; corrigir é lançar o ato inverso, nunca reescrever. É o REALIZADO — a contraparte do alloc, que é o PLANEJADO (percentual de capacidade, mutável). Cálculo de custo/rate da hora, aprovação de folha de apontamento e capacidade/calendário ficam de fora (é o cash/pcost e capacidades futuras).',
+  'domain', 'pmo',
+  '[
+     {"key":"timesheet","canonicalName":"Timesheet"}
+   ]'::jsonb,
+  '[
+     {"key":"timesheet.entry.manage","moduleId":"timesheet","description":"Registrar um apontamento de horas — o projeto, quem trabalhou, o dia e as horas."}
+   ]'::jsonb,
+  '[
+     {"type":"timesheet.entry.registered","version":1,"description":"Um apontamento de horas foi registrado. Lançamento imutável desde o instante 1."}
+   ]'::jsonb,
+  '[]'::jsonb,
+  '[]'::jsonb,
+  '0.0.x',
+  'published'
+)
+on conflict (module_id) do update set
+  name            = excluded.name,
+  version         = excluded.version,
+  summary         = excluded.summary,
+  layer           = excluded.layer,
+  domain_key      = excluded.domain_key,
+  vertical_key    = excluded.vertical_key,
+  capabilities    = excluded.capabilities,
+  permissions     = excluded.permissions,
+  events_emits    = excluded.events_emits,
+  events_consumes = excluded.events_consumes,
+  agents          = excluded.agents,
+  requires_core   = excluded.requires_core,
+  status          = excluded.status,
+  updated_at      = now();
+
+-- ---------------------------------------------------------------------------
+-- O MÓDULO `pfolio` (Portfólio de projetos) — o 62º cartão. ⭐⭐ A ÚLTIMA peça:
+-- FECHA o Domain PMO & Projetos em 10/10 capacidades (módulos 53–62).
+-- ---------------------------------------------------------------------------
+insert into core.module_registry (
+  module_id, name, version, summary, layer, domain_key,
+  capabilities, permissions, events_emits, events_consumes, agents,
+  requires_core, status
+)
+values (
+  'pfolio',
+  'Portfólio',
+  '0.1.0',
+  'O agrupamento de projetos para leitura executiva: o portfólio com nome e descrição em texto livre, e os projetos que ele reúne por membros N:N (id solto ao projeto, nome carimbado pela tela). O ciclo é active ↔ archived — o portfólio é uma leitura que a empresa arquiva e reabre (o DIVERGE dos fins terminais do proj). O MESMO projeto pode estar em vários portfólios. Rollup automático de métricas e orçamento de portfólio ficam de fora (frente de BI de leitura; Lei 7).',
+  'domain', 'pmo',
+  '[
+     {"key":"pfolio","canonicalName":"Portfólio"}
+   ]'::jsonb,
+  '[
+     {"key":"pfolio.portfolio.manage","moduleId":"pfolio","description":"Criar e editar portfólios, arquivar e reabrir, e gerir os projetos que cada um reúne."}
+   ]'::jsonb,
+  '[
+     {"type":"pfolio.portfolio.registered","version":1,"description":"Um portfólio nasceu (sempre ativo)."},
+     {"type":"pfolio.portfolio.archived","version":1,"description":"O portfólio foi arquivado. Continua no banco; nunca DELETE."},
+     {"type":"pfolio.portfolio.restored","version":1,"description":"O portfólio arquivado voltou à leitura viva — o mesmo agrupamento."},
+     {"type":"pfolio.member.added","version":1,"description":"Um projeto entrou no portfólio."},
+     {"type":"pfolio.member.removed","version":1,"description":"Um projeto saiu do portfólio (o vínculo é mutável)."}
+   ]'::jsonb,
+  '[]'::jsonb,
+  '[]'::jsonb,
+  '0.0.x',
+  'published'
+)
+on conflict (module_id) do update set
+  name            = excluded.name,
+  version         = excluded.version,
+  summary         = excluded.summary,
+  layer           = excluded.layer,
+  domain_key      = excluded.domain_key,
+  vertical_key    = excluded.vertical_key,
+  capabilities    = excluded.capabilities,
+  permissions     = excluded.permissions,
+  events_emits    = excluded.events_emits,
+  events_consumes = excluded.events_consumes,
+  agents          = excluded.agents,
+  requires_core   = excluded.requires_core,
+  status          = excluded.status,
+  updated_at      = now();
+
+-- ⛔ Dezesseis módulos de Compras+ no catálogo, zero permissão concedida pelo seed.
 
 -- =============================================================================
 -- 4.5 O MÓDULO `ops` NO CATÁLOGO DA STORE — o 7º cartão

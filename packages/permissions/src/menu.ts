@@ -104,6 +104,11 @@ const MENU: readonly MenuItem[] = [
   { href: '/kanban', label: 'Kanban', moduleId: 'kanban' },
   { href: '/recursos', label: 'Recursos', moduleId: 'alloc' },
   { href: '/custos-projeto', label: 'Custos do Projeto', moduleId: 'pcost' },
+  { href: '/sprints', label: 'Scrum', moduleId: 'scrum' },
+  { href: '/gantt', label: 'Gantt', moduleId: 'gantt' },
+  { href: '/riscos', label: 'Riscos', moduleId: 'risk' },
+  { href: '/apontamentos', label: 'Timesheet', moduleId: 'timesheet' },
+  { href: '/portfolio', label: 'Portfólio', moduleId: 'pfolio' },
   { href: '/store', label: 'Store', moduleId: null },
   { href: '/ajustes', label: 'Ajustes', moduleId: null },
 ];
