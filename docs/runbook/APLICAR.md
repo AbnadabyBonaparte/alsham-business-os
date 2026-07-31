@@ -1401,6 +1401,35 @@ Campanha das 6 Ondas está COMPLETA.** (37 Domain + 5 Vertical.)
 Nenhum agente aplica em produção. A conferência de segurança do PASSO 15
 (§ pós-apply) vale para os schemas novos.
 
+## PASSO 23 — A ONDA DEZ: completar o Domain Compras (`0058` em diante) — Fase 2
+
+⭐ A **Fase 2 rumo aos 100 módulos** começa completando o Domain **Compras**
+(`procurement`), que até aqui só tinha o `po`. Cinco capacidades novas, ao lado
+do `po`. O rito é o mesmo — migration na ordem, seed, Data API, Store:
+
+1. **Aplicar a migration** no SQL Editor, na ordem:
+   - `0058_vendor.sql` — Módulo 43, Fornecedores (schema `vendor`)
+   - `0059_rfq.sql` — Módulo 44, Cotações / RFQ (schema `rfq`)
+   - `0060_recv.sql` — Módulo 45, Recebimento (schema `recv`)
+   - `0061_vperf.sql` — Módulo 46, Avaliação de Fornecedores (schema `vperf`)
+   - `0062_reorder.sql` — Módulo 47, Estoque Mínimo (schema `reorder`)
+2. **Reaplicar o seed** — os cinco cartões novos entram no catálogo, todos
+   `domain_key='procurement'`, ao lado do `po`.
+3. ⚠️ **Expor os schemas novos na Data API**: `vendor`, `rfq`, `recv`, `vperf`,
+   `reorder`. Sem isso as telas carregam vazias, sem erro que diga o motivo.
+4. ✅ **SEM redeploy do `apps/api`** — os cinco têm `consumes` VAZIO (nenhum
+   handler de consumo novo; Lei 7). Guarda de CI confere. ⭐⭐ O `reorder` NÃO
+   lê o `inv` por dentro: a comparação "estoque < mínimo" é da tela
+   (`needsReorder()`), alimentada com o saldo de fora — guarda de CI no mapa
+   SCHEMA_DE reprova se a migration referenciar o schema `inv`.
+5. **Instalar cada módulo pela Store**, no tenant que o contratou.
+
+⭐ **Ao concluir este apply, o catálogo chega a 47 módulos publicados** (42 da
+Campanha das 6 Ondas + 5 da Onda Dez). O Domain Compras deixa de ter só o `po`.
+
+Nenhum agente aplica em produção. A conferência de segurança do PASSO 15
+(§ pós-apply) vale para os schemas novos.
+
 ## O QUE AINDA NÃO EXISTE
 
 Honestidade de escopo, para você não procurar o que não foi construído:

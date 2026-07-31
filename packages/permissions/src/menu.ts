@@ -89,6 +89,11 @@ const MENU: readonly MenuItem[] = [
   { href: '/fundo-promocao', label: 'Fundo de Promoção', moduleId: 'fund' },
   { href: '/estacionamento', label: 'Estacionamento', moduleId: 'park' },
   { href: '/rondas', label: 'Rondas', moduleId: 'sec' },
+  { href: '/fornecedores', label: 'Fornecedores', moduleId: 'vendor' },
+  { href: '/cotacoes', label: 'Cotações', moduleId: 'rfq' },
+  { href: '/recebimentos', label: 'Recebimento', moduleId: 'recv' },
+  { href: '/avaliacao-fornecedores', label: 'Avaliação de Fornecedores', moduleId: 'vperf' },
+  { href: '/estoque-minimo', label: 'Estoque Mínimo', moduleId: 'reorder' },
   { href: '/store', label: 'Store', moduleId: null },
   { href: '/ajustes', label: 'Ajustes', moduleId: null },
 ];
