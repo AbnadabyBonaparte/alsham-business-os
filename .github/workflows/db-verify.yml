@@ -444,6 +444,22 @@ jobs:
       - name: aplicar 0077_pfolio.sql
         run: $PSQL -f supabase/migrations/0077_pfolio.sql
 
+      # ONDA QUATORZE (Fase 2) — ABRE o Domain 🧪 Qualidade (Módulos 63–66).
+      # Não conformidades · Auditorias · CAPA · Requisitos ISO. As outras 3
+      # capacidades (Indicadores · Documentos de qualidade · Procedimentos) já
+      # são o `goal`/`pol` e ficam DECLARADAS FORA (anti-duplicação). Todos
+      # `consumes` vazio — sem redeploy do apps/api.
+      # ⚠️ nc→capa e audit→nc e capa→nc são id solto — NÃO leem o schema alheio
+      # (guarda SCHEMA_DE abaixo). A FK audit.findings→audit.audits é INTRA-schema.
+      - name: aplicar 0078_nc.sql
+        run: $PSQL -f supabase/migrations/0078_nc.sql
+      - name: aplicar 0079_audit.sql
+        run: $PSQL -f supabase/migrations/0079_audit.sql
+      - name: aplicar 0080_capa.sql
+        run: $PSQL -f supabase/migrations/0080_capa.sql
+      - name: aplicar 0081_iso.sql
+        run: $PSQL -f supabase/migrations/0081_iso.sql
+
       # ---------------------------------------------------------------------
       # 2. SEED — e a prova de que reaplicar não muda nada
       # ---------------------------------------------------------------------
@@ -471,12 +487,12 @@ jobs:
           FALTA=$($PSQL -tAc "
             select coalesce(string_agg(n.nspname||'.'||c.relname, ', '), '')
               from pg_class c join pg_namespace n on n.oid = c.relnamespace
-             where n.nspname in ('core','recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt','dun','ctr','cash','care','occ','mnt','pat','chk','spc','vis','lead','goal','comm','edcal','media','nps','cc','bud','bank','invest','dre','hr','shift','train','perf','pol','mall','lease','fund','park','sec','vendor','rfq','recv','vperf','reorder','dem','sop','dc','disp','logperf','proj','sched','kanban','alloc','pcost','scrum','gantt','risk','timesheet','pfolio') and c.relkind = 'r'
+             where n.nspname in ('core','recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt','dun','ctr','cash','care','occ','mnt','pat','chk','spc','vis','lead','goal','comm','edcal','media','nps','cc','bud','bank','invest','dre','hr','shift','train','perf','pol','mall','lease','fund','park','sec','vendor','rfq','recv','vperf','reorder','dem','sop','dc','disp','logperf','proj','sched','kanban','alloc','pcost','scrum','gantt','risk','timesheet','pfolio','nc','audit','capa','iso') and c.relkind = 'r'
                and (not c.relrowsecurity or not c.relforcerowsecurity);")
           [ -z "$FALTA" ] || { echo "::error::sem RLS enable+force: $FALTA"; exit 1; }
           $PSQL -c "select n.nspname as schema, count(*) as tabelas
                       from pg_class c join pg_namespace n on n.oid=c.relnamespace
-                     where n.nspname in ('core','recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt','dun','ctr','cash','care','occ','mnt','pat','chk','spc','vis','lead','goal','comm','edcal','media','nps','cc','bud','bank','invest','dre','hr','shift','train','perf','pol','mall','lease','fund','park','sec','vendor','rfq','recv','vperf','reorder','dem','sop','dc','disp','logperf','proj','sched','kanban','alloc','pcost','scrum','gantt','risk','timesheet','pfolio') and c.relkind='r'
+                     where n.nspname in ('core','recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt','dun','ctr','cash','care','occ','mnt','pat','chk','spc','vis','lead','goal','comm','edcal','media','nps','cc','bud','bank','invest','dre','hr','shift','train','perf','pol','mall','lease','fund','park','sec','vendor','rfq','recv','vperf','reorder','dem','sop','dc','disp','logperf','proj','sched','kanban','alloc','pcost','scrum','gantt','risk','timesheet','pfolio','nc','audit','capa','iso') and c.relkind='r'
                      group by 1 order by 1;"
 
       - name: nenhuma policy USING (true)
@@ -486,7 +502,7 @@ jobs:
               from pg_policy p
               join pg_class c on c.oid = p.polrelid
               join pg_namespace n on n.oid = c.relnamespace
-             where n.nspname in ('core','recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt','dun','ctr','cash','care','occ','mnt','pat','chk','spc','vis','lead','goal','comm','edcal','media','nps','cc','bud','bank','invest','dre','hr','shift','train','perf','pol','mall','lease','fund','park','sec','vendor','rfq','recv','vperf','reorder','dem','sop','dc','disp','logperf','proj','sched','kanban','alloc','pcost','scrum','gantt','risk','timesheet','pfolio')
+             where n.nspname in ('core','recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt','dun','ctr','cash','care','occ','mnt','pat','chk','spc','vis','lead','goal','comm','edcal','media','nps','cc','bud','bank','invest','dre','hr','shift','train','perf','pol','mall','lease','fund','park','sec','vendor','rfq','recv','vperf','reorder','dem','sop','dc','disp','logperf','proj','sched','kanban','alloc','pcost','scrum','gantt','risk','timesheet','pfolio','nc','audit','capa','iso')
                and pg_get_expr(p.polqual, p.polrelid) = 'true';")
           [ -z "$ABERTAS" ] || { echo "::error::policy aberta (lição paga do suna-core): $ABERTAS"; exit 1; }
 
@@ -497,7 +513,7 @@ jobs:
                              where n.nspname='public' and c.relkind='r';")
           [ "$PUB" = "0" ] || { echo "::error::$PUB tabela(s) em public — expostas via API"; exit 1; }
           ANON=$($PSQL -tAc "select count(*) from information_schema.role_table_grants
-                              where grantee='anon' and table_schema in ('core','recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt','dun','ctr','cash','care','occ','mnt','pat','chk','spc','vis','lead','goal','comm','edcal','media','nps','cc','bud','bank','invest','dre','hr','shift','train','perf','pol','mall','lease','fund','park','sec','vendor','rfq','recv','vperf','reorder','dem','sop','dc','disp','logperf','proj','sched','kanban','alloc','pcost','scrum','gantt','risk','timesheet','pfolio');")
+                              where grantee='anon' and table_schema in ('core','recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt','dun','ctr','cash','care','occ','mnt','pat','chk','spc','vis','lead','goal','comm','edcal','media','nps','cc','bud','bank','invest','dre','hr','shift','train','perf','pol','mall','lease','fund','park','sec','vendor','rfq','recv','vperf','reorder','dem','sop','dc','disp','logperf','proj','sched','kanban','alloc','pcost','scrum','gantt','risk','timesheet','pfolio','nc','audit','capa','iso');")
           [ "$ANON" = "0" ] || { echo "::error::anon tem $ANON grant(s) no Business OS"; exit 1; }
 
       - name: o seed não semeou tenant nem usuário
@@ -1844,6 +1860,76 @@ jobs:
       - name: teste de portfólio (pfolio)
         run: $PSQL -f supabase/tests/67_pfolio_isolation.sql
 
+      # =====================================================================
+      # ⭐ ONDA QUATORZE — ABRE o Domain 🧪 Qualidade no banco (Módulos 63–66)
+      # =====================================================================
+      - name: teste de não conformidades (nc)
+        run: $PSQL -f supabase/tests/68_nc_isolation.sql
+
+      - name: teste de auditorias (audit)
+        run: $PSQL -f supabase/tests/69_audit_isolation.sql
+
+      - name: teste de CAPA — ações corretivas/preventivas (capa)
+        run: $PSQL -f supabase/tests/70_capa_isolation.sql
+
+      - name: teste de requisitos ISO (iso)
+        run: $PSQL -f supabase/tests/71_iso_isolation.sql
+
+      # ⭐ Os quatro cartões da Onda Quatorze são DOMAIN quality — o território
+      # novo. As outras 3 capacidades da Qualidade (Indicadores/Documentos/
+      # Procedimentos) NÃO viraram módulo: são o goal/pol, anti-duplicação.
+      - name: os quatro módulos da Onda Quatorze são domain quality
+        run: |
+          N=$($PSQL -tAc "select count(*) from core.module_registry
+                           where layer='domain' and domain_key='quality'
+                             and module_id in ('nc','audit','capa','iso');")
+          [ "$N" = "4" ] || { echo "::error::esperava 4 cartões domain quality na Onda Quatorze: [$N]"; exit 1; }
+          # ⛔ domain não pode ter vertical_key (CHECK do 0001), e vice-versa.
+          BAD=$($PSQL -tAc "select count(*) from core.module_registry
+                             where module_id in ('nc','audit','capa','iso')
+                               and vertical_key is not null;")
+          [ "$BAD" = "0" ] || { echo "::error::um cartão da Onda Quatorze carregou vertical_key"; exit 1; }
+          # Os quatro têm consumes VAZIO (Lei 7).
+          for M in nc audit capa iso; do
+            C=$($PSQL -tAc "select jsonb_array_length(events_consumes) from core.module_registry where module_id='$M';")
+            [ "$C" = "0" ] || { echo "::error::o módulo $M deveria ter consumes vazio: [$C]"; exit 1; }
+          done
+          echo "nc·audit·capa·iso — domain quality, consumes vazio (Lei 7)."
+
+      # ⭐ A física da Qualidade no banco aplicado:
+      #   • o livro da NC é imutável (só INSERT,SELECT); o achado do audit também;
+      #   • o tipo do capa é CHECK (corrective/preventive), não enum nem texto;
+      #   • a conformidade do iso NÃO tem máquina de transições (é mutável).
+      - name: a física dos módulos da Qualidade está de pé
+        run: |
+          # nc.entries e audit.findings são livros imutáveis (só INSERT,SELECT).
+          for PAR in "nc entries" "audit findings"; do
+            set -- $PAR
+            G=$($PSQL -tAc "select coalesce(string_agg(distinct privilege_type, ',' order by privilege_type), '')
+                              from information_schema.role_table_grants
+                             where table_schema='$1' and table_name='$2' and grantee='authenticated';")
+            [ "$G" = "INSERT,SELECT" ] || { echo "::error::$1.$2 tem privilégios além de INSERT,SELECT: [$G]"; exit 1; }
+          done
+          # ⭐ o tipo do capa é CHECK, não enum de tipo nem texto livre.
+          T=$($PSQL -tAc "select coalesce(string_agg(t.typname, ','), '')
+                            from pg_type t join pg_namespace n on n.oid=t.typnamespace
+                           where n.nspname='capa' and t.typtype='e';")
+          [ -z "$T" ] || { echo "::error::nasceu enum em capa: $T — o tipo é CHECK"; exit 1; }
+          CK=$($PSQL -tAc "select count(*) from pg_constraint c
+                             join pg_class t on t.oid=c.conrelid
+                             join pg_namespace n on n.oid=t.relnamespace
+                            where n.nspname='capa' and t.relname='actions' and c.contype='c'
+                              and pg_get_constraintdef(c.oid) ilike '%corrective%preventive%';")
+          [ "$CK" = "1" ] || { echo "::error::o CHECK corrective/preventive do capa sumiu"; exit 1; }
+          # ⭐⭐ a conformidade do iso é MUTÁVEL: NÃO existe função de transição de
+          # conformidade (só a de arquivamento active↔archived). A allowed_transition
+          # do iso não pode citar os valores de conformidade.
+          D=$($PSQL -tAc "select pg_get_functiondef(p.oid) from pg_proc p
+                           where p.pronamespace='iso'::regnamespace and p.proname='allowed_transition';")
+          echo "$D" | grep -qiE "compliant|non_compliant" && { echo "::error::a allowed_transition do iso virou máquina de conformidade — ela é MUTÁVEL"; exit 1; }
+          echo "$D" | grep -q "archived" || { echo "::error::a allowed_transition do iso perdeu o ciclo de arquivamento"; exit 1; }
+          echo "Qualidade: nc/audit imutáveis, capa CHECK, iso conformidade mutável."
+
       # ⭐ Os cinco cartões da Onda Treze são DOMAIN pmo — e FECHAM o Domain.
       - name: os cinco módulos da Onda Treze são domain pmo (PMO 10/10)
         run: |
@@ -2147,7 +2233,7 @@ jobs:
           # Só apareceu porque os números foram conferidos contra o banco.
           N=$($PSQL -tAc "select count(*) from core.module_registry
                            where status='published'
-                             and module_id in ('recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt','dun','ctr','cash','care','occ','mnt','pat','chk','spc','vis','lead','goal','comm','edcal','media','nps','cc','bud','bank','invest','dre','hr','shift','train','perf','pol','mall','lease','fund','park','sec','vendor','rfq','recv','vperf','reorder','dem','sop','dc','disp','logperf','proj','sched','kanban','alloc','pcost','scrum','gantt','risk','timesheet','pfolio');")
+                             and module_id in ('recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt','dun','ctr','cash','care','occ','mnt','pat','chk','spc','vis','lead','goal','comm','edcal','media','nps','cc','bud','bank','invest','dre','hr','shift','train','perf','pol','mall','lease','fund','park','sec','vendor','rfq','recv','vperf','reorder','dem','sop','dc','disp','logperf','proj','sched','kanban','alloc','pcost','scrum','gantt','risk','timesheet','pfolio','nc','audit','capa','iso');")
           [ "$N" = "62" ] || { echo "::error::o catálogo tem $N dos 62 módulos reais publicados"; exit 1; }
           C=$($PSQL -tAc "select jsonb_array_length(events_consumes)
                             from core.module_registry where module_id='crm';")
@@ -2287,7 +2373,7 @@ jobs:
           ABERTAS=$($PSQL -tAc "
             select coalesce(string_agg(n.nspname||'.'||p.proname, ', ' order by p.proname), '')
               from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-             where n.nspname in ('core','recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt','dun','ctr','cash','care','occ','mnt','pat','chk','spc','vis','lead','goal','comm','edcal','media','nps','cc','bud','bank','invest','dre','hr','shift','train','perf','pol','mall','lease','fund','park','sec','vendor','rfq','recv','vperf','reorder','dem','sop','dc','disp','logperf','proj','sched','kanban','alloc','pcost','scrum','gantt','risk','timesheet','pfolio')
+             where n.nspname in ('core','recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt','dun','ctr','cash','care','occ','mnt','pat','chk','spc','vis','lead','goal','comm','edcal','media','nps','cc','bud','bank','invest','dre','hr','shift','train','perf','pol','mall','lease','fund','park','sec','vendor','rfq','recv','vperf','reorder','dem','sop','dc','disp','logperf','proj','sched','kanban','alloc','pcost','scrum','gantt','risk','timesheet','pfolio','nc','audit','capa','iso')
                and has_function_privilege('anon', p.oid, 'execute');")
           [ -z "$ABERTAS" ] || { echo "::error::função executável por anon: $ABERTAS"; exit 1; }
 
@@ -2298,7 +2384,7 @@ jobs:
             OK=$($PSQL -tAc "
               select count(*) from pg_proc p join pg_namespace n on n.oid = p.pronamespace
                where p.proname = '$FN'
-                 and n.nspname in ('core','recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt','dun','ctr','cash','care','occ','mnt','pat','chk','spc','vis','lead','goal','comm','edcal','media','nps','cc','bud','bank','invest','dre','hr','shift','train','perf','pol','mall','lease','fund','park','sec','vendor','rfq','recv','vperf','reorder','dem','sop','dc','disp','logperf','proj','sched','kanban','alloc','pcost','scrum','gantt','risk','timesheet','pfolio')
+                 and n.nspname in ('core','recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt','dun','ctr','cash','care','occ','mnt','pat','chk','spc','vis','lead','goal','comm','edcal','media','nps','cc','bud','bank','invest','dre','hr','shift','train','perf','pol','mall','lease','fund','park','sec','vendor','rfq','recv','vperf','reorder','dem','sop','dc','disp','logperf','proj','sched','kanban','alloc','pcost','scrum','gantt','risk','timesheet','pfolio','nc','audit','capa','iso')
                  and has_function_privilege('authenticated', p.oid, 'execute');")
             [ "$OK" -ge 1 ] || { echo "::error::$FN() deixou de ser chamável pelo portal"; exit 1; }
           done
@@ -2964,7 +3050,7 @@ jobs:
       - name: módulo não conhece módulo
         run: |
           FALHOU=0
-          MODULOS="finance-reconciliation marketing accounts-payable crm accounts-receivable purchase-orders ops inventory quotes deals event-management dunning contracts cashflow care occurrences maintenance assets checklists spaces visits leads goals comms editorial media nps cost-centers budgets bank-accounts investments dre hr shift-scheduling training performance policies mall lease fund park sec vendor rfq recv vperf reorder dem sop dc disp logperf proj sched kanban alloc pcost scrum gantt risk timesheet pfolio"
+          MODULOS="finance-reconciliation marketing accounts-payable crm accounts-receivable purchase-orders ops inventory quotes deals event-management dunning contracts cashflow care occurrences maintenance assets checklists spaces visits leads goals comms editorial media nps cost-centers budgets bank-accounts investments dre hr shift-scheduling training performance policies mall lease fund park sec vendor rfq recv vperf reorder dem sop dc disp logperf proj sched kanban alloc pcost scrum gantt risk timesheet pfolio non-conformities audits capa iso"
 
           # 1. Nenhum módulo importa outro módulo, em nenhuma forma.
           for MOD in $MODULOS; do
@@ -3061,6 +3147,10 @@ jobs:
             [0075_risk.sql]=risk
             [0076_timesheet.sql]=timesheet
             [0077_pfolio.sql]=pfolio
+            [0078_nc.sql]=nc
+            [0079_audit.sql]=audit
+            [0080_capa.sql]=capa
+            [0081_iso.sql]=iso
           )
           for ARQUIVO in "${!SCHEMA_DE[@]}"; do
             DONO="${SCHEMA_DE[$ARQUIVO]}"

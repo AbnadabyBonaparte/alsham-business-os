@@ -283,6 +283,19 @@ importers:
         specifier: ^5.7.2
         version: 5.9.3
 
+  packages/audits:
+    dependencies:
+      '@alsham/core':
+        specifier: workspace:*
+        version: link:../core
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.2
+        version: 22.20.1
+      typescript:
+        specifier: ^5.7.2
+        version: 5.9.3
+
   packages/bank-accounts:
     dependencies:
       '@alsham/core':
@@ -310,6 +323,19 @@ importers:
         version: 5.9.3
 
   packages/budgets:
+    dependencies:
+      '@alsham/core':
+        specifier: workspace:*
+        version: link:../core
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.2
+        version: 22.20.1
+      typescript:
+        specifier: ^5.7.2
+        version: 5.9.3
+
+  packages/capa:
     dependencies:
       '@alsham/core':
         specifier: workspace:*
@@ -629,6 +655,19 @@ importers:
         specifier: ^5.7.2
         version: 5.9.3
 
+  packages/iso:
+    dependencies:
+      '@alsham/core':
+        specifier: workspace:*
+        version: link:../core
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.2
+        version: 22.20.1
+      typescript:
+        specifier: ^5.7.2
+        version: 5.9.3
+
   packages/kanban:
     dependencies:
       '@alsham/core':
@@ -727,6 +766,19 @@ importers:
         version: 5.9.3
 
   packages/media:
+    dependencies:
+      '@alsham/core':
+        specifier: workspace:*
+        version: link:../core
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.2
+        version: 22.20.1
+      typescript:
+        specifier: ^5.7.2
+        version: 5.9.3
+
+  packages/non-conformities:
     dependencies:
       '@alsham/core':
         specifier: workspace:*
