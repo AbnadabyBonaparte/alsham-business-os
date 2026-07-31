@@ -52,7 +52,7 @@ export type DomainKey =
   /** 🔬 Pesquisa & Desenvolvimento (6) */
   | 'rnd'
   /** 🧾 Contábil & Fiscal (8) — fronteira construir × INTEGRAR (Lei 3) */
-  | 'accounting-tax';
+  | 'accounting';
 
 /**
  * Os 29 OS/Verticais — pacotes por setor, que reutilizam os Domains

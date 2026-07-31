@@ -1617,6 +1617,36 @@ próprios**.
 Nenhum agente aplica em produção. A conferência de segurança do PASSO 15
 (§ pós-apply) vale para os schemas novos.
 
+## PASSO 30 — A ONDA DEZESSETE: ABRE o Domain Contábil & Fiscal (`0085`) — Fase 2
+
+⚠️⚠️ A Onda Dezessete **abre o território mais restrito do mapa, e a restrição é
+POR LEI: o Domain 🧾 Contábil & Fiscal** (`accounting`). Das 8 capacidades,
+**sete ficam FORA** — a **Lei 3** manda: NF-e/NFS-e/NFC-e/SPED/eSocial são
+documentos emitidos e **validados pelo Fisco** (certificado válido, assinatura
+criptográfica, webservices homologados — integração, nunca schema); Apuração de
+impostos é motor de cálculo fiscal certificado; Integração com contador é o
+ponto de integração (o contato é o `crm`). Sobra **UM módulo**, o `fiscalcert`, e
+apenas como **registro de metadados** de certificados. O rito é o mesmo:
+
+1. **Aplicar a migration** no SQL Editor:
+   - `0085_fiscalcert.sql` — Módulo 70, Certificado Digital (schema `fiscalcert`)
+2. **Reaplicar o seed** — o cartão novo entra no catálogo, `domain_key='accounting'`.
+   A Store gradua a seção Contábil & Fiscal.
+3. ⚠️ **Expor o schema novo na Data API**: `fiscalcert`.
+4. ✅ **SEM redeploy do `apps/api`** — `consumes` VAZIO (Lei 7). Guarda de CI
+   confere.
+5. **Instalar o módulo pela Store**, no tenant que o contratou.
+
+⛔⛔ **O `fiscalcert` guarda METADADOS, nunca o certificado:** não há coluna para
+o arquivo `.pfx`, para a chave privada ou para uma assinatura — e não deve haver.
+Uma credencial privada jamais passa pela Store genérica.
+
+⭐ **Ao concluir este apply, o catálogo chega a 70 módulos publicados** (69 + 1
+da Onda Dezessete), e o **Domain Contábil & Fiscal nasce com 1 módulo próprio**.
+
+Nenhum agente aplica em produção. A conferência de segurança do PASSO 15
+(§ pós-apply) vale para o schema novo.
+
 ## O QUE AINDA NÃO EXISTE
 
 Honestidade de escopo, para você não procurar o que não foi construído:

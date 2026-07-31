@@ -116,6 +116,7 @@ const MENU: readonly MenuItem[] = [
   { href: '/esg', label: 'Métricas Ambientais', moduleId: 'esg' },
   { href: '/ideias', label: 'Ideias & Inovação', moduleId: 'idea' },
   { href: '/propriedade-intelectual', label: 'Propriedade Intelectual', moduleId: 'ip' },
+  { href: '/certificados', label: 'Certificado Digital', moduleId: 'fiscalcert' },
   { href: '/store', label: 'Store', moduleId: null },
   { href: '/ajustes', label: 'Ajustes', moduleId: null },
 ];
