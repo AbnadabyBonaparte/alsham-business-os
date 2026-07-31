@@ -1,0 +1,24 @@
+{
+  "name": "@alsham/control",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "files": ["src"],
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "node --experimental-strip-types --test src/**/*.test.ts"
+  },
+  "dependencies": {
+    "@alsham/core": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "typescript": "^5.7.2"
+  },
+  "description": "Módulo 76 — Controles Internos. Domain GRC. O cadastro de controles (tipo preventive/detective/corrective CHECK) + o livro imutável de testes (data, pass/fail, nota — a física do timesheet). active↔archived. Não é pol nem audit nem erisk."
+}
