@@ -1526,6 +1526,37 @@ capacidades**.
 Nenhum agente aplica em produção. A conferência de segurança do PASSO 15
 (§ pós-apply) vale para os schemas novos.
 
+## PASSO 27 — A ONDA QUATORZE: ABRE o Domain Qualidade (`0078` em diante) — Fase 2
+
+⭐ A Onda Quatorze **abre território novo do mapa: o Domain 🧪 Qualidade**
+(`quality`). Ela entrega quatro módulos próprios (Módulos 63–66). As outras 3
+das 7 capacidades da Qualidade — **Indicadores** (é o `goal`), **Documentos de
+qualidade** e **Procedimentos** (são o `pol`) — **NÃO viram módulo novo**: são a
+mesma peça já publicada, dado do tenant (Lei do Reaproveitamento, anti-duplicação).
+O rito é o mesmo:
+
+1. **Aplicar a migration** no SQL Editor, na ordem:
+   - `0078_nc.sql` — Módulo 63, Não Conformidades (schema `nc`)
+   - `0079_audit.sql` — Módulo 64, Auditorias de qualidade (schema `audit`)
+   - `0080_capa.sql` — Módulo 65, Ações Corretivas e Preventivas (schema `capa`)
+   - `0081_iso.sql` — Módulo 66, Requisitos ISO (schema `iso`)
+2. **Reaplicar o seed** — os quatro cartões novos entram no catálogo, todos
+   `domain_key='quality'`. A Store gradua a seção Qualidade.
+3. ⚠️ **Expor os schemas novos na Data API**: `nc`, `audit`, `capa`, `iso`. Sem
+   isso as telas carregam vazias, sem erro que diga o motivo.
+4. ✅ **SEM redeploy do `apps/api`** — os quatro têm `consumes` VAZIO (nenhum
+   handler de consumo novo; Lei 7). Guarda de CI confere. ⚠️ Os vínculos são por
+   ID SOLTO (o `nc` ao `capa`; o `audit`/`capa` ao `nc`) — a guarda SCHEMA_DE do CI
+   reprova se qualquer migration ler o schema do outro. A FK do `audit.findings`
+   para o `audit.audits` é INTRA-schema, e é permitida.
+5. **Instalar cada módulo pela Store**, no tenant que o contratou.
+
+⭐ **Ao concluir este apply, o catálogo chega a 66 módulos publicados** (62 + 4
+da Onda Quatorze), e o **Domain Qualidade nasce com 4 módulos próprios**.
+
+Nenhum agente aplica em produção. A conferência de segurança do PASSO 15
+(§ pós-apply) vale para os schemas novos.
+
 ## O QUE AINDA NÃO EXISTE
 
 Honestidade de escopo, para você não procurar o que não foi construído:

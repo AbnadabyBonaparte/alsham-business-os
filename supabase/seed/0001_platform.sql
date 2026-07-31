@@ -1526,6 +1526,203 @@ on conflict (module_id) do update set
   status          = excluded.status,
   updated_at      = now();
 
+-- =============================================================================
+-- 4.4j ONDA QUATORZE (Fase 2) — ABRE o Domain 🧪 QUALIDADE (Módulos 63–66,
+-- domain_key 'quality'). Quatro das 7 capacidades: Não conformidades ·
+-- Auditorias · CAPA · ISO. As outras três — Indicadores (é o `goal`),
+-- Documentos de qualidade e Procedimentos (são o `pol`) — NÃO viram módulo
+-- novo: é a mesma peça, dado do tenant (anti-duplicação, Lei do Reaproveitamento).
+-- Todos `consumes` vazio.
+-- =============================================================================
+
+-- ---------------------------------------------------------------------------
+-- O MÓDULO `nc` (Não Conformidades) — o 63º cartão. Abre a Onda Quatorze.
+-- ---------------------------------------------------------------------------
+insert into core.module_registry (
+  module_id, name, version, summary, layer, domain_key,
+  capabilities, permissions, events_emits, events_consumes, agents,
+  requires_core, status
+)
+values (
+  'nc',
+  'Não Conformidades',
+  '0.1.0',
+  'O registro imutável do desvio constatado — a identidade do occ: origem em texto livre (auditoria, reclamação, inspeção), descrição obrigatória, causa raiz opcional. Fechar exige a NOTA DE VERIFICAÇÃO — quem conferiu que a causa foi corrigida (o DIVERGE do occ, que encerra com um desfecho livre). open → closed é terminal; recorrência é NC nova, referenciando a antiga por id solto. O vínculo à ação corretiva do capa é por id solto. consumes VAZIO.',
+  'domain', 'quality',
+  '[
+     {"key":"nc","canonicalName":"Não conformidades"}
+   ]'::jsonb,
+  '[
+     {"key":"nc.entry.register","moduleId":"nc","description":"Registrar uma não conformidade — o desvio constatado, sua origem e (opcional) a causa raiz."},
+     {"key":"nc.entry.close","moduleId":"nc","description":"Fechar uma não conformidade com a nota de verificação — quem conferiu que a causa foi corrigida."}
+   ]'::jsonb,
+  '[
+     {"type":"nc.entry.registered","version":1,"description":"Uma não conformidade foi registrada — o desvio constatado, imutável desde o instante 1."},
+     {"type":"nc.entry.closed","version":1,"description":"A não conformidade foi fechada com a nota de verificação. Terminal — recorrência é NC nova."}
+   ]'::jsonb,
+  '[]'::jsonb,
+  '[]'::jsonb,
+  '0.0.x',
+  'published'
+)
+on conflict (module_id) do update set
+  name            = excluded.name,
+  version         = excluded.version,
+  summary         = excluded.summary,
+  layer           = excluded.layer,
+  domain_key      = excluded.domain_key,
+  vertical_key    = excluded.vertical_key,
+  capabilities    = excluded.capabilities,
+  permissions     = excluded.permissions,
+  events_emits    = excluded.events_emits,
+  events_consumes = excluded.events_consumes,
+  agents          = excluded.agents,
+  requires_core   = excluded.requires_core,
+  status          = excluded.status,
+  updated_at      = now();
+
+-- ---------------------------------------------------------------------------
+-- O MÓDULO `audit` (Auditorias de qualidade) — o 64º cartão.
+-- ---------------------------------------------------------------------------
+insert into core.module_registry (
+  module_id, name, version, summary, layer, domain_key,
+  capabilities, permissions, events_emits, events_consumes, agents,
+  requires_core, status
+)
+values (
+  'audit',
+  'Auditorias',
+  '0.1.0',
+  'As auditorias de qualidade: a empresa planeja e conduz auditorias (internas, externas, de certificação) e registra os achados. O ciclo é planned → completed/cancelled, os dois fins terminais (a física do proj: auditoria encerrada não reabre — a próxima é auditoria nova); cancelar exige razão. Tipo e escopo são texto livre (dado do tenant, nunca enum). O achado é imutável, com FK intra-schema à auditoria e id solto ao nc (um achado pode virar uma Não Conformidade formal). NÃO é a Auditoria do Core nem a de GRC (homônimos declarados — Sol Único). consumes VAZIO.',
+  'domain', 'quality',
+  '[
+     {"key":"audit","canonicalName":"Auditorias"}
+   ]'::jsonb,
+  '[
+     {"key":"audit.audit.manage","moduleId":"audit","description":"Planejar auditorias, concluir e cancelar."},
+     {"key":"audit.finding.record","moduleId":"audit","description":"Registrar achados de auditoria."}
+   ]'::jsonb,
+  '[
+     {"type":"audit.audit.scheduled","version":1,"description":"Uma auditoria foi planejada."},
+     {"type":"audit.audit.completed","version":1,"description":"A auditoria foi concluída. Terminal."},
+     {"type":"audit.audit.cancelled","version":1,"description":"A auditoria foi cancelada, com razão. Terminal."},
+     {"type":"audit.finding.recorded","version":1,"description":"Um achado foi registrado — imutável; pode virar NC por id solto."}
+   ]'::jsonb,
+  '[]'::jsonb,
+  '[]'::jsonb,
+  '0.0.x',
+  'published'
+)
+on conflict (module_id) do update set
+  name            = excluded.name,
+  version         = excluded.version,
+  summary         = excluded.summary,
+  layer           = excluded.layer,
+  domain_key      = excluded.domain_key,
+  vertical_key    = excluded.vertical_key,
+  capabilities    = excluded.capabilities,
+  permissions     = excluded.permissions,
+  events_emits    = excluded.events_emits,
+  events_consumes = excluded.events_consumes,
+  agents          = excluded.agents,
+  requires_core   = excluded.requires_core,
+  status          = excluded.status,
+  updated_at      = now();
+
+-- ---------------------------------------------------------------------------
+-- O MÓDULO `capa` (Ações Corretivas e Preventivas) — o 65º cartão.
+-- ---------------------------------------------------------------------------
+insert into core.module_registry (
+  module_id, name, version, summary, layer, domain_key,
+  capabilities, permissions, events_emits, events_consumes, agents,
+  requires_core, status
+)
+values (
+  'capa',
+  'CAPA',
+  '0.1.0',
+  'As ações corretivas e preventivas: o tipo corrective/preventive é CHECK (a física do método CAPA, não vocabulário do tenant). O ciclo é open → verified → closed — a VERIFICAÇÃO (a nota de quem confirmou que a ação funcionou) é o que a separa de um marco genérico: sem verified, não fecha. closed é terminal — uma ação que volta é ação nova. Descrição e responsável em texto livre, prazo em data, vínculo OPCIONAL à não conformidade (nc) por id solto. Eficácia por indicador (é o goal), anexo de evidência (Storage do Core) e workflow de aprovação multinível (config do tenant) ficam de fora. consumes VAZIO.',
+  'domain', 'quality',
+  '[
+     {"key":"capa","canonicalName":"CAPA"}
+   ]'::jsonb,
+  '[
+     {"key":"capa.action.manage","moduleId":"capa","description":"Criar e editar ações corretivas e preventivas."},
+     {"key":"capa.action.decide","moduleId":"capa","description":"Verificar e fechar ações — os atos que confirmam que a ação funcionou."}
+   ]'::jsonb,
+  '[
+     {"type":"capa.action.opened","version":1,"description":"Uma ação corretiva/preventiva foi aberta."},
+     {"type":"capa.action.verified","version":1,"description":"A ação foi verificada — a nota de quem confirmou que funcionou."},
+     {"type":"capa.action.closed","version":1,"description":"A ação foi fechada. Terminal — uma ação que volta é ação nova."}
+   ]'::jsonb,
+  '[]'::jsonb,
+  '[]'::jsonb,
+  '0.0.x',
+  'published'
+)
+on conflict (module_id) do update set
+  name            = excluded.name,
+  version         = excluded.version,
+  summary         = excluded.summary,
+  layer           = excluded.layer,
+  domain_key      = excluded.domain_key,
+  vertical_key    = excluded.vertical_key,
+  capabilities    = excluded.capabilities,
+  permissions     = excluded.permissions,
+  events_emits    = excluded.events_emits,
+  events_consumes = excluded.events_consumes,
+  agents          = excluded.agents,
+  requires_core   = excluded.requires_core,
+  status          = excluded.status,
+  updated_at      = now();
+
+-- ---------------------------------------------------------------------------
+-- O MÓDULO `iso` (Requisitos ISO) — o 66º cartão. FECHA a Onda Quatorze.
+-- ---------------------------------------------------------------------------
+insert into core.module_registry (
+  module_id, name, version, summary, layer, domain_key,
+  capabilities, permissions, events_emits, events_consumes, agents,
+  requires_core, status
+)
+values (
+  'iso',
+  'Requisitos ISO',
+  '0.1.0',
+  'Os requisitos de norma que a empresa precisa cumprir: a referência da cláusula (texto livre, dado do tenant) e a conformidade — compliant/non_compliant/not_applicable. A conformidade é MUTÁVEL: uma avaliação que muda a cada auditoria, NÃO um ciclo de vida terminal (o DIVERGE assinado dos módulos com fim terminal). O ciclo de arquivamento é active ↔ archived, reversível, para cláusulas que saem de escopo — outro conceito, distinto da conformidade. consumes VAZIO. Anexo de evidência (Storage do Core) e vínculo automático com audit/nc ficam de fora (cruzar na tela; Lei 7).',
+  'domain', 'quality',
+  '[
+     {"key":"iso","canonicalName":"ISO"}
+   ]'::jsonb,
+  '[
+     {"key":"iso.requirement.manage","moduleId":"iso","description":"Registrar requisitos de norma, reavaliar a conformidade e arquivar/reabrir cláusulas."}
+   ]'::jsonb,
+  '[
+     {"type":"iso.requirement.registered","version":1,"description":"Um requisito de norma foi registrado."},
+     {"type":"iso.requirement.assessed","version":1,"description":"A conformidade de um requisito foi reavaliada."},
+     {"type":"iso.requirement.archived","version":1,"description":"A cláusula saiu de escopo (arquivada). Volta se voltar ao escopo."},
+     {"type":"iso.requirement.restored","version":1,"description":"A cláusula arquivada voltou ao escopo."}
+   ]'::jsonb,
+  '[]'::jsonb,
+  '[]'::jsonb,
+  '0.0.x',
+  'published'
+)
+on conflict (module_id) do update set
+  name            = excluded.name,
+  version         = excluded.version,
+  summary         = excluded.summary,
+  layer           = excluded.layer,
+  domain_key      = excluded.domain_key,
+  vertical_key    = excluded.vertical_key,
+  capabilities    = excluded.capabilities,
+  permissions     = excluded.permissions,
+  events_emits    = excluded.events_emits,
+  events_consumes = excluded.events_consumes,
+  agents          = excluded.agents,
+  requires_core   = excluded.requires_core,
+  status          = excluded.status,
+  updated_at      = now();
+
 -- ⛔ Dezesseis módulos de Compras+ no catálogo, zero permissão concedida pelo seed.
 
 -- =============================================================================
