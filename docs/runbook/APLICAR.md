@@ -1586,6 +1586,37 @@ da Onda Quinze), e o **Domain ESG & Sustentabilidade nasce com 1 módulo própri
 Nenhum agente aplica em produção. A conferência de segurança do PASSO 15
 (§ pós-apply) vale para o schema novo.
 
+## PASSO 29 — A ONDA DEZESSEIS: ABRE o Domain Pesquisa & Desenvolvimento (`0083`–`0084`) — Fase 2
+
+⭐ A Onda Dezesseis **abre território novo do mapa: o Domain 🔬 Pesquisa &
+Desenvolvimento** (`rnd`). Ela entrega **DOIS módulos** (Módulos 68–69), e a
+decisão de canon está na conta: das 6 capacidades do Domain, **duas já existem** —
+*Projetos de pesquisa* é o `proj` (Módulo 53) e *Portfólio tecnológico* é o
+`pfolio` (Módulo 62) —, e as outras quatro colidem duas a duas: *Ideias* +
+*Pipeline de inovação* viram o `idea`, *Propriedade intelectual* + *Patentes*
+viram o `ip` (o tipo num CHECK). O rito é o mesmo:
+
+1. **Aplicar as migrations** no SQL Editor, na ordem:
+   - `0083_idea.sql` — Módulo 68, Ideias & Pipeline de Inovação (schema `idea`)
+   - `0084_ip.sql` — Módulo 69, Propriedade Intelectual (schema `ip`)
+2. **Reaplicar o seed** — os dois cartões novos entram no catálogo, ambos
+   `domain_key='rnd'`. A Store gradua a seção Pesquisa & Desenvolvimento.
+3. ⚠️ **Expor os schemas novos na Data API**: `idea`, `ip`. Sem isso as telas
+   carregam vazias, sem erro que diga o motivo.
+4. ✅ **SEM redeploy do `apps/api`** — os dois têm `consumes` VAZIO (Lei 7).
+   Guarda de CI confere. ⚠️ O elo do `idea` com o projeto (`promoted_project_id`)
+   e a origem do `ip` (`source_id`) são por ID SOLTO — a guarda SCHEMA_DE do CI
+   reprova se qualquer migration ler schema alheio. A FK do `idea.ideas` para o
+   `idea.stages` é INTRA-schema, e é permitida.
+5. **Instalar cada módulo pela Store**, no tenant que o contratou.
+
+⭐ **Ao concluir este apply, o catálogo chega a 69 módulos publicados** (67 + 2
+da Onda Dezesseis), e o **Domain Pesquisa & Desenvolvimento nasce com 2 módulos
+próprios**.
+
+Nenhum agente aplica em produção. A conferência de segurança do PASSO 15
+(§ pós-apply) vale para os schemas novos.
+
 ## O QUE AINDA NÃO EXISTE
 
 Honestidade de escopo, para você não procurar o que não foi construído:
