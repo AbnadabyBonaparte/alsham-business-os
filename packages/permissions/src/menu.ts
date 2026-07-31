@@ -127,6 +127,10 @@ const MENU: readonly MenuItem[] = [
   { href: '/vulnerabilidades', label: 'Vulnerabilidades', moduleId: 'vuln' },
   { href: '/incidentes-seguranca', label: 'Resposta a Incidentes', moduleId: 'secincident' },
   { href: '/continuidade', label: 'Continuidade', moduleId: 'continuity' },
+  { href: '/usinas', label: 'Usinas', moduleId: 'plant' },
+  { href: '/assinaturas', label: 'Assinaturas', moduleId: 'subscription' },
+  { href: '/geracao', label: 'Geração', moduleId: 'genreading' },
+  { href: '/creditos', label: 'Créditos de Compensação', moduleId: 'creditbalance' },
   { href: '/store', label: 'Store', moduleId: null },
   { href: '/ajustes', label: 'Ajustes', moduleId: null },
 ];

@@ -4486,11 +4486,200 @@ on conflict (module_id) do update set
   status          = excluded.status,
   updated_at      = now();
 
--- ⛔ Oitenta módulos no catálogo (71 domain + 9 vertical), zero permissão
--- concedida pelo seed. ⭐ Onda Dezenove (Fase 3): GRC (erisk · control ·
--- whistle) e Segurança da Informação (vuln · secincident · continuity)
--- abertos. IA Aplicada fechou com ZERO módulo — tudo é Core/Engine/AI-
--- Marketplace/Engenheiro, declarado FORA (honestidade, não falha).
+-- =============================================================================
+-- ⭐ ONDA VINTE (Fase 3) — o Vertical ☀️ ENERGIA (energy). O TERCEIRO bloco
+-- vertical do catálogo (Shopping Centers · Varejo · Energia). Dor viva — Curva C
+-- Energia Solar. Quatro módulos: plant · subscription · genreading ·
+-- creditbalance. As outras 4 capacidades ficam FORA por reaproveitamento:
+-- *Geração distribuída* (consolidada no plant — mesmo objeto, campo de porte),
+-- *Manutenção de usina* (=mnt genérico, asset_id solto), *Contratos de energia*
+-- (=ctr genérico, categoria "energia"), *Comercialização e leads* (=lead
+-- genérico, origem "energia").
+-- =============================================================================
+
+insert into core.module_registry (
+  module_id, name, version, summary,
+  layer, vertical_key,
+  capabilities, permissions, events_emits, events_consumes, agents,
+  requires_core, status
+)
+values (
+  'plant',
+  'Usinas',
+  '0.1.0',
+  'O cadastro da unidade geradora de energia: nome, localização em TEXTO LIVRE, capacidade instalada em kWp (> 0) e o TIPO/PORTE em TEXTO LIVRE. ⭐⭐ UM módulo, DUAS capacidades: Usinas E Geração distribuída — na física são o MESMO objeto (a GD é uma usina de porte menor, atrás do medidor do consumidor), distinguidas pelo campo plant_type (nunca enum: cada operadora nomeia diferente — "usina centralizada", "telhado", "minigeração"). active ↔ archived (a usina desativada que volta a operar é a MESMA — a física do catalog/vendor, o DIVERGE do hr terminal). Manutenção é o mnt (asset_id solto), contrato é o ctr, geração é o genreading — todos por id solto, FORA. consumes VAZIO.',
+  'vertical', 'energy',
+  '[
+     {"key":"power-plants","canonicalName":"Usinas"},
+     {"key":"distributed-generation","canonicalName":"Geração distribuída"}
+   ]'::jsonb,
+  '[
+     {"key":"plant.plant.manage","moduleId":"plant","description":"Cadastrar usinas e editar dados (nome, localização, capacidade kWp, tipo)."},
+     {"key":"plant.plant.decide","moduleId":"plant","description":"Arquivar ou reativar uma usina — tira/põe em operação."}
+   ]'::jsonb,
+  '[
+     {"type":"plant.plant.registered","version":1,"description":"Uma usina foi cadastrada (sempre ativa)."},
+     {"type":"plant.plant.updated","version":1,"description":"Os dados de uma usina mudaram."},
+     {"type":"plant.plant.archived","version":1,"description":"A usina saiu de operação — reversível."},
+     {"type":"plant.plant.reopened","version":1,"description":"A usina voltou a operar — a mesma usina."}
+   ]'::jsonb,
+  '[]'::jsonb,
+  '[]'::jsonb,
+  '0.0.x',
+  'published'
+)
+on conflict (module_id) do update set
+  name            = excluded.name,
+  version         = excluded.version,
+  summary         = excluded.summary,
+  layer           = excluded.layer,
+  domain_key      = excluded.domain_key,
+  vertical_key    = excluded.vertical_key,
+  capabilities    = excluded.capabilities,
+  permissions     = excluded.permissions,
+  events_emits    = excluded.events_emits,
+  events_consumes = excluded.events_consumes,
+  agents          = excluded.agents,
+  requires_core   = excluded.requires_core,
+  status          = excluded.status,
+  updated_at      = now();
+
+insert into core.module_registry (
+  module_id, name, version, summary,
+  layer, vertical_key,
+  capabilities, permissions, events_emits, events_consumes, agents,
+  requires_core, status
+)
+values (
+  'subscription',
+  'Assinatura de Energia',
+  '0.1.0',
+  'O modelo de negócio central da Curva C solar: o consumidor assina uma FATIA (percentual) da geração de uma usina. Cliente por id solto ao crm (obrigatório), usina por id solto ao plant (obrigatório), allocation_percent 0<x<=100. ⭐⭐ NASCE ATIVA — não há pending (o intermediário "assinada, aguardando conexão" seria viés de UMA distribuidora, não do produto). active → cancelled TERMINAL: quem re-assina negocia OUTRA fatia — o retorno é assinatura NOVA (a física do proj, o DIVERGE consciente do catalog). Cancelar exige razão e a permissão .decide. Desconto na fatura e faturamento ficam FORA. consumes VAZIO.',
+  'vertical', 'energy',
+  '[
+     {"key":"energy-subscription","canonicalName":"Assinatura de energia"}
+   ]'::jsonb,
+  '[
+     {"key":"subscription.subscription.manage","moduleId":"subscription","description":"Cadastrar e editar assinaturas (cliente, usina, percentual de alocação)."},
+     {"key":"subscription.subscription.decide","moduleId":"subscription","description":"Cancelar uma assinatura, com razão — o fim é terminal."}
+   ]'::jsonb,
+  '[
+     {"type":"subscription.subscription.registered","version":1,"description":"Uma assinatura nasceu (sempre ativa)."},
+     {"type":"subscription.subscription.updated","version":1,"description":"Os dados de uma assinatura mudaram (nome, usina, percentual)."},
+     {"type":"subscription.subscription.cancelled","version":1,"description":"A assinatura foi cancelada, com razão. Terminal — quem volta assina outra."}
+   ]'::jsonb,
+  '[]'::jsonb,
+  '[]'::jsonb,
+  '0.0.x',
+  'published'
+)
+on conflict (module_id) do update set
+  name            = excluded.name,
+  version         = excluded.version,
+  summary         = excluded.summary,
+  layer           = excluded.layer,
+  domain_key      = excluded.domain_key,
+  vertical_key    = excluded.vertical_key,
+  capabilities    = excluded.capabilities,
+  permissions     = excluded.permissions,
+  events_emits    = excluded.events_emits,
+  events_consumes = excluded.events_consumes,
+  agents          = excluded.agents,
+  requires_core   = excluded.requires_core,
+  status          = excluded.status,
+  updated_at      = now();
+
+insert into core.module_registry (
+  module_id, name, version, summary,
+  layer, vertical_key,
+  capabilities, permissions, events_emits, events_consumes, agents,
+  requires_core, status
+)
+values (
+  'genreading',
+  'Monitoramento de Geração',
+  '0.1.0',
+  'O livro de leituras de geração: quanta energia (kWh) uma usina gerou num período. ⭐ Reaproveita a identidade do esg — leitura periódica IMUTÁVEL (duas camadas: cliente sem porta, gatilho até para o dono), sem ciclo, sem status. generated_kwh >= 0 (zero é leitura real — a usina gera zero à noite; negativo é infísico — o MANTIDO do esg). Unidade TEXTO LIVRE (kWh/MWh). O DIVERGE do esg: a usina é OBRIGATÓRIA (não há geração sem usina), por id solto ao plant. Performance ratio e alerta de queda de geração ficam FORA (motor futuro). consumes VAZIO.',
+  'vertical', 'energy',
+  '[
+     {"key":"generation-monitoring","canonicalName":"Monitoramento de geração"}
+   ]'::jsonb,
+  '[
+     {"key":"genreading.reading.record","moduleId":"genreading","description":"Registrar uma leitura de geração (usina, kWh gerados, unidade, período)."}
+   ]'::jsonb,
+  '[
+     {"type":"genreading.reading.recorded","version":1,"description":"Uma leitura de geração foi registrada. Lançamento imutável desde o instante 1."}
+   ]'::jsonb,
+  '[]'::jsonb,
+  '[]'::jsonb,
+  '0.0.x',
+  'published'
+)
+on conflict (module_id) do update set
+  name            = excluded.name,
+  version         = excluded.version,
+  summary         = excluded.summary,
+  layer           = excluded.layer,
+  domain_key      = excluded.domain_key,
+  vertical_key    = excluded.vertical_key,
+  capabilities    = excluded.capabilities,
+  permissions     = excluded.permissions,
+  events_emits    = excluded.events_emits,
+  events_consumes = excluded.events_consumes,
+  agents          = excluded.agents,
+  requires_core   = excluded.requires_core,
+  status          = excluded.status,
+  updated_at      = now();
+
+insert into core.module_registry (
+  module_id, name, version, summary,
+  layer, vertical_key,
+  capabilities, permissions, events_emits, events_consumes, agents,
+  requires_core, status
+)
+values (
+  'creditbalance',
+  'Créditos de Compensação',
+  '0.1.0',
+  'O livro de créditos de energia (o SCEE/ANEEL): quando a usina injeta mais do que consome, o excedente vira crédito (kWh) que abate consumo depois. Cada lançamento é IMUTÁVEL (a física do loyalty), a direção mora no credit_type (generated soma / consumed subtrai), quantity_kwh sempre > 0, e o saldo é VIEW (Σ generated − Σ consumed). ⭐⭐ Consumir mais que o saldo é RECUSADO — NÃO por cópia do loyalty, mas pela física da compensação: crédito é energia realmente gerada, e um saldo negativo inventaria energia inexistente (a razão infísica do esg). A terceira resposta ao "pode ficar negativo?", por física própria: bank/inv permitem, loyalty/invest recusam por promessa/posse, creditbalance recusa porque energia não se deve, se gera. Assinatura por id solto opcional. Validade (60 meses) e abatimento na fatura ficam FORA. consumes VAZIO.',
+  'vertical', 'energy',
+  '[
+     {"key":"compensation-credits","canonicalName":"Créditos de compensação"}
+   ]'::jsonb,
+  '[
+     {"key":"creditbalance.entry.manage","moduleId":"creditbalance","description":"Lançar um crédito de energia (gerado ou consumido/compensado), com a assinatura de origem."}
+   ]'::jsonb,
+  '[
+     {"type":"creditbalance.credit.generated","version":1,"description":"Crédito de energia gerado (excedente injetado). Lançamento imutável."},
+     {"type":"creditbalance.credit.consumed","version":1,"description":"Crédito de energia consumido (compensação). Só passa se o saldo cobrir — energia não se deve."}
+   ]'::jsonb,
+  '[]'::jsonb,
+  '[]'::jsonb,
+  '0.0.x',
+  'published'
+)
+on conflict (module_id) do update set
+  name            = excluded.name,
+  version         = excluded.version,
+  summary         = excluded.summary,
+  layer           = excluded.layer,
+  domain_key      = excluded.domain_key,
+  vertical_key    = excluded.vertical_key,
+  capabilities    = excluded.capabilities,
+  permissions     = excluded.permissions,
+  events_emits    = excluded.events_emits,
+  events_consumes = excluded.events_consumes,
+  agents          = excluded.agents,
+  requires_core   = excluded.requires_core,
+  status          = excluded.status,
+  updated_at      = now();
+
+-- ⛔ Oitenta e quatro módulos no catálogo (71 domain + 13 vertical), zero
+-- permissão concedida pelo seed. ⭐ Onda Vinte (Fase 3): o Vertical ☀️ Energia
+-- (plant · subscription · genreading · creditbalance) aberto — o terceiro bloco
+-- vertical, dor viva da Curva C solar. As 4 capacidades restantes ficam FORA:
+-- Geração distribuída (consolidada no plant), Manutenção de usina (=mnt),
+-- Contratos de energia (=ctr), Comercialização e leads (=lead).
 
 -- =============================================================================
 -- 5. PLANOS-BASE
