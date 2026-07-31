@@ -1,0 +1,17 @@
+{
+  "name": "@alsham/subscription",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": { ".": "./src/index.ts" },
+  "files": ["src"],
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "node --experimental-strip-types --test src/**/*.test.ts"
+  },
+  "dependencies": { "@alsham/core": "workspace:*" },
+  "devDependencies": { "@types/node": "^22.10.2", "typescript": "^5.7.2" },
+  "description": "Módulo 82 — Assinatura de Energia. Vertical Energia. O consumidor assina uma FATIA (percentual) da geração de uma usina: cliente por id solto ao crm (obrigatório), usina por id solto ao plant (obrigatório), allocation_percent 0<x<=100; nasce ativa, active → cancelled TERMINAL (a física do proj — quem re-assina assina outra; o DIVERGE do catalog)."
+}
