@@ -1970,7 +1970,7 @@ jobs:
                               join information_schema.constraint_column_usage u
                                 on u.constraint_name=cc.constraint_name and u.constraint_schema=cc.constraint_schema
                              where u.table_schema='esg' and u.table_name='readings' and u.column_name='quantity'
-                               and cc.check_clause ilike '%>= 0%';")
+                               and cc.check_clause ilike '%>=%0%';")
           [ "$OKQ" -ge "1" ] || { echo "::error::esg.readings.quantity perdeu o CHECK quantity >= 0"; exit 1; }
           echo "esg — leitura imutável (INSERT,SELECT + gatilho), sem ciclo, metric_type CHECK, quantity >= 0."
 
