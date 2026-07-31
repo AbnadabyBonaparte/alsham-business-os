@@ -2225,16 +2225,17 @@ jobs:
           # aparece na vitrine) e um `terceiro` publicado (para provar o teto do
           # plano). Uma contagem ingênua de `status='published'` daria 48+ e
           # reprovaria o repositório inteiro, por causa do fixture de outro
-          # teste. Por isso conta a whitelist dos 62 reais (42 da Campanha das
+          # teste. Por isso conta a whitelist dos 66 reais (42 da Campanha das
           # 6 Ondas + 5 da Onda Dez, Compras; + 5 da Onda Onze, Supply Chain;
           # + 5 da Onda Doze parte 1/2, PMO & Projetos; + 5 da Onda Treze parte
-          # 2/2, que FECHA o PMO em 10/10).
+          # 2/2, que FECHA o PMO em 10/10; + 4 da Onda Quatorze, que ABRE a
+          # Qualidade).
           #
           # Só apareceu porque os números foram conferidos contra o banco.
           N=$($PSQL -tAc "select count(*) from core.module_registry
                            where status='published'
                              and module_id in ('recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt','dun','ctr','cash','care','occ','mnt','pat','chk','spc','vis','lead','goal','comm','edcal','media','nps','cc','bud','bank','invest','dre','hr','shift','train','perf','pol','mall','lease','fund','park','sec','vendor','rfq','recv','vperf','reorder','dem','sop','dc','disp','logperf','proj','sched','kanban','alloc','pcost','scrum','gantt','risk','timesheet','pfolio','nc','audit','capa','iso');")
-          [ "$N" = "62" ] || { echo "::error::o catálogo tem $N dos 62 módulos reais publicados"; exit 1; }
+          [ "$N" = "66" ] || { echo "::error::o catálogo tem $N dos 66 módulos reais publicados"; exit 1; }
           C=$($PSQL -tAc "select jsonb_array_length(events_consumes)
                             from core.module_registry where module_id='crm';")
           [ "$C" = "0" ] || {
