@@ -1049,6 +1049,60 @@ on conflict (module_id) do update set
   status          = excluded.status,
   updated_at      = now();
 
+-- =============================================================================
+-- 4.4h ONDA DOZE (parte 1/2) — o Domain PMO & PROJETOS (Módulos 53–57,
+-- domain_key 'pmo'). O MAIOR domínio do mapa (10 capacidades). Esta onda cobre
+-- as 5 primeiras: Projetos · Cronogramas · Kanban · Recursos · Custos. Todos
+-- `consumes` vazio.
+-- =============================================================================
+
+-- ---------------------------------------------------------------------------
+-- O MÓDULO `proj` (Projetos) — o 53º cartão. Abre a Onda Doze.
+-- ---------------------------------------------------------------------------
+insert into core.module_registry (
+  module_id, name, version, summary, layer, domain_key,
+  capabilities, permissions, events_emits, events_consumes, agents,
+  requires_core, status
+)
+values (
+  'proj',
+  'Projetos',
+  '0.1.0',
+  'O registro de projetos da empresa: nome e descrição em texto livre. O ciclo é planning → active → completed/cancelled, e os dois fins são terminais (a física do bud/dem — o projeto encerrado não reabre; o próximo é registro novo). Cancelar (abandonar) exige razão; concluir tem nota opcional. Orçamento consolidado (é o pcost) e aprovação formal de abertura ficam de fora.',
+  'domain', 'pmo',
+  '[
+     {"key":"projects","canonicalName":"Projetos"}
+   ]'::jsonb,
+  '[
+     {"key":"proj.project.manage","moduleId":"proj","description":"Criar e editar projetos, iniciar, concluir e cancelar."}
+   ]'::jsonb,
+  '[
+     {"type":"proj.project.registered","version":1,"description":"Um projeto nasceu (sempre em planejamento)."},
+     {"type":"proj.project.activated","version":1,"description":"O projeto entrou em andamento."},
+     {"type":"proj.project.completed","version":1,"description":"O projeto foi concluído — com nota opcional. Terminal."},
+     {"type":"proj.project.cancelled","version":1,"description":"O projeto foi abandonado, com razão. Terminal."}
+   ]'::jsonb,
+  '[]'::jsonb,
+  '[]'::jsonb,
+  '0.0.x',
+  'published'
+)
+on conflict (module_id) do update set
+  name            = excluded.name,
+  version         = excluded.version,
+  summary         = excluded.summary,
+  layer           = excluded.layer,
+  domain_key      = excluded.domain_key,
+  vertical_key    = excluded.vertical_key,
+  capabilities    = excluded.capabilities,
+  permissions     = excluded.permissions,
+  events_emits    = excluded.events_emits,
+  events_consumes = excluded.events_consumes,
+  agents          = excluded.agents,
+  requires_core   = excluded.requires_core,
+  status          = excluded.status,
+  updated_at      = now();
+
 -- ⛔ Onze módulos de Compras+ no catálogo, zero permissão concedida pelo seed.
 
 -- =============================================================================
