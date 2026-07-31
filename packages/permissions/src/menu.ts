@@ -113,6 +113,7 @@ const MENU: readonly MenuItem[] = [
   { href: '/auditorias', label: 'Auditorias', moduleId: 'audit' },
   { href: '/capa', label: 'CAPA', moduleId: 'capa' },
   { href: '/iso', label: 'Requisitos ISO', moduleId: 'iso' },
+  { href: '/esg', label: 'Métricas Ambientais', moduleId: 'esg' },
   { href: '/store', label: 'Store', moduleId: null },
   { href: '/ajustes', label: 'Ajustes', moduleId: null },
 ];
