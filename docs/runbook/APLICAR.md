@@ -1647,6 +1647,41 @@ da Onda Dezessete), e o **Domain Contábil & Fiscal nasce com 1 módulo próprio
 Nenhum agente aplica em produção. A conferência de segurança do PASSO 15
 (§ pós-apply) vale para o schema novo.
 
+## PASSO 31 — A ONDA DEZOITO: ABRE o Vertical Varejo & Supermercados (`0086`–`0089`) — Fase 2
+
+⭐ A Onda Dezoito abre o **SEGUNDO bloco vertical do catálogo** (o primeiro desde
+Shopping Centers): o **Vertical 🛒 Varejo & Supermercados** (`vertical_key='retail'`),
+a *dor viva do cliente inaugural*. Das 7 capacidades, **quatro viram módulo** e
+**três ficam FORA**: *Estoque de varejo* (é o `inv` genérico, por id solto — não
+se refaz), *Promoções* (dobrada como campo de desconto simples no `pdv`) e
+*Marketplace próprio* (frente de e-commerce, capacidade futura). O rito:
+
+1. **Aplicar as quatro migrations** no SQL Editor, em ordem:
+   - `0086_pdv.sql` — Módulo 71, Ponto de Venda (schema `pdv`)
+   - `0087_catalog.sql` — Módulo 72, Catálogo de Produtos (schema `catalog`)
+   - `0088_cashregister.sql` — Módulo 73, Sessão de Caixa (schema `cashregister`)
+   - `0089_loyalty.sql` — Módulo 74, Fidelidade (schema `loyalty`)
+2. **Reaplicar o seed** — os quatro cartões entram no catálogo, `vertical_key='retail'`.
+   A Store gradua a galeria de Verticais com a seção Varejo & Supermercados.
+3. ⚠️ **Expor os schemas novos na Data API**: `pdv`, `catalog`, `cashregister`, `loyalty`.
+4. ✅ **SEM redeploy do `apps/api`** — os quatro têm `consumes` VAZIO (Lei 7).
+   Guarda de CI confere.
+5. **Instalar os módulos pela Store**, no tenant que os contratou.
+
+⛔ **O `pdv` registra a VENDA COMERCIAL, nunca o documento fiscal** — NF-e/NFC-e é
+integração fiscal certificada (a fronteira que a Onda Dezessete demarcou). A venda
+fecha na hora: `draft → completed/cancelled` terminais (o DIVERGE do `rfq`).
+⭐ **O `cashregister` (o turno da gaveta) e o `cash` (o livro-caixa perpétuo) têm
+a mesma palavra e físicas opostas** — um fecha turno, o outro nunca fecha.
+⭐⭐ **No `loyalty`, resgatar mais que o saldo é RECUSADO** (a física do `invest`).
+
+⭐ **Ao concluir este apply, o catálogo chega a 74 módulos publicados** (70 + 4
+da Onda Dezoito), e o **Vertical Varejo & Supermercados nasce com 4 módulos** —
+o catálogo passa a ter **9 cartões vertical** (5 shopping-centers + 4 retail).
+
+Nenhum agente aplica em produção. A conferência de segurança do PASSO 15
+(§ pós-apply) vale para os schemas novos.
+
 ## O QUE AINDA NÃO EXISTE
 
 Honestidade de escopo, para você não procurar o que não foi construído:

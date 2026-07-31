@@ -4017,8 +4017,193 @@ on conflict (module_id) do update set
   status          = excluded.status,
   updated_at      = now();
 
--- ⛔ Quarenta e dois módulos no catálogo (37 domain + 5 vertical), zero
--- permissão concedida pelo seed. ⭐ Campanha das 6 Ondas COMPLETA (30/07/2026).
+-- =============================================================================
+-- ⭐ ONDA DEZOITO (Fase 2) — o Vertical 🛒 VAREJO & SUPERMERCADOS (retail).
+-- O SEGUNDO bloco vertical do catálogo (o primeiro desde Shopping Centers).
+-- Quatro módulos: pdv · catalog · cashregister · loyalty. As outras 3
+-- capacidades ficam FORA: Estoque de varejo (=inv), Promoções (dobrado no
+-- desconto do pdv), Marketplace próprio (integração futura).
+-- =============================================================================
+
+insert into core.module_registry (
+  module_id, name, version, summary,
+  layer, vertical_key,
+  capabilities, permissions, events_emits, events_consumes, agents,
+  requires_core, status
+)
+values (
+  'pdv',
+  'Ponto de Venda (PDV)',
+  '0.1.0',
+  'A venda comercial do balcão (o cupom): cabeçalho + itens, cliente por id solto ao crm (opcional) e produto por id solto ao catalog. Finalizar CONGELA a venda; draft → completed/cancelled são terminais — venda cancelada não reabre (o DIVERGE do rfq, que tem o meio-termo open). Promoções entram como um campo de desconto simples; NF-e/NFC-e é integração fiscal (Lei 3), fora. consumes vazio.',
+  'vertical', 'retail',
+  '[
+     {"key":"pos","canonicalName":"PDV"}
+   ]'::jsonb,
+  '[
+     {"key":"pdv.sale.manage","moduleId":"pdv","description":"Montar a venda, incluir e editar itens no rascunho, finalizar o cupom e cancelar."}
+   ]'::jsonb,
+  '[
+     {"type":"pdv.sale.registered","version":1,"description":"Uma venda nasceu (sempre em rascunho)."},
+     {"type":"pdv.sale.completed","version":1,"description":"A venda foi finalizada — o cupom fechou e congelou. Terminal."},
+     {"type":"pdv.sale.cancelled","version":1,"description":"A venda foi cancelada, com razão. Terminal."}
+   ]'::jsonb,
+  '[]'::jsonb,
+  '[]'::jsonb,
+  '0.0.x',
+  'published'
+)
+on conflict (module_id) do update set
+  name            = excluded.name,
+  version         = excluded.version,
+  summary         = excluded.summary,
+  layer           = excluded.layer,
+  domain_key      = excluded.domain_key,
+  vertical_key    = excluded.vertical_key,
+  capabilities    = excluded.capabilities,
+  permissions     = excluded.permissions,
+  events_emits    = excluded.events_emits,
+  events_consumes = excluded.events_consumes,
+  agents          = excluded.agents,
+  requires_core   = excluded.requires_core,
+  status          = excluded.status,
+  updated_at      = now();
+
+insert into core.module_registry (
+  module_id, name, version, summary,
+  layer, vertical_key,
+  capabilities, permissions, events_emits, events_consumes, agents,
+  requires_core, status
+)
+values (
+  'catalog',
+  'Catálogo de Produtos',
+  '0.1.0',
+  'O cadastro do que a loja vende: o nome, um SKU TEXTO LIVRE opcional (nem toda casa usa código — a padaria vende "pão francês" sem SKU) e o preço de TABELA (valor em centavos + moeda, juntos). É o "quanto custa hoje"; o preço EFETIVO da venda vive no item do cupom (pdv). active ↔ archived (o produto descontinuado que volta é o MESMO produto — a física do vendor, o DIVERGE do hr onde terminated é terminal). FORA: estoque de varejo (é o inv genérico, id solto), variação/grade, imagem do produto (Storage do Core não construído) e Marketplace próprio (integração futura). consumes VAZIO.',
+  'vertical', 'retail',
+  '[
+     {"key":"product-catalog","canonicalName":"Catálogo"}
+   ]'::jsonb,
+  '[
+     {"key":"catalog.product.manage","moduleId":"catalog","description":"Cadastrar produtos e editar dados (nome, SKU, preço de tabela)."},
+     {"key":"catalog.product.decide","moduleId":"catalog","description":"Arquivar ou reativar um produto — tira/põe no catálogo vivo."}
+   ]'::jsonb,
+  '[
+     {"type":"catalog.product.registered","version":1,"description":"Um produto foi cadastrado no catálogo."},
+     {"type":"catalog.product.updated","version":1,"description":"Os dados de um produto mudaram."},
+     {"type":"catalog.product.archived","version":1,"description":"O produto saiu do catálogo vivo — reversível."},
+     {"type":"catalog.product.reopened","version":1,"description":"O produto voltou ao catálogo — o mesmo produto."}
+   ]'::jsonb,
+  '[]'::jsonb,
+  '[]'::jsonb,
+  '0.0.x',
+  'published'
+)
+on conflict (module_id) do update set
+  name            = excluded.name,
+  version         = excluded.version,
+  summary         = excluded.summary,
+  layer           = excluded.layer,
+  domain_key      = excluded.domain_key,
+  vertical_key    = excluded.vertical_key,
+  capabilities    = excluded.capabilities,
+  permissions     = excluded.permissions,
+  events_emits    = excluded.events_emits,
+  events_consumes = excluded.events_consumes,
+  agents          = excluded.agents,
+  requires_core   = excluded.requires_core,
+  status          = excluded.status,
+  updated_at      = now();
+
+insert into core.module_registry (
+  module_id, name, version, summary,
+  layer, vertical_key,
+  capabilities, permissions, events_emits, events_consumes, agents,
+  requires_core, status
+)
+values (
+  'cashregister',
+  'Sessão de Caixa',
+  '0.1.0',
+  'O turno físico de uma gaveta: abre contando o fundo de troco, fecha contando a gaveta. open → closed, closed TERMINAL (a física do scrum — o DIVERGE do cash, que é livro-caixa corporativo perpétuo, imutável e sem ciclo de vida). UMA sessão aberta por caixa (regra na constraint do banco). Operador por id solto. A quebra de caixa (esperado × contado) é de tela — este módulo guarda só as contagens físicas. consumes VAZIO.',
+  'vertical', 'retail',
+  '[
+     {"key":"cash-register","canonicalName":"Caixa"}
+   ]'::jsonb,
+  '[
+     {"key":"cashregister.session.manage","moduleId":"cashregister","description":"Abrir sessões de caixa, editar e fechar contando a gaveta."}
+   ]'::jsonb,
+  '[
+     {"type":"cashregister.session.opened","version":1,"description":"Uma sessão de caixa abriu — o fundo de troco foi contado."},
+     {"type":"cashregister.session.closed","version":1,"description":"A sessão foi fechada contando a gaveta. Terminal — o próximo turno é sessão nova."}
+   ]'::jsonb,
+  '[]'::jsonb,
+  '[]'::jsonb,
+  '0.0.x',
+  'published'
+)
+on conflict (module_id) do update set
+  name            = excluded.name,
+  version         = excluded.version,
+  summary         = excluded.summary,
+  layer           = excluded.layer,
+  domain_key      = excluded.domain_key,
+  vertical_key    = excluded.vertical_key,
+  capabilities    = excluded.capabilities,
+  permissions     = excluded.permissions,
+  events_emits    = excluded.events_emits,
+  events_consumes = excluded.events_consumes,
+  agents          = excluded.agents,
+  requires_core   = excluded.requires_core,
+  status          = excluded.status,
+  updated_at      = now();
+
+insert into core.module_registry (
+  module_id, name, version, summary,
+  layer, vertical_key,
+  capabilities, permissions, events_emits, events_consumes, agents,
+  requires_core, status
+)
+values (
+  'loyalty',
+  'Fidelidade',
+  '0.1.0',
+  'O livro de pontos do varejo: cada movimento é um lançamento imutável — o cliente (id solto + nome), a direção no entry_type (earn soma, redeem subtrai — a sinal do tipo do cash), os pontos (sempre > 0) e a venda de origem (id solto opcional). Registrar é fato consumado; corrigir é lançar o ato inverso, nunca reescrever. O saldo é uma VIEW (Σ earn − Σ redeem), nunca coluna. Resgatar mais que o saldo é RECUSADO — a terceira resposta, a física do invest. Conversão pontos↔dinheiro (regra de acúmulo), expiração automática por relógio e catálogo de recompensas ficam de fora. consumes VAZIO.',
+  'vertical', 'retail',
+  '[
+     {"key":"loyalty","canonicalName":"Fidelidade"}
+   ]'::jsonb,
+  '[
+     {"key":"loyalty.entry.manage","moduleId":"loyalty","description":"Lançar um movimento de pontos — o cliente, a direção (earn/redeem), os pontos e a venda de origem."}
+   ]'::jsonb,
+  '[
+     {"type":"loyalty.points.earned","version":1,"description":"O cliente ganhou pontos. Lançamento imutável desde o instante 1."},
+     {"type":"loyalty.points.redeemed","version":1,"description":"O cliente resgatou pontos. Só passa se o saldo cobrir (a física do invest)."}
+   ]'::jsonb,
+  '[]'::jsonb,
+  '[]'::jsonb,
+  '0.0.x',
+  'published'
+)
+on conflict (module_id) do update set
+  name            = excluded.name,
+  version         = excluded.version,
+  summary         = excluded.summary,
+  layer           = excluded.layer,
+  domain_key      = excluded.domain_key,
+  vertical_key    = excluded.vertical_key,
+  capabilities    = excluded.capabilities,
+  permissions     = excluded.permissions,
+  events_emits    = excluded.events_emits,
+  events_consumes = excluded.events_consumes,
+  agents          = excluded.agents,
+  requires_core   = excluded.requires_core,
+  status          = excluded.status,
+  updated_at      = now();
+
+-- ⛔ Setenta e quatro módulos no catálogo (65 domain + 9 vertical), zero
+-- permissão concedida pelo seed. ⭐ Onda Dezoito: o Vertical Varejo &
+-- Supermercados aberto (pdv · catalog · cashregister · loyalty).
 
 -- =============================================================================
 -- 5. PLANOS-BASE
