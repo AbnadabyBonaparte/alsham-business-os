@@ -114,6 +114,8 @@ const MENU: readonly MenuItem[] = [
   { href: '/capa', label: 'CAPA', moduleId: 'capa' },
   { href: '/iso', label: 'Requisitos ISO', moduleId: 'iso' },
   { href: '/esg', label: 'Métricas Ambientais', moduleId: 'esg' },
+  { href: '/ideias', label: 'Ideias & Inovação', moduleId: 'idea' },
+  { href: '/propriedade-intelectual', label: 'Propriedade Intelectual', moduleId: 'ip' },
   { href: '/store', label: 'Store', moduleId: null },
   { href: '/ajustes', label: 'Ajustes', moduleId: null },
 ];
