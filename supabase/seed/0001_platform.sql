@@ -1103,6 +1103,191 @@ on conflict (module_id) do update set
   status          = excluded.status,
   updated_at      = now();
 
+-- ---------------------------------------------------------------------------
+-- O MÓDULO `sched` (Cronogramas) — o 54º cartão.
+-- ---------------------------------------------------------------------------
+insert into core.module_registry (
+  module_id, name, version, summary, layer, domain_key,
+  capabilities, permissions, events_emits, events_consumes, agents,
+  requires_core, status
+)
+values (
+  'sched',
+  'Cronogramas',
+  '0.1.0',
+  'Os marcos de um projeto: título em texto livre, data prevista opcional, vínculo ao projeto por id solto. O ciclo é planned → done/cancelled, com o REABRIR done → planned (a física do ops — o marco concluído por engano volta, o DIVERGE do dem/bud, cujo fim é terminal). cancelled é terminal; cancelar exige razão. Dependência entre marcos (Gantt) e avanço automático ficam de fora.',
+  'domain', 'pmo',
+  '[
+     {"key":"schedules","canonicalName":"Cronogramas"}
+   ]'::jsonb,
+  '[
+     {"key":"sched.milestone.manage","moduleId":"sched","description":"Criar e editar marcos, concluir, reabrir e cancelar."}
+   ]'::jsonb,
+  '[
+     {"type":"sched.milestone.registered","version":1,"description":"Um marco nasceu (sempre planejado)."},
+     {"type":"sched.milestone.completed","version":1,"description":"O marco foi concluído (status done). O verbo é completed — done não termina em -ed."},
+     {"type":"sched.milestone.reopened","version":1,"description":"O marco concluído por engano foi reaberto (done → planned) — o DIVERGE do dem/bud."},
+     {"type":"sched.milestone.cancelled","version":1,"description":"O marco foi abandonado, com razão. Terminal."}
+   ]'::jsonb,
+  '[]'::jsonb,
+  '[]'::jsonb,
+  '0.0.x',
+  'published'
+)
+on conflict (module_id) do update set
+  name            = excluded.name,
+  version         = excluded.version,
+  summary         = excluded.summary,
+  layer           = excluded.layer,
+  domain_key      = excluded.domain_key,
+  vertical_key    = excluded.vertical_key,
+  capabilities    = excluded.capabilities,
+  permissions     = excluded.permissions,
+  events_emits    = excluded.events_emits,
+  events_consumes = excluded.events_consumes,
+  agents          = excluded.agents,
+  requires_core   = excluded.requires_core,
+  status          = excluded.status,
+  updated_at      = now();
+
+-- ---------------------------------------------------------------------------
+-- O MÓDULO `kanban` (Kanban / Quadro de Tarefas) — o 55º cartão.
+-- ---------------------------------------------------------------------------
+insert into core.module_registry (
+  module_id, name, version, summary, layer, domain_key,
+  capabilities, permissions, events_emits, events_consumes, agents,
+  requires_core, status
+)
+values (
+  'kanban',
+  'Kanban',
+  '0.1.0',
+  'O quadro de tarefas de um projeto: colunas desenhadas pelo tenant (texto livre, ordenadas) e cartões que andam livremente entre elas por movimento simples. Reaproveita a física da Esteira de Produção (ops), mas ESCOPADA a um projeto — o cartão pertence a um projeto (id solto). Sem status de cartão e sem enum de coluna: "concluído" é uma coluna que o tenant desenha. WIP-limit, swimlane, cor, responsável e prazo ficam de fora.',
+  'domain', 'pmo',
+  '[
+     {"key":"kanban","canonicalName":"Kanban"}
+   ]'::jsonb,
+  '[
+     {"key":"kanban.board.manage","moduleId":"kanban","description":"Criar e editar colunas, criar/editar cartões e mover cartões entre colunas."}
+   ]'::jsonb,
+  '[
+     {"type":"kanban.stage.registered","version":1,"description":"Uma coluna do quadro nasceu."},
+     {"type":"kanban.card.registered","version":1,"description":"Um cartão nasceu numa coluna."},
+     {"type":"kanban.card.moved","version":1,"description":"Um cartão andou de uma coluna para outra."}
+   ]'::jsonb,
+  '[]'::jsonb,
+  '[]'::jsonb,
+  '0.0.x',
+  'published'
+)
+on conflict (module_id) do update set
+  name            = excluded.name,
+  version         = excluded.version,
+  summary         = excluded.summary,
+  layer           = excluded.layer,
+  domain_key      = excluded.domain_key,
+  vertical_key    = excluded.vertical_key,
+  capabilities    = excluded.capabilities,
+  permissions     = excluded.permissions,
+  events_emits    = excluded.events_emits,
+  events_consumes = excluded.events_consumes,
+  agents          = excluded.agents,
+  requires_core   = excluded.requires_core,
+  status          = excluded.status,
+  updated_at      = now();
+
+-- ---------------------------------------------------------------------------
+-- O MÓDULO `alloc` (Recursos / Alocação) — o 56º cartão.
+-- ---------------------------------------------------------------------------
+insert into core.module_registry (
+  module_id, name, version, summary, layer, domain_key,
+  capabilities, permissions, events_emits, events_consumes, agents,
+  requires_core, status
+)
+values (
+  'alloc',
+  'Recursos',
+  '0.1.0',
+  'A alocação de recursos a projetos: o recurso em texto livre (pode ser terceiro/freelancer) e o quanto de sua capacidade vai ao projeto, em PERCENTUAL (não horas — horas seriam Timesheet, outra capacidade de PMO). O projeto e o colaborador entram por id solto. O ciclo é active ↔ archived — a alocação que volta é a mesma linha de planejamento (a física do vendor/dc, o DIVERGE do hr, onde o desligamento é terminal). Cálculo de disponibilidade entre projetos fica de fora.',
+  'domain', 'pmo',
+  '[
+     {"key":"resources","canonicalName":"Recursos"}
+   ]'::jsonb,
+  '[
+     {"key":"alloc.allocation.manage","moduleId":"alloc","description":"Cadastrar e editar alocações de recurso a projeto (percentual de capacidade)."},
+     {"key":"alloc.allocation.decide","moduleId":"alloc","description":"Arquivar ou reativar uma alocação — a linha de planejamento que sai e volta."}
+   ]'::jsonb,
+  '[
+     {"type":"alloc.allocation.registered","version":1,"description":"Uma alocação nasceu no plano (sempre ativa)."},
+     {"type":"alloc.allocation.updated","version":1,"description":"Mudou algum dado da alocação (recurso, projeto, percentual ou janela)."},
+     {"type":"alloc.allocation.archived","version":1,"description":"A alocação foi arquivada. Continua no banco; nunca DELETE."},
+     {"type":"alloc.allocation.reopened","version":1,"description":"A alocação arquivada voltou ao plano vivo — a mesma linha."}
+   ]'::jsonb,
+  '[]'::jsonb,
+  '[]'::jsonb,
+  '0.0.x',
+  'published'
+)
+on conflict (module_id) do update set
+  name            = excluded.name,
+  version         = excluded.version,
+  summary         = excluded.summary,
+  layer           = excluded.layer,
+  domain_key      = excluded.domain_key,
+  vertical_key    = excluded.vertical_key,
+  capabilities    = excluded.capabilities,
+  permissions     = excluded.permissions,
+  events_emits    = excluded.events_emits,
+  events_consumes = excluded.events_consumes,
+  agents          = excluded.agents,
+  requires_core   = excluded.requires_core,
+  status          = excluded.status,
+  updated_at      = now();
+
+-- ---------------------------------------------------------------------------
+-- O MÓDULO `pcost` (Custos do Projeto) — o 57º cartão. Fecha a Onda Doze 1/2.
+-- ---------------------------------------------------------------------------
+insert into core.module_registry (
+  module_id, name, version, summary, layer, domain_key,
+  capabilities, permissions, events_emits, events_consumes, agents,
+  requires_core, status
+)
+values (
+  'pcost',
+  'Custos do Projeto',
+  '0.1.0',
+  'O livro de custos de projeto da empresa: cada custo é um lançamento imutável — o projeto (id solto + nome), o valor e a moeda juntos, a categoria (texto livre, opcional) e a competência. Registrar é fato consumado; corrigir é lançar o ato inverso, nunca reescrever. NÃO há trave de saldo (o DIVERGE do fund): o módulo só narra o gasto; a trave/orçamento é do bud genérico por id solto. Rateio, plano de contas fixo e timesheet ficam de fora.',
+  'domain', 'pmo',
+  '[
+     {"key":"project-costs","canonicalName":"Custos"}
+   ]'::jsonb,
+  '[
+     {"key":"pcost.entry.record","moduleId":"pcost","description":"Registrar um custo de projeto — o valor, a moeda e o projeto."}
+   ]'::jsonb,
+  '[
+     {"type":"pcost.entry.recorded","version":1,"description":"Um custo de projeto foi registrado. Lançamento imutável desde o instante 1."}
+   ]'::jsonb,
+  '[]'::jsonb,
+  '[]'::jsonb,
+  '0.0.x',
+  'published'
+)
+on conflict (module_id) do update set
+  name            = excluded.name,
+  version         = excluded.version,
+  summary         = excluded.summary,
+  layer           = excluded.layer,
+  domain_key      = excluded.domain_key,
+  vertical_key    = excluded.vertical_key,
+  capabilities    = excluded.capabilities,
+  permissions     = excluded.permissions,
+  events_emits    = excluded.events_emits,
+  events_consumes = excluded.events_consumes,
+  agents          = excluded.agents,
+  requires_core   = excluded.requires_core,
+  status          = excluded.status,
+  updated_at      = now();
+
 -- ⛔ Onze módulos de Compras+ no catálogo, zero permissão concedida pelo seed.
 
 -- =============================================================================

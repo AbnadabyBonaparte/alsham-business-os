@@ -412,6 +412,22 @@ jobs:
       - name: aplicar 0067_logperf.sql
         run: $PSQL -f supabase/migrations/0067_logperf.sql
 
+      # ⭐ ONDA DOZE parte 1/2 (Fase 2) — o Domain PMO & Projetos (Módulos 53–57),
+      # o MAIOR do mapa. Projetos · Cronogramas · Kanban · Recursos · Custos.
+      # Todos `consumes` vazio — sem redeploy do apps/api.
+      - name: aplicar 0068_proj.sql
+        run: $PSQL -f supabase/migrations/0068_proj.sql
+      # ⚠️ sched/kanban/alloc/pcost ligam-se ao proj por id solto — NÃO leem o
+      # schema `proj` (guarda SCHEMA_DE abaixo); o alloc também não lê o `hr`.
+      - name: aplicar 0069_sched.sql
+        run: $PSQL -f supabase/migrations/0069_sched.sql
+      - name: aplicar 0070_kanban.sql
+        run: $PSQL -f supabase/migrations/0070_kanban.sql
+      - name: aplicar 0071_alloc.sql
+        run: $PSQL -f supabase/migrations/0071_alloc.sql
+      - name: aplicar 0072_pcost.sql
+        run: $PSQL -f supabase/migrations/0072_pcost.sql
+
       # ---------------------------------------------------------------------
       # 2. SEED — e a prova de que reaplicar não muda nada
       # ---------------------------------------------------------------------
@@ -439,12 +455,12 @@ jobs:
           FALTA=$($PSQL -tAc "
             select coalesce(string_agg(n.nspname||'.'||c.relname, ', '), '')
               from pg_class c join pg_namespace n on n.oid = c.relnamespace
-             where n.nspname in ('core','recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt','dun','ctr','cash','care','occ','mnt','pat','chk','spc','vis','lead','goal','comm','edcal','media','nps','cc','bud','bank','invest','dre','hr','shift','train','perf','pol','mall','lease','fund','park','sec','vendor','rfq','recv','vperf','reorder','dem','sop','dc','disp','logperf') and c.relkind = 'r'
+             where n.nspname in ('core','recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt','dun','ctr','cash','care','occ','mnt','pat','chk','spc','vis','lead','goal','comm','edcal','media','nps','cc','bud','bank','invest','dre','hr','shift','train','perf','pol','mall','lease','fund','park','sec','vendor','rfq','recv','vperf','reorder','dem','sop','dc','disp','logperf','proj','sched','kanban','alloc','pcost') and c.relkind = 'r'
                and (not c.relrowsecurity or not c.relforcerowsecurity);")
           [ -z "$FALTA" ] || { echo "::error::sem RLS enable+force: $FALTA"; exit 1; }
           $PSQL -c "select n.nspname as schema, count(*) as tabelas
                       from pg_class c join pg_namespace n on n.oid=c.relnamespace
-                     where n.nspname in ('core','recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt','dun','ctr','cash','care','occ','mnt','pat','chk','spc','vis','lead','goal','comm','edcal','media','nps','cc','bud','bank','invest','dre','hr','shift','train','perf','pol','mall','lease','fund','park','sec','vendor','rfq','recv','vperf','reorder','dem','sop','dc','disp','logperf') and c.relkind='r'
+                     where n.nspname in ('core','recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt','dun','ctr','cash','care','occ','mnt','pat','chk','spc','vis','lead','goal','comm','edcal','media','nps','cc','bud','bank','invest','dre','hr','shift','train','perf','pol','mall','lease','fund','park','sec','vendor','rfq','recv','vperf','reorder','dem','sop','dc','disp','logperf','proj','sched','kanban','alloc','pcost') and c.relkind='r'
                      group by 1 order by 1;"
 
       - name: nenhuma policy USING (true)
@@ -454,7 +470,7 @@ jobs:
               from pg_policy p
               join pg_class c on c.oid = p.polrelid
               join pg_namespace n on n.oid = c.relnamespace
-             where n.nspname in ('core','recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt','dun','ctr','cash','care','occ','mnt','pat','chk','spc','vis','lead','goal','comm','edcal','media','nps','cc','bud','bank','invest','dre','hr','shift','train','perf','pol','mall','lease','fund','park','sec','vendor','rfq','recv','vperf','reorder','dem','sop','dc','disp','logperf')
+             where n.nspname in ('core','recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt','dun','ctr','cash','care','occ','mnt','pat','chk','spc','vis','lead','goal','comm','edcal','media','nps','cc','bud','bank','invest','dre','hr','shift','train','perf','pol','mall','lease','fund','park','sec','vendor','rfq','recv','vperf','reorder','dem','sop','dc','disp','logperf','proj','sched','kanban','alloc','pcost')
                and pg_get_expr(p.polqual, p.polrelid) = 'true';")
           [ -z "$ABERTAS" ] || { echo "::error::policy aberta (lição paga do suna-core): $ABERTAS"; exit 1; }
 
@@ -465,7 +481,7 @@ jobs:
                              where n.nspname='public' and c.relkind='r';")
           [ "$PUB" = "0" ] || { echo "::error::$PUB tabela(s) em public — expostas via API"; exit 1; }
           ANON=$($PSQL -tAc "select count(*) from information_schema.role_table_grants
-                              where grantee='anon' and table_schema in ('core','recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt','dun','ctr','cash','care','occ','mnt','pat','chk','spc','vis','lead','goal','comm','edcal','media','nps','cc','bud','bank','invest','dre','hr','shift','train','perf','pol','mall','lease','fund','park','sec','vendor','rfq','recv','vperf','reorder','dem','sop','dc','disp','logperf');")
+                              where grantee='anon' and table_schema in ('core','recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt','dun','ctr','cash','care','occ','mnt','pat','chk','spc','vis','lead','goal','comm','edcal','media','nps','cc','bud','bank','invest','dre','hr','shift','train','perf','pol','mall','lease','fund','park','sec','vendor','rfq','recv','vperf','reorder','dem','sop','dc','disp','logperf','proj','sched','kanban','alloc','pcost');")
           [ "$ANON" = "0" ] || { echo "::error::anon tem $ANON grant(s) no Business OS"; exit 1; }
 
       - name: o seed não semeou tenant nem usuário
@@ -1776,6 +1792,37 @@ jobs:
       - name: teste de performance logística (logperf)
         run: $PSQL -f supabase/tests/57_logperf_isolation.sql
 
+      # =====================================================================
+      # ⭐ ONDA DOZE parte 1/2 — o Domain PMO & Projetos no banco (Módulos 53–57)
+      # =====================================================================
+      - name: teste de projetos (proj)
+        run: $PSQL -f supabase/tests/58_proj_isolation.sql
+
+      - name: teste de cronogramas (sched)
+        run: $PSQL -f supabase/tests/59_sched_isolation.sql
+
+      - name: teste de kanban — quadro de tarefas (kanban)
+        run: $PSQL -f supabase/tests/60_kanban_isolation.sql
+
+      - name: teste de recursos / alocação (alloc)
+        run: $PSQL -f supabase/tests/61_alloc_isolation.sql
+
+      - name: teste de custos do projeto (pcost)
+        run: $PSQL -f supabase/tests/62_pcost_isolation.sql
+
+      # ⭐ Os cinco cartões da Onda Doze são DOMAIN pmo.
+      - name: os cinco módulos da Onda Doze são domain pmo
+        run: |
+          N=$($PSQL -tAc "select count(*) from core.module_registry
+                           where layer='domain' and domain_key='pmo'
+                             and module_id in ('proj','sched','kanban','alloc','pcost');")
+          [ "$N" = "5" ] || { echo "::error::esperava 5 cartões domain pmo na Onda Doze: [$N]"; exit 1; }
+          # ⛔ domain não pode ter vertical_key (CHECK do 0001), e vice-versa.
+          BAD=$($PSQL -tAc "select count(*) from core.module_registry
+                             where module_id in ('proj','sched','kanban','alloc','pcost')
+                               and vertical_key is not null;")
+          [ "$BAD" = "0" ] || { echo "::error::um cartão da Onda Doze carregou vertical_key"; exit 1; }
+
       # ⭐ Os cinco cartões da Onda Onze são DOMAIN supply-chain (separado de Compras).
       - name: os cinco módulos da Onda Onze são domain supply-chain
         run: |
@@ -2041,15 +2088,15 @@ jobs:
           # aparece na vitrine) e um `terceiro` publicado (para provar o teto do
           # plano). Uma contagem ingênua de `status='published'` daria 48+ e
           # reprovaria o repositório inteiro, por causa do fixture de outro
-          # teste. Por isso conta a whitelist dos 52 reais (42 da Campanha das
-          # 6 Ondas + 5 da Onda Dez, que completa o Domain Compras, + 5 da Onda
-          # Onze, que abre o Domain Supply Chain).
+          # teste. Por isso conta a whitelist dos 57 reais (42 da Campanha das
+          # 6 Ondas + 5 da Onda Dez, Compras; + 5 da Onda Onze, Supply Chain;
+          # + 5 da Onda Doze parte 1/2, PMO & Projetos).
           #
           # Só apareceu porque os números foram conferidos contra o banco.
           N=$($PSQL -tAc "select count(*) from core.module_registry
                            where status='published'
-                             and module_id in ('recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt','dun','ctr','cash','care','occ','mnt','pat','chk','spc','vis','lead','goal','comm','edcal','media','nps','cc','bud','bank','invest','dre','hr','shift','train','perf','pol','mall','lease','fund','park','sec','vendor','rfq','recv','vperf','reorder','dem','sop','dc','disp','logperf');")
-          [ "$N" = "52" ] || { echo "::error::o catálogo tem $N dos 52 módulos reais publicados"; exit 1; }
+                             and module_id in ('recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt','dun','ctr','cash','care','occ','mnt','pat','chk','spc','vis','lead','goal','comm','edcal','media','nps','cc','bud','bank','invest','dre','hr','shift','train','perf','pol','mall','lease','fund','park','sec','vendor','rfq','recv','vperf','reorder','dem','sop','dc','disp','logperf','proj','sched','kanban','alloc','pcost');")
+          [ "$N" = "57" ] || { echo "::error::o catálogo tem $N dos 57 módulos reais publicados"; exit 1; }
           C=$($PSQL -tAc "select jsonb_array_length(events_consumes)
                             from core.module_registry where module_id='crm';")
           [ "$C" = "0" ] || {
@@ -2188,7 +2235,7 @@ jobs:
           ABERTAS=$($PSQL -tAc "
             select coalesce(string_agg(n.nspname||'.'||p.proname, ', ' order by p.proname), '')
               from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-             where n.nspname in ('core','recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt','dun','ctr','cash','care','occ','mnt','pat','chk','spc','vis','lead','goal','comm','edcal','media','nps','cc','bud','bank','invest','dre','hr','shift','train','perf','pol','mall','lease','fund','park','sec','vendor','rfq','recv','vperf','reorder','dem','sop','dc','disp','logperf')
+             where n.nspname in ('core','recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt','dun','ctr','cash','care','occ','mnt','pat','chk','spc','vis','lead','goal','comm','edcal','media','nps','cc','bud','bank','invest','dre','hr','shift','train','perf','pol','mall','lease','fund','park','sec','vendor','rfq','recv','vperf','reorder','dem','sop','dc','disp','logperf','proj','sched','kanban','alloc','pcost')
                and has_function_privilege('anon', p.oid, 'execute');")
           [ -z "$ABERTAS" ] || { echo "::error::função executável por anon: $ABERTAS"; exit 1; }
 
@@ -2199,7 +2246,7 @@ jobs:
             OK=$($PSQL -tAc "
               select count(*) from pg_proc p join pg_namespace n on n.oid = p.pronamespace
                where p.proname = '$FN'
-                 and n.nspname in ('core','recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt','dun','ctr','cash','care','occ','mnt','pat','chk','spc','vis','lead','goal','comm','edcal','media','nps','cc','bud','bank','invest','dre','hr','shift','train','perf','pol','mall','lease','fund','park','sec','vendor','rfq','recv','vperf','reorder','dem','sop','dc','disp','logperf')
+                 and n.nspname in ('core','recon','marketing','ap','crm','ar','po','ops','inv','quote','deal','evt','dun','ctr','cash','care','occ','mnt','pat','chk','spc','vis','lead','goal','comm','edcal','media','nps','cc','bud','bank','invest','dre','hr','shift','train','perf','pol','mall','lease','fund','park','sec','vendor','rfq','recv','vperf','reorder','dem','sop','dc','disp','logperf','proj','sched','kanban','alloc','pcost')
                  and has_function_privilege('authenticated', p.oid, 'execute');")
             [ "$OK" -ge 1 ] || { echo "::error::$FN() deixou de ser chamável pelo portal"; exit 1; }
           done
@@ -2865,7 +2912,7 @@ jobs:
       - name: módulo não conhece módulo
         run: |
           FALHOU=0
-          MODULOS="finance-reconciliation marketing accounts-payable crm accounts-receivable purchase-orders ops inventory quotes deals event-management dunning contracts cashflow care occurrences maintenance assets checklists spaces visits leads goals comms editorial media nps cost-centers budgets bank-accounts investments dre hr shift-scheduling training performance policies mall lease fund park sec vendor rfq recv vperf reorder dem sop dc disp logperf"
+          MODULOS="finance-reconciliation marketing accounts-payable crm accounts-receivable purchase-orders ops inventory quotes deals event-management dunning contracts cashflow care occurrences maintenance assets checklists spaces visits leads goals comms editorial media nps cost-centers budgets bank-accounts investments dre hr shift-scheduling training performance policies mall lease fund park sec vendor rfq recv vperf reorder dem sop dc disp logperf proj sched kanban alloc pcost"
 
           # 1. Nenhum módulo importa outro módulo, em nenhuma forma.
           for MOD in $MODULOS; do
@@ -2952,6 +2999,11 @@ jobs:
             [0065_dc.sql]=dc
             [0066_disp.sql]=disp
             [0067_logperf.sql]=logperf
+            [0068_proj.sql]=proj
+            [0069_sched.sql]=sched
+            [0070_kanban.sql]=kanban
+            [0071_alloc.sql]=alloc
+            [0072_pcost.sql]=pcost
           )
           for ARQUIVO in "${!SCHEMA_DE[@]}"; do
             DONO="${SCHEMA_DE[$ARQUIVO]}"
