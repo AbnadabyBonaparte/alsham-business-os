@@ -1874,6 +1874,59 @@ on conflict (module_id) do update set
   updated_at      = now();
 
 
+-- ---------------------------------------------------------------------------
+-- O MÓDULO `fiscalcert` (Certificado Digital) — o 70º cartão. ABRE a Onda
+-- Dezessete e o Domain 🧾 Contábil & Fiscal — o mais restrito do mapa POR LEI
+-- (Lei 3). Só o REGISTRO DE METADADOS de certificados; as outras 7 capacidades
+-- (NF-e/NFS-e/NFC-e/SPED/eSocial/Apuração/Integração com contador) são
+-- INTEGRAÇÃO, não módulo.
+-- ---------------------------------------------------------------------------
+insert into core.module_registry (
+  module_id, name, version, summary, layer, domain_key,
+  capabilities, permissions, events_emits, events_consumes, agents,
+  requires_core, status
+)
+values (
+  'fiscalcert',
+  'Certificado Digital',
+  '0.1.0',
+  'O registro de metadados dos certificados digitais da empresa: o tipo (e-CNPJ, e-CPF, e-NF-e — texto livre), o titular e — o dado que justifica o módulo — a validade (quando vence). É um lembrete de vencimento, nunca um cofre: o arquivo .pfx, a chave privada e qualquer operação de assinatura ficam de fora (Storage do Core não construído, e uma credencial privada não passa pela Store genérica). active ↔ archived (o certificado trocado é arquivado, não apagado — a física do vendor). As outras 7 capacidades do domínio (NF-e, NFS-e, NFC-e, SPED, eSocial, Apuração, Integração com contador) são integração, não módulo (Lei 3). Alerta automático de vencimento é engine futura.',
+  'domain', 'accounting',
+  '[
+     {"key":"digital-certificate","canonicalName":"Certificado digital"}
+   ]'::jsonb,
+  '[
+     {"key":"fiscalcert.certificate.manage","moduleId":"fiscalcert","description":"Registrar e editar os metadados de certificados digitais."},
+     {"key":"fiscalcert.certificate.decide","moduleId":"fiscalcert","description":"Arquivar e reativar um registro de certificado."}
+   ]'::jsonb,
+  '[
+     {"type":"fiscalcert.certificate.registered","version":1,"description":"Um certificado foi registrado (metadados)."},
+     {"type":"fiscalcert.certificate.updated","version":1,"description":"Os metadados de um certificado mudaram."},
+     {"type":"fiscalcert.certificate.archived","version":1,"description":"O registro de certificado foi arquivado."},
+     {"type":"fiscalcert.certificate.restored","version":1,"description":"O registro arquivado voltou a ativo."}
+   ]'::jsonb,
+  '[]'::jsonb,
+  '[]'::jsonb,
+  '0.0.x',
+  'published'
+)
+on conflict (module_id) do update set
+  name            = excluded.name,
+  version         = excluded.version,
+  summary         = excluded.summary,
+  layer           = excluded.layer,
+  domain_key      = excluded.domain_key,
+  vertical_key    = excluded.vertical_key,
+  capabilities    = excluded.capabilities,
+  permissions     = excluded.permissions,
+  events_emits    = excluded.events_emits,
+  events_consumes = excluded.events_consumes,
+  agents          = excluded.agents,
+  requires_core   = excluded.requires_core,
+  status          = excluded.status,
+  updated_at      = now();
+
+
 -- ⛔ Dezesseis módulos de Compras+ no catálogo, zero permissão concedida pelo seed.
 
 -- =============================================================================
