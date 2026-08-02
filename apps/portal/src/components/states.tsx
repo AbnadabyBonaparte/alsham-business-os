@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 import Link from 'next/link';
 
 /**
@@ -86,9 +86,21 @@ export function PageHero({
 
 /** Superfície elevada padrão: Midnight Ink com borda alpha dourada a 15%
     e um chanfro de luz na borda superior — materialidade, não brilho. */
-export function Panel({ children, className = '' }: { children: ReactNode; className?: string }) {
+export function Panel({
+  children,
+  className = '',
+  style,
+}: {
+  children: ReactNode;
+  className?: string;
+  /** Só para ajustes de apresentação (ex.: `animationDelay` da cascata). */
+  style?: CSSProperties;
+}) {
   return (
-    <section className={`bos-sheen rounded-lg border border-bos-border bg-bos-surface ${className}`}>
+    <section
+      className={`bos-sheen rounded-lg border border-bos-border bg-bos-surface ${className}`}
+      style={style}
+    >
       {children}
     </section>
   );

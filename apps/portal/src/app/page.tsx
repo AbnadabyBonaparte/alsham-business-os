@@ -240,8 +240,8 @@ function VisaoGeral({ cartoes }: { cartoes: readonly OverviewCard[] }) {
     <section className="mb-4">
       <h2 className="bos-eyebrow mb-3">Visão geral</h2>
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
-        {cartoes.map((c) => (
-          <CartaoVisao key={c.key} c={c} />
+        {cartoes.map((c, i) => (
+          <CartaoVisao key={c.key} c={c} indice={i} />
         ))}
       </div>
     </section>
@@ -260,10 +260,15 @@ function formatarValor(c: OverviewCard): string {
   return c.value.toLocaleString('pt-BR');
 }
 
-function CartaoVisao({ c }: { c: OverviewCard }) {
+function CartaoVisao({ c, indice = 0 }: { c: OverviewCard; indice?: number }) {
   const tom = CARD_TOM[c.tone ?? 'neutral'];
   const corpo = (
-    <Panel className="bos-sheen h-full px-4 py-4 transition-colors duration-200 hover:border-bos-accent/50">
+    <Panel
+      className="bos-sheen bos-lift bos-enter h-full px-4 py-4 transition-colors duration-200 hover:border-bos-accent/50"
+      // ⭐ Cascata sutil na entrada — cada cartão surge um instante depois do
+      //    anterior. Sob prefers-reduced-motion o bos-enter nem anima (globals).
+      style={{ animationDelay: `${indice * 60}ms` }}
+    >
       <div className="flex items-start justify-between gap-2">
         <p className="text-xs text-bos-muted">{c.label}</p>
         <svg

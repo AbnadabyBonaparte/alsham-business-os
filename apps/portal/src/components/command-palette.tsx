@@ -164,7 +164,7 @@ export function CommandPalette({ items }: { items: readonly MenuItem[] }) {
             className="absolute inset-0 cursor-default bg-bos-bg/70 backdrop-blur-sm"
           />
 
-          <div className="bos-sheen relative w-full max-w-xl overflow-hidden rounded-lg border border-bos-border bg-bos-surface shadow-2xl">
+          <div className="bos-sheen bos-pop relative w-full max-w-xl overflow-hidden rounded-lg border border-bos-border bg-bos-surface shadow-2xl">
             <div className="flex items-center gap-3 border-b border-bos-border px-4 py-3">
               <svg
                 aria-hidden
