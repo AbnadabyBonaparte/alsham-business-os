@@ -14,6 +14,7 @@ import { Atmosphere, Grain } from '@/components/atmosphere';
 import { NavLink } from '@/components/nav-link';
 import { ModulesMenu } from '@/components/modules-menu';
 import { EngineerPresence } from '@/components/engineer-presence';
+import { CommandPalette } from '@/components/command-palette';
 
 import './globals.css';
 
@@ -150,6 +151,10 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
                   )}
                 </nav>
               ) : null}
+
+              {/* ⭐ A paleta de comandos (⌘K/Ctrl+K) — mesmo índice do menu, o
+                  gatilho empurrado à direita. Só onde há navegação a que pular. */}
+              {navVisivel ? <CommandPalette items={menu} /> : null}
 
               {logado ? (
                 <TenantSwitcher
