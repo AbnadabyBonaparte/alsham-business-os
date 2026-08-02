@@ -17,6 +17,9 @@ import type {
 import { resolveSession } from '@/lib/session';
 import { Badge, DemoNotice, EmptyState, Panel, SectionHeader } from '@/components/states';
 import { EventTimeline } from '@/components/event-timeline';
+import { DomainSectionHeader } from '@/components/domain-section';
+import { Table, TBody, TR, TD } from '@/components/table';
+import { mapShelfToTaxonomy, type TerritorySection } from '@/lib/store-taxonomy';
 
 export const dynamic = 'force-dynamic';
 
@@ -292,6 +295,13 @@ function CartaoVisao({ c, indice = 0 }: { c: OverviewCard; indice?: number }) {
             sem leitura agora — o dado existe, esta tela não conseguiu lê-lo
           </p>
         </>
+      ) : c.value === 0 && c.zeroText ? (
+        /* ⭐ Estado-zero contextual (Mandato de Beleza 4/6): o zero de
+           ausência-de-dado vira texto — mesma verdade, sem parecer quebrado. */
+        <>
+          <p className="mt-2 font-display text-lg leading-tight text-bos-muted">{c.zeroText}</p>
+          {c.hint ? <p className="mt-1 text-[11px] text-bos-muted">{c.hint}</p> : null}
+        </>
       ) : (
         <>
           <p className={`tabular mt-2 font-display text-2xl ${tom}`}>{formatarValor(c)}</p>
@@ -518,6 +528,13 @@ function ModulosDoTenant({
     );
   }
 
+  // ⭐ Agrupamento por domínio — REAPROVEITA o `mapShelfToTaxonomy` da Store
+  // (Mandato de Beleza 1/6). Uma fonte só de agrupamento (Sol Único): o mesmo
+  // que a vitrine usa para os territórios, na MESMA ordem da Taxonomia. Os
+  // instalados só carregam módulos vivos, então `upcoming` é ignorado aqui.
+  const { domains, verticals } = mapShelfToTaxonomy(instalados);
+  const secoes: TerritorySection[] = [...domains.live, ...verticals.live];
+
   return (
     <Panel className="h-full px-6 py-5">
       {cabecalho}
@@ -528,40 +545,79 @@ function ModulosDoTenant({
       {falhou ? (
         <p className="mt-4 text-sm text-bos-muted">Não foi possível ler o catálogo agora.</p>
       ) : (
-        <ul className="mt-4 divide-y divide-bos-border border-t border-bos-border">
-          {instalados.map((m) => {
-            const h = saude.get(m.entry.moduleId);
-            return (
-              <li key={m.entry.moduleId} className="flex flex-wrap items-baseline gap-x-3 gap-y-1 py-3">
-                {h !== undefined ? <PontoSaude verdict={h.verdict} /> : null}
-                <span className="text-sm text-bos-text">{m.entry.name}</span>
-                {/* ⚠️ A versão exibida é a QUE ESTE TENANT TEM, quando diferente
-                    da publicada. Mostrar sempre a do catálogo faria a tela mentir
-                    logo depois de uma publicação. */}
-                <span className="font-mono text-[11px] text-bos-muted">
-                  {m.entry.moduleId} v{m.installedVersion ?? m.entry.version}
-                </span>
-                {m.installedVersion !== null && m.installedVersion !== m.entry.version ? (
-                  <Badge tone="info">catálogo v{m.entry.version}</Badge>
-                ) : null}
-                {/* ⭐ Última atividade REAL da trilha — ou o silêncio honesto. */}
-                <span className="ml-auto text-[11px] text-bos-muted">
-                  {h?.lastActivityAt != null
-                    ? `ativo ${haQuanto(h.lastActivityAt)}`
-                    : 'sem atividade recente'}
-                </span>
-              </li>
-            );
-          })}
-        </ul>
+        <div className="mt-5 flex flex-col gap-6">
+          {secoes.map((secao) => (
+            <div key={`${secao.territory.layer}:${secao.territory.key}`}>
+              <DomainSectionHeader
+                territoryKey={secao.territory.key}
+                layerLabel={secao.territory.layer === 'domain' ? 'Domínio' : 'Vertical'}
+                name={secao.territory.name}
+                right={`${secao.items.length} módulo${secao.items.length === 1 ? '' : 's'}`}
+              />
+              <Table>
+                <TBody>
+                  {secao.items.map((m) => (
+                    <LinhaModulo key={m.entry.moduleId} m={m} saude={saude} />
+                  ))}
+                </TBody>
+              </Table>
+            </div>
+          ))}
+        </div>
       )}
 
       {disponiveis.length > 0 ? (
-        <p className="mt-4 text-xs text-bos-muted">
+        <p className="mt-6 text-xs text-bos-muted">
           Disponíveis para instalar: {disponiveis.map((m) => m.entry.name).join(' · ')}.
         </p>
       ) : null}
     </Panel>
+  );
+}
+
+/**
+ * Uma linha de módulo — agora TABELA DE VERDADE (Mandato de Beleza 3/6):
+ * colunas alinhadas linha a linha, a última atividade à direita com tabular
+ * figures. Ponto de saúde + nome | identificação | atividade.
+ */
+function LinhaModulo({
+  m,
+  saude,
+}: {
+  m: ShelfItem;
+  saude: ReadonlyMap<string, ModuleHealth>;
+}) {
+  const h = saude.get(m.entry.moduleId);
+  const versaoDivergente =
+    m.installedVersion !== null && m.installedVersion !== m.entry.version;
+  return (
+    <TR className="transition-colors hover:bg-bos-elevated/30">
+      <TD>
+        <span className="flex items-center gap-2.5">
+          {/* espaço fixo para o ponto — o nome alinha mesmo sem leitura de saúde */}
+          <span className="flex w-2 shrink-0 justify-center">
+            {h !== undefined ? <PontoSaude verdict={h.verdict} /> : null}
+          </span>
+          <span className="text-bos-text">{m.entry.name}</span>
+        </span>
+      </TD>
+      <TD className="whitespace-nowrap">
+        {/* ⚠️ A versão exibida é a QUE ESTE TENANT TEM, quando diferente da
+            publicada. Mostrar sempre a do catálogo faria a tela mentir. */}
+        <span className="font-mono text-[11px] text-bos-muted">
+          {m.entry.moduleId} v{m.installedVersion ?? m.entry.version}
+        </span>
+        {versaoDivergente ? (
+          <span className="ml-2 align-middle">
+            <Badge tone="info">catálogo v{m.entry.version}</Badge>
+          </span>
+        ) : null}
+      </TD>
+      {/* ⭐ Última atividade REAL da trilha (à direita, tabular) — ou o silêncio honesto. */}
+      <TD num className="whitespace-nowrap text-[11px] text-bos-muted">
+        {h?.lastActivityAt != null ? `ativo ${haQuanto(h.lastActivityAt)}` : 'sem atividade recente'}
+      </TD>
+    </TR>
   );
 }
 

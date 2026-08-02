@@ -6,6 +6,7 @@ import type { ShelfItem, ShelfState } from '@alsham/permissions';
 
 import { installModuleAction, uninstallModuleAction } from '@/app/store-actions';
 import { Badge, EmptyState, Panel } from '@/components/states';
+import { DomainSectionHeader } from '@/components/domain-section';
 import {
   mapShelfToTaxonomy,
   type Gallery,
@@ -368,18 +369,19 @@ function LiveSection({
   const n = section.items.length;
   return (
     <div>
-      <div className="mb-3 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 border-b border-bos-border pb-2">
-        <div>
-          <p className="bos-eyebrow mb-1">{rotuloCamada}</p>
-          <h3 className="font-display text-lg text-bos-text">{section.territory.name}</h3>
-        </div>
-        <span className="text-xs text-bos-muted">
-          {n} módulo{n === 1 ? '' : 's'}
-          {section.territory.capabilities > 0
-            ? ` · de ${section.territory.capabilities} capacidades no mapa`
-            : ''}
-        </span>
-      </div>
+      <DomainSectionHeader
+        territoryKey={section.territory.key}
+        layerLabel={rotuloCamada}
+        name={section.territory.name}
+        right={
+          <>
+            {n} módulo{n === 1 ? '' : 's'}
+            {section.territory.capabilities > 0
+              ? ` · de ${section.territory.capabilities} capacidades no mapa`
+              : ''}
+          </>
+        }
+      />
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
         {section.items.map((item) => (
           <ModuleCard key={item.entry.moduleId} item={item} roles={roles} canInstall={canInstall} />

@@ -171,7 +171,7 @@ export function createPanelSupabasePort(
       // dominante quando há mais de uma.
       const leituras: Record<
         string,
-        () => Promise<{ value: number | null; currency?: string }>
+        () => Promise<{ value: number | null; currency?: string; empty?: boolean }>
       > = {
         // Caixa disponível — saldo do livro (cash.balances), moeda dominante.
         'caixa-disponivel': async () => {
@@ -185,7 +185,9 @@ export function createPanelSupabasePort(
             balance_cents: number;
             entry_count: number;
           }[];
-          if (linhas.length === 0) return { value: 0, currency: 'BRL' };
+          // Sem linha de saldo = sem lançamento nenhum (empty). Uma linha com
+          // saldo 0 é zero REAL (houve movimento) — não é vazio.
+          if (linhas.length === 0) return { value: 0, currency: 'BRL', empty: true };
           const dominante = linhas.reduce((a, b) => (b.entry_count > a.entry_count ? b : a));
           return { value: Number(dominante.balance_cents), currency: dominante.currency };
         },
@@ -202,7 +204,7 @@ export function createPanelSupabasePort(
             currency: string;
             inflow_cents: number;
           }[];
-          if (linhas.length === 0) return { value: 0, currency: 'BRL' };
+          if (linhas.length === 0) return { value: 0, currency: 'BRL', empty: true };
           const dominante = linhas.reduce((a, b) => (b.inflow_cents > a.inflow_cents ? b : a));
           return { value: Number(dominante.inflow_cents), currency: dominante.currency };
         },
@@ -242,13 +244,15 @@ export function createPanelSupabasePort(
         },
       };
 
-      // O catálogo de cartões: rótulo, módulo-fonte, formato, link e realce.
-      const specs: Omit<OverviewCard, 'value' | 'currency'>[] = [
-        { key: 'caixa-disponivel', label: 'Caixa disponível', moduleId: 'cash', kind: 'currency', href: '/caixa', hint: 'Saldo do livro-caixa.' },
-        { key: 'receita-mes', label: 'Receita do mês', moduleId: 'cash', kind: 'currency', href: '/caixa', hint: 'Entradas do mês corrente.' },
-        { key: 'contas-vencendo', label: 'Contas vencendo', moduleId: 'ar', kind: 'count', href: '/contas-a-receber', hint: 'A receber, em aberto, até 7 dias.', tone: 'warning' },
+      // O catálogo de cartões: rótulo, módulo-fonte, formato, link, realce e o
+      // ⭐ texto de estado-zero (Mandato de Beleza 4/6). `estoque-critico` NÃO
+      // tem `zeroText`: 0 crítico é boa notícia — o número comunica.
+      const specs: (Omit<OverviewCard, 'value' | 'currency'> & { zeroText?: string })[] = [
+        { key: 'caixa-disponivel', label: 'Caixa disponível', moduleId: 'cash', kind: 'currency', href: '/caixa', hint: 'Saldo do livro-caixa.', zeroText: 'ainda sem lançamento' },
+        { key: 'receita-mes', label: 'Receita do mês', moduleId: 'cash', kind: 'currency', href: '/caixa', hint: 'Entradas do mês corrente.', zeroText: 'sem entradas neste mês' },
+        { key: 'contas-vencendo', label: 'Contas vencendo', moduleId: 'ar', kind: 'count', href: '/contas-a-receber', hint: 'A receber, em aberto, até 7 dias.', tone: 'warning', zeroText: 'nenhuma conta vencendo' },
         { key: 'estoque-critico', label: 'Estoque crítico', moduleId: 'inv', kind: 'count', href: '/estoque', hint: 'Itens com saldo zerado ou negativo.', tone: 'danger' },
-        { key: 'clientes-ativos', label: 'Clientes ativos', moduleId: 'crm', kind: 'count', href: '/relacionamentos', hint: 'Contrapartes ativas.' },
+        { key: 'clientes-ativos', label: 'Clientes ativos', moduleId: 'crm', kind: 'count', href: '/relacionamentos', hint: 'Contrapartes ativas.', zeroText: 'nenhum cliente ainda' },
       ];
 
       // Só os cartões cujo módulo está instalado. Cada leitura em paralelo e
@@ -258,14 +262,28 @@ export function createPanelSupabasePort(
 
       return alvos.map((s, i): OverviewCard => {
         const r = resultados[i];
-        const lido: { value: number | null; currency?: string } =
+        const lido: { value: number | null; currency?: string; empty?: boolean } =
           r !== undefined && r.status === 'fulfilled' ? r.value : { value: null };
         // Realce só quando há motivo real: contagem de alerta > 0.
         const tone =
           s.tone !== undefined && s.kind === 'count' && typeof lido.value === 'number' && lido.value > 0
             ? s.tone
             : 'neutral';
-        return { ...s, tone, value: lido.value, currency: lido.currency };
+        // O texto de estado-zero só entra quando o zero é ausência-de-dado: num
+        // count, 0 já é "nenhum"; num currency, só quando a leitura veio vazia
+        // (linha nenhuma) — um saldo 0 com movimento é zero REAL, mostra "R$ 0".
+        const { zeroText, ...specSemTexto } = s;
+        const mostraTexto =
+          zeroText !== undefined &&
+          lido.value === 0 &&
+          (s.kind === 'count' || lido.empty === true);
+        return {
+          ...specSemTexto,
+          tone,
+          value: lido.value,
+          currency: lido.currency,
+          zeroText: mostraTexto ? zeroText : undefined,
+        };
       });
     },
 
