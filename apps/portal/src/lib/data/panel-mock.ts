@@ -126,14 +126,26 @@ export function createPanelMockPort(): PanelPort {
       ];
     },
 
+    // ⭐ A trilha do demo — mistura realista para provar o COLAPSO (Mandato de
+    // Beleza 2/6): dois fatos distintos e recentes + uma instalação EM LOTE de
+    // cinco módulos na mesma rajada (colapsa em uma linha, expansível). Ordem
+    // desc (o mais novo primeiro), como o banco entrega.
     async loadRecentAudit(): Promise<AuditRow[]> {
+      const emLote = ['crm', 'inv', 'ar', 'cash', 'ops'].map((mid, i) => ({
+        id: `a-inst-${mid}`,
+        action: 'module.installed',
+        resourceType: 'tenant_module',
+        moduleId: mid,
+        occurredAt: `${HOJE}T09:00:0${i}.000Z`,
+        actorKind: 'user' as const,
+      }));
       return [
         {
           id: 'a1',
-          action: 'module.installed',
-          resourceType: 'tenant_module',
+          action: 'order.moved',
+          resourceType: 'work_order',
           moduleId: 'ops',
-          occurredAt: `${HOJE}T09:00:00.000Z`,
+          occurredAt: `${HOJE}T09:20:00.000Z`,
           actorKind: 'user',
         },
         {
@@ -144,6 +156,7 @@ export function createPanelMockPort(): PanelPort {
           occurredAt: `${HOJE}T09:12:00.000Z`,
           actorKind: 'user',
         },
+        ...emLote,
       ];
     },
 
