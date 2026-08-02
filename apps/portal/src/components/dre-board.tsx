@@ -8,6 +8,7 @@ import { setLineStatus } from '@/app/dre-actions';
 import type { DreLineRow, DreResultRow, DreStatementRow } from '@/lib/data';
 import { money } from '@/lib/format';
 import { Badge, EmptyState, Panel } from '@/components/states';
+import { Table, THead, TBody, TR, TH, TD } from '@/components/table';
 
 const NATUREZA: Record<string, string> = { revenue: 'receita', cost: 'custo', expense: 'despesa' };
 
@@ -30,19 +31,28 @@ export function DreBoard({
       {result.length > 0 ? (
         <section>
           <h3 className="mb-2 text-sm font-medium text-bos-text">Resultado</h3>
-          <div className="flex flex-col gap-2">
-            {result.map((r) => (
-              <Panel key={`${r.competenceMonth}-${r.currency}`} className="px-5 py-4">
-                <p className="text-xs text-bos-muted">{r.competenceMonth} · {r.currency}</p>
-                <div className="mt-2 grid grid-cols-2 gap-x-6 gap-y-1 text-sm sm:grid-cols-4">
-                  <Linha rotulo="Receita" cents={r.revenueCents} moeda={r.currency} />
-                  <Linha rotulo="Custos" cents={r.costCents} moeda={r.currency} />
-                  <Linha rotulo="Despesas" cents={r.expenseCents} moeda={r.currency} />
-                  <Linha rotulo="Resultado" cents={r.resultCents} moeda={r.currency} forte />
-                </div>
-              </Panel>
-            ))}
-          </div>
+          <Table>
+            <THead>
+              <TR>
+                <TH>Competência</TH>
+                <TH num>Receita</TH>
+                <TH num>Custos</TH>
+                <TH num>Despesas</TH>
+                <TH num>Resultado</TH>
+              </TR>
+            </THead>
+            <TBody>
+              {result.map((r) => (
+                <TR key={`${r.competenceMonth}-${r.currency}`} className="transition-colors hover:bg-bos-elevated/30">
+                  <TD>{r.competenceMonth} <span className="text-bos-muted">· {r.currency}</span></TD>
+                  <TD num className={r.revenueCents < 0 ? 'text-bos-danger' : 'text-bos-text'}>{money(r.revenueCents, r.currency)}</TD>
+                  <TD num className={r.costCents < 0 ? 'text-bos-danger' : 'text-bos-text'}>{money(r.costCents, r.currency)}</TD>
+                  <TD num className={r.expenseCents < 0 ? 'text-bos-danger' : 'text-bos-text'}>{money(r.expenseCents, r.currency)}</TD>
+                  <TD num className={`font-medium ${r.resultCents < 0 ? 'text-bos-danger' : 'text-bos-text'}`}>{money(r.resultCents, r.currency)}</TD>
+                </TR>
+              ))}
+            </TBody>
+          </Table>
         </section>
       ) : null}
 
@@ -52,14 +62,22 @@ export function DreBoard({
           <EmptyState title="Sem lançamentos ainda" hint="As linhas com valor aparecem aqui quando o caixa e os rateios registram." />
         ) : (
           <Panel className="px-5 py-4">
-            <ul className="flex flex-col gap-1">
-              {statement.map((s) => (
-                <li key={`${s.lineId}-${s.competenceMonth}`} className="flex items-center justify-between text-sm">
-                  <span className="text-bos-text">{s.lineName} <span className="text-bos-muted">· {NATUREZA[s.kind]}</span></span>
-                  <span className={s.amountCents < 0 ? 'text-bos-danger' : 'text-bos-text'}>{money(s.amountCents, s.currency)}</span>
-                </li>
-              ))}
-            </ul>
+            <Table>
+              <THead>
+                <TR>
+                  <TH>Linha</TH>
+                  <TH num>Valor</TH>
+                </TR>
+              </THead>
+              <TBody>
+                {statement.map((s) => (
+                  <TR key={`${s.lineId}-${s.competenceMonth}`} className="transition-colors hover:bg-bos-elevated/30">
+                    <TD>{s.lineName} <span className="text-bos-muted">· {NATUREZA[s.kind]}</span></TD>
+                    <TD num className={s.amountCents < 0 ? 'text-bos-danger' : 'text-bos-text'}>{money(s.amountCents, s.currency)}</TD>
+                  </TR>
+                ))}
+              </TBody>
+            </Table>
           </Panel>
         )}
       </section>
@@ -76,15 +94,6 @@ export function DreBoard({
           </div>
         )}
       </section>
-    </div>
-  );
-}
-
-function Linha({ rotulo, cents, moeda, forte }: { rotulo: string; cents: number; moeda: string; forte?: boolean }) {
-  return (
-    <div>
-      <p className="text-xs text-bos-muted">{rotulo}</p>
-      <p className={`${forte ? 'font-medium' : ''} ${cents < 0 ? 'text-bos-danger' : 'text-bos-text'}`}>{money(cents, moeda)}</p>
     </div>
   );
 }
