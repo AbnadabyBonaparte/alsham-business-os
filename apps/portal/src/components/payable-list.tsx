@@ -9,20 +9,18 @@ import { cancelPayable } from '@/app/ap-actions';
 import type { PayableRow } from '@/lib/data';
 import { money, shortDate } from '@/lib/format';
 import { Badge, EmptyState, Panel } from '@/components/states';
+import { Table, THead, TBody, TR, TH, TD } from '@/components/table';
 
 /**
- * A lista de títulos a pagar — o rosto do Módulo 3.
+ * A lista de títulos a pagar — o rosto do Módulo 3, agora TABELA DE VERDADE
+ * (Mandato de Beleza, Bloco Financeiro): valor e saldo à direita com tabular
+ * figures, colunas alinhadas linha a linha. O detalhe e a ação destrutiva
+ * (cancelar, em dois passos — padrão CRIVO) vivem numa LINHA EXPANSÍVEL, para a
+ * densidade da tabela conviver com a prosa que a decisão exige.
  *
- * ⭐ **Este componente não decide nada.** Se um título está vencido, se pode ser
- * cancelado e quanto ainda se deve são perguntas feitas a
- * `@alsham/accounts-payable`. Se a regra mudar no pacote, esta tela muda junto
- * sem ninguém tocar nela; e se alguém escrever `t.dueDate < hoje` aqui, a regra
- * passa a existir em dois lugares que vão divergir.
- *
- * Cancelar tem **confirmação explícita em dois passos** (padrão CRIVO): o
- * primeiro clique arma, o segundo confirma, e há sempre saída. É a ação
- * destrutiva do módulo, e põe evento na caixa de saída do Core — não é clique
- * barato.
+ * ⭐ **Este componente não decide nada.** Vencido, saldo e se pode cancelar são
+ * perguntas a `@alsham/accounts-payable`. Se alguém escrever `t.dueDate < hoje`
+ * aqui, a regra passa a existir em dois lugares que vão divergir.
  */
 
 type Tone = 'success' | 'warning' | 'danger' | 'info' | 'neutral';
@@ -61,15 +59,34 @@ export function PayableList({
   }
 
   return (
-    <div className="flex flex-col gap-3">
-      {rows.map((t) => (
-        <PayableCard key={t.id} titulo={t} canCancelPayables={canCancelPayables} today={today} />
-      ))}
-    </div>
+    <Panel className="px-2 py-1.5">
+      <Table>
+        <THead>
+          <TR>
+            <TH>Fornecedor</TH>
+            <TH>Vence</TH>
+            <TH num>Valor</TH>
+            <TH num>Saldo</TH>
+            <TH>Situação</TH>
+            <TH className="w-8" />
+          </TR>
+        </THead>
+        <TBody>
+          {rows.map((t) => (
+            <PayableRowItem
+              key={t.id}
+              titulo={t}
+              canCancelPayables={canCancelPayables}
+              today={today}
+            />
+          ))}
+        </TBody>
+      </Table>
+    </Panel>
   );
 }
 
-function PayableCard({
+function PayableRowItem({
   titulo,
   canCancelPayables,
   today,
@@ -78,62 +95,79 @@ function PayableCard({
   canCancelPayables: boolean;
   today: string;
 }) {
+  const [aberto, setAberto] = useState(false);
   const vencido = isOverdue(titulo, today);
   const saldo = outstandingCents(titulo);
   const podeCancelar = canCancel(titulo.status);
+  const painelId = `pay-${titulo.id}`;
 
   return (
-    <Panel className="px-6 py-5">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="min-w-0">
-          <div className="flex flex-wrap items-baseline gap-2">
-            <h2 className="font-display text-lg text-bos-text">
-              {titulo.supplierName ?? 'Sem fornecedor nomeado'}
-            </h2>
-            <span className="font-mono text-[11px] text-bos-muted">{titulo.externalRef}</span>
-          </div>
+    <>
+      <TR className="transition-colors hover:bg-bos-elevated/30">
+        <TD>
+          <span className="text-bos-text">{titulo.supplierName ?? 'Sem fornecedor nomeado'}</span>
+          <span className="ml-2 font-mono text-[11px] text-bos-muted">{titulo.externalRef}</span>
+        </TD>
+        <TD className="whitespace-nowrap text-bos-muted">{shortDate(titulo.dueDate)}</TD>
+        <TD num className="whitespace-nowrap text-bos-text">
+          {money(titulo.amountCents, titulo.currency)}
+        </TD>
+        <TD num className="whitespace-nowrap text-bos-muted">
+          {money(saldo, titulo.currency)}
+        </TD>
+        <TD className="whitespace-nowrap">
+          <span className="inline-flex items-center gap-1.5">
+            <Badge tone={TOM[titulo.status]}>{ROTULO[titulo.status]}</Badge>
+            {vencido ? <Badge tone="danger">vencido</Badge> : null}
+          </span>
+        </TD>
+        <TD className="text-right">
+          <button
+            type="button"
+            onClick={() => setAberto((v) => !v)}
+            aria-expanded={aberto}
+            aria-controls={painelId}
+            className="text-[11px] text-bos-muted transition-colors hover:text-bos-text"
+          >
+            {aberto ? 'fechar' : 'detalhes'}
+          </button>
+        </TD>
+      </TR>
 
-          {titulo.description ? (
-            <p className="mt-1 max-w-2xl text-sm text-bos-muted">{titulo.description}</p>
-          ) : null}
+      {aberto ? (
+        <TR>
+          <TD colSpan={6} className="bg-bos-elevated/20">
+            <div id={painelId} className="flex flex-col gap-3 px-1 py-1">
+              {titulo.description ? (
+                <p className="max-w-2xl text-sm text-bos-muted">{titulo.description}</p>
+              ) : null}
+              <p className="text-xs text-bos-muted">
+                {money(titulo.amountCents, titulo.currency)} devido
+                {titulo.settledAmountCents > 0 ? (
+                  <> · {money(titulo.settledAmountCents, titulo.currency)} liquidado</>
+                ) : null}
+                {titulo.paymentMethod ? <> · por {titulo.paymentMethod}</> : null}
+              </p>
+              {titulo.counterpartyTaxId ? (
+                <p className="font-mono text-[11px] text-bos-muted">{titulo.counterpartyTaxId}</p>
+              ) : null}
 
-          <p className="mt-2 text-xs text-bos-muted">
-            vence em {shortDate(titulo.dueDate)} ·{' '}
-            {money(titulo.amountCents, titulo.currency)} devido
-            {titulo.settledAmountCents > 0 ? (
-              <> · {money(titulo.settledAmountCents, titulo.currency)} liquidado</>
-            ) : null}
-            {saldo > 0 && titulo.settledAmountCents > 0 ? (
-              <> · saldo {money(saldo, titulo.currency)}</>
-            ) : null}
-            {titulo.paymentMethod ? <> · por {titulo.paymentMethod}</> : null}
-          </p>
-
-          {titulo.counterpartyTaxId ? (
-            <p className="mt-1 font-mono text-[11px] text-bos-muted">
-              {titulo.counterpartyTaxId}
-            </p>
-          ) : null}
-        </div>
-
-        <div className="flex shrink-0 flex-col items-end gap-2">
-          <Badge tone={TOM[titulo.status]}>{ROTULO[titulo.status]}</Badge>
-          {vencido ? <Badge tone="danger">vencido</Badge> : null}
-        </div>
-      </div>
-
-      <div className="mt-4 border-t border-bos-border pt-4">
-        {podeCancelar ? (
-          <CancelButton payableId={titulo.id} canCancelPayables={canCancelPayables} />
-        ) : (
-          <p className="text-xs text-bos-muted">
-            {titulo.status === 'cancelled'
-              ? 'Título cancelado. Ele continua aqui e continua no banco — cancelar é estado, nunca apagar. Se voltarmos a dever, é documento novo, com referência nova.'
-              : 'Título liquidado não se cancela: apagaria a fronteira entre "não devíamos isso" e "pagamos isso". Estorne o pagamento primeiro, e cancele depois.'}
-          </p>
-        )}
-      </div>
-    </Panel>
+              <div className="border-t border-bos-border pt-3">
+                {podeCancelar ? (
+                  <CancelButton payableId={titulo.id} canCancelPayables={canCancelPayables} />
+                ) : (
+                  <p className="max-w-2xl text-xs text-bos-muted">
+                    {titulo.status === 'cancelled'
+                      ? 'Título cancelado. Ele continua aqui e continua no banco — cancelar é estado, nunca apagar. Se voltarmos a dever, é documento novo, com referência nova.'
+                      : 'Título liquidado não se cancela: apagaria a fronteira entre "não devíamos isso" e "pagamos isso". Estorne o pagamento primeiro, e cancele depois.'}
+                  </p>
+                )}
+              </div>
+            </div>
+          </TD>
+        </TR>
+      ) : null}
+    </>
   );
 }
 
