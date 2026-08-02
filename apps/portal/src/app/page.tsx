@@ -7,7 +7,13 @@ import { visibleMenu } from '@alsham/permissions';
 import type { ShelfItem } from '@alsham/permissions';
 
 import { getPanelPort, loadAllPermissions } from '@/lib/data';
-import type { AuditRow, CourierSummary, OverviewCard, PlanUsageRow } from '@/lib/data/panel-port';
+import type {
+  AuditRow,
+  CourierSummary,
+  ModuleHealth,
+  OverviewCard,
+  PlanUsageRow,
+} from '@/lib/data/panel-port';
 import { resolveSession } from '@/lib/session';
 import { Badge, DemoNotice, EmptyState, Panel, SectionHeader } from '@/components/states';
 import { EventTimeline } from '@/components/event-timeline';
@@ -58,14 +64,16 @@ export default async function Painel() {
 
   // ⚠️ `Promise.allSettled`, não `all`: uma seção que não carrega não pode
   // apagar as outras. O Painel é a home — ele degrada por partes.
-  const [correio, consumo, trilha, prateleira, visao, permissoes] = await Promise.allSettled([
-    port.loadCourier(),
-    port.loadPlanUsage(),
-    port.loadRecentAudit(),
-    port.loadShelf(),
-    port.loadOverview(),
-    loadAllPermissions(),
-  ]);
+  const [correio, consumo, trilha, prateleira, visao, saudeMod, permissoes] =
+    await Promise.allSettled([
+      port.loadCourier(),
+      port.loadPlanUsage(),
+      port.loadRecentAudit(),
+      port.loadShelf(),
+      port.loadOverview(),
+      port.loadModuleHealth(),
+      loadAllPermissions(),
+    ]);
 
   const saude = correio.status === 'fulfilled' ? correio.value : null;
   const metricas = consumo.status === 'fulfilled' ? consumo.value : null;
@@ -75,6 +83,11 @@ export default async function Painel() {
   // falhar, a seção some (nunca inventa cartão). Cada cartão de dentro já vem
   // isolado do adapter — um que falhou vem com value=null e diz "sem leitura".
   const cartoes = visao.status === 'fulfilled' ? visao.value : [];
+  // ⭐ A saúde por módulo — um mapa moduleId → veredito. Se a leitura falhar,
+  // o mapa fica vazio e os módulos aparecem sem o ponto (nunca "ativo" forjado).
+  const saudePorModulo = new Map(
+    (saudeMod.status === 'fulfilled' ? saudeMod.value : []).map((s) => [s.moduleId, s]),
+  );
   const permissoesDoUsuario =
     permissoes.status === 'fulfilled' ? permissoes.value : new Set<string>();
 
@@ -104,7 +117,12 @@ export default async function Painel() {
 
       <div className="mt-4 grid gap-4 lg:grid-cols-3">
         <div className="lg:col-span-2">
-          <ModulosDoTenant instalados={instalados} disponiveis={disponiveis} falhou={modulos === null} />
+          <ModulosDoTenant
+            instalados={instalados}
+            disponiveis={disponiveis}
+            falhou={modulos === null}
+            saude={saudePorModulo}
+          />
         </div>
         <Atalhos itens={atalhos} />
       </div>
@@ -433,14 +451,38 @@ function ConsumoDoPlano({ metricas }: { metricas: PlanUsageRow[] | null }) {
  * OS MÓDULOS
  * ────────────────────────────────────────────────────────────────────── */
 
+/** ⭐ Relativo curto em pt-BR — "hoje", "há 3 dias". Sem lib, sem enfeite. */
+function haQuanto(iso: string): string {
+  const dias = Math.floor((Date.now() - new Date(iso).getTime()) / (24 * 60 * 60 * 1000));
+  if (dias <= 0) return 'hoje';
+  if (dias === 1) return 'ontem';
+  if (dias < 30) return `há ${dias} dias`;
+  const meses = Math.floor(dias / 30);
+  return meses === 1 ? 'há 1 mês' : `há ${meses} meses`;
+}
+
+/** O ponto de saúde — verde (ativo) / âmbar (parado). Nunca o ouro (é estado). */
+function PontoSaude({ verdict }: { verdict: ModuleHealth['verdict'] }) {
+  const cor = verdict === 'active' ? 'bg-bos-success' : 'bg-bos-warning';
+  const rotulo = verdict === 'active' ? 'ativo' : 'parado';
+  return (
+    <span className="inline-flex items-center gap-1.5" title={`Módulo ${rotulo}`}>
+      <span aria-hidden className={`size-1.5 rounded-full ${cor}`} />
+      <span className="sr-only">{rotulo}</span>
+    </span>
+  );
+}
+
 function ModulosDoTenant({
   instalados,
   disponiveis,
   falhou,
+  saude,
 }: {
   instalados: readonly ShelfItem[];
   disponiveis: readonly ShelfItem[];
   falhou: boolean;
+  saude: ReadonlyMap<string, ModuleHealth>;
 }) {
   return (
     <Panel className="h-full px-6 py-5">
@@ -469,20 +511,30 @@ function ModulosDoTenant({
         </p>
       ) : (
         <ul className="mt-4 divide-y divide-bos-border border-t border-bos-border">
-          {instalados.map((m) => (
-            <li key={m.entry.moduleId} className="flex flex-wrap items-baseline gap-x-3 gap-y-1 py-3">
-              <span className="text-sm text-bos-text">{m.entry.name}</span>
-              {/* ⚠️ A versão exibida é a QUE ESTE TENANT TEM, quando diferente
-                  da publicada. Mostrar sempre a do catálogo faria a tela mentir
-                  logo depois de uma publicação. */}
-              <span className="font-mono text-[11px] text-bos-muted">
-                {m.entry.moduleId} v{m.installedVersion ?? m.entry.version}
-              </span>
-              {m.installedVersion !== null && m.installedVersion !== m.entry.version ? (
-                <Badge tone="info">catálogo v{m.entry.version}</Badge>
-              ) : null}
-            </li>
-          ))}
+          {instalados.map((m) => {
+            const h = saude.get(m.entry.moduleId);
+            return (
+              <li key={m.entry.moduleId} className="flex flex-wrap items-baseline gap-x-3 gap-y-1 py-3">
+                {h !== undefined ? <PontoSaude verdict={h.verdict} /> : null}
+                <span className="text-sm text-bos-text">{m.entry.name}</span>
+                {/* ⚠️ A versão exibida é a QUE ESTE TENANT TEM, quando diferente
+                    da publicada. Mostrar sempre a do catálogo faria a tela mentir
+                    logo depois de uma publicação. */}
+                <span className="font-mono text-[11px] text-bos-muted">
+                  {m.entry.moduleId} v{m.installedVersion ?? m.entry.version}
+                </span>
+                {m.installedVersion !== null && m.installedVersion !== m.entry.version ? (
+                  <Badge tone="info">catálogo v{m.entry.version}</Badge>
+                ) : null}
+                {/* ⭐ Última atividade REAL da trilha — ou o silêncio honesto. */}
+                <span className="ml-auto text-[11px] text-bos-muted">
+                  {h?.lastActivityAt != null
+                    ? `ativo ${haQuanto(h.lastActivityAt)}`
+                    : 'sem atividade recente'}
+                </span>
+              </li>
+            );
+          })}
         </ul>
       )}
 
