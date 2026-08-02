@@ -10,6 +10,7 @@ import { getPanelPort, loadAllPermissions } from '@/lib/data';
 import type { AuditRow, CourierSummary, OverviewCard, PlanUsageRow } from '@/lib/data/panel-port';
 import { resolveSession } from '@/lib/session';
 import { Badge, DemoNotice, EmptyState, Panel, SectionHeader } from '@/components/states';
+import { EventTimeline } from '@/components/event-timeline';
 
 export const dynamic = 'force-dynamic';
 
@@ -544,24 +545,7 @@ function UltimasLinhas({ linhas }: { linhas: readonly AuditRow[] }) {
           forma.
         </p>
       ) : (
-        <ul className="mt-4 divide-y divide-bos-border border-t border-bos-border">
-          {linhas.map((l) => (
-            <li key={l.id} className="flex flex-wrap items-baseline gap-x-3 gap-y-1 py-2.5">
-              <span className="font-mono text-xs text-bos-text">{l.action}</span>
-              <span className="text-xs text-bos-muted">{l.resourceType}</span>
-              {l.moduleId !== null ? (
-                <span className="font-mono text-[11px] text-bos-muted">{l.moduleId}</span>
-              ) : null}
-              {l.actorKind !== 'user' ? <Badge tone="neutral">{l.actorKind}</Badge> : null}
-              <time
-                dateTime={l.occurredAt}
-                className="ml-auto font-mono text-[11px] text-bos-muted"
-              >
-                {l.occurredAt.slice(0, 16).replace('T', ' ')}
-              </time>
-            </li>
-          ))}
-        </ul>
+        <EventTimeline linhas={linhas} />
       )}
     </Panel>
   );
