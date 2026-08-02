@@ -6,6 +6,7 @@ import type { Category } from '@alsham/cashflow';
 import type { EntryRow } from '@/lib/data';
 import { money, shortDate } from '@/lib/format';
 import { Badge, EmptyState, Panel } from '@/components/states';
+import { Table, THead, TBody, TR, TH, TD } from '@/components/table';
 
 const ROTULOS: Record<string, string> = {
   in: 'entrada',
@@ -43,49 +44,49 @@ export function CashLedger({
           {resumo.adjustments} ajuste(s)
         </p>
       </div>
-      <div className="mt-3 overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="text-left text-[11px] uppercase tracking-wide text-bos-muted">
-              <th className="py-1 pr-3">Dia</th>
-              <th className="py-1 pr-3">Tipo</th>
-              <th className="py-1 pr-3">Descrição</th>
-              <th className="py-1 pr-3">Categoria</th>
-              <th className="py-1 pr-3">Conta</th>
-              <th className="py-1 pr-3 text-right">Valor</th>
-            </tr>
-          </thead>
-          <tbody>
+      <div className="mt-3">
+        <Table>
+          <THead>
+            <TR>
+              <TH>Dia</TH>
+              <TH>Tipo</TH>
+              <TH>Descrição</TH>
+              <TH>Categoria</TH>
+              <TH>Conta</TH>
+              <TH num>Valor</TH>
+            </TR>
+          </THead>
+          <TBody>
             {entries.map((e) => (
-              <tr key={e.id} className="border-t border-bos-border text-bos-text">
-                <td className="py-1.5 pr-3 whitespace-nowrap">{shortDate(e.occurredOn)}</td>
-                <td className="py-1.5 pr-3">
+              <TR key={e.id} className="transition-colors hover:bg-bos-elevated/30">
+                <TD className="whitespace-nowrap text-bos-text">{shortDate(e.occurredOn)}</TD>
+                <TD>
                   <Badge tone={e.kind === 'in' ? 'success' : e.kind === 'out' ? 'neutral' : 'warning'}>
                     {ROTULOS[e.kind]}
                   </Badge>
-                </td>
-                <td className="py-1.5 pr-3">
+                </TD>
+                <TD className="text-bos-text">
                   {e.description || <span className="text-bos-muted">—</span>}
                   {e.kind === 'adjustment' && e.reason ? (
                     <span className="block text-[11px] text-bos-muted">razão: {e.reason}</span>
                   ) : null}
-                </td>
-                <td className="py-1.5 pr-3">
+                </TD>
+                <TD>
                   {e.categoryId ? (
                     (nomes.get(e.categoryId) ?? '—')
                   ) : (
                     <span className="text-bos-muted">sem categoria</span>
                   )}
-                </td>
-                <td className="py-1.5 pr-3 text-bos-muted">{e.account ?? '—'}</td>
-                <td className="py-1.5 pr-3 text-right tabular">
+                </TD>
+                <TD className="text-bos-muted">{e.account ?? '—'}</TD>
+                <TD num className="whitespace-nowrap text-bos-text">
                   {money(e.amountCents, e.currency)}
                   {e.kind === 'out' ? <span className="text-bos-muted"> (−)</span> : null}
-                </td>
-              </tr>
+                </TD>
+              </TR>
             ))}
-          </tbody>
-        </table>
+          </TBody>
+        </Table>
       </div>
     </Panel>
   );

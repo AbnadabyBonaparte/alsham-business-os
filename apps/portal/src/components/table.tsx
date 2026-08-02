@@ -73,13 +73,17 @@ export function TD({
   children,
   num = false,
   className = '',
+  colSpan,
 }: {
   children?: ReactNode;
   num?: boolean;
   className?: string;
+  /** Para a linha de detalhe que atravessa a tabela inteira. */
+  colSpan?: number;
 }) {
   return (
     <td
+      colSpan={colSpan}
       className={`px-3 py-2.5 align-middle ${
         num ? 'tabular text-right font-mono' : 'text-left'
       } ${className}`}
