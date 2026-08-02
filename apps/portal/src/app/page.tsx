@@ -17,6 +17,8 @@ import type {
 import { resolveSession } from '@/lib/session';
 import { Badge, DemoNotice, EmptyState, Panel, SectionHeader } from '@/components/states';
 import { EventTimeline } from '@/components/event-timeline';
+import { DomainSectionHeader } from '@/components/domain-section';
+import { mapShelfToTaxonomy, type TerritorySection } from '@/lib/store-taxonomy';
 
 export const dynamic = 'force-dynamic';
 
@@ -518,6 +520,13 @@ function ModulosDoTenant({
     );
   }
 
+  // ⭐ Agrupamento por domínio — REAPROVEITA o `mapShelfToTaxonomy` da Store
+  // (Mandato de Beleza 1/6). Uma fonte só de agrupamento (Sol Único): o mesmo
+  // que a vitrine usa para os territórios, na MESMA ordem da Taxonomia. Os
+  // instalados só carregam módulos vivos, então `upcoming` é ignorado aqui.
+  const { domains, verticals } = mapShelfToTaxonomy(instalados);
+  const secoes: TerritorySection[] = [...domains.live, ...verticals.live];
+
   return (
     <Panel className="h-full px-6 py-5">
       {cabecalho}
@@ -528,40 +537,63 @@ function ModulosDoTenant({
       {falhou ? (
         <p className="mt-4 text-sm text-bos-muted">Não foi possível ler o catálogo agora.</p>
       ) : (
-        <ul className="mt-4 divide-y divide-bos-border border-t border-bos-border">
-          {instalados.map((m) => {
-            const h = saude.get(m.entry.moduleId);
-            return (
-              <li key={m.entry.moduleId} className="flex flex-wrap items-baseline gap-x-3 gap-y-1 py-3">
-                {h !== undefined ? <PontoSaude verdict={h.verdict} /> : null}
-                <span className="text-sm text-bos-text">{m.entry.name}</span>
-                {/* ⚠️ A versão exibida é a QUE ESTE TENANT TEM, quando diferente
-                    da publicada. Mostrar sempre a do catálogo faria a tela mentir
-                    logo depois de uma publicação. */}
-                <span className="font-mono text-[11px] text-bos-muted">
-                  {m.entry.moduleId} v{m.installedVersion ?? m.entry.version}
-                </span>
-                {m.installedVersion !== null && m.installedVersion !== m.entry.version ? (
-                  <Badge tone="info">catálogo v{m.entry.version}</Badge>
-                ) : null}
-                {/* ⭐ Última atividade REAL da trilha — ou o silêncio honesto. */}
-                <span className="ml-auto text-[11px] text-bos-muted">
-                  {h?.lastActivityAt != null
-                    ? `ativo ${haQuanto(h.lastActivityAt)}`
-                    : 'sem atividade recente'}
-                </span>
-              </li>
-            );
-          })}
-        </ul>
+        <div className="mt-5 flex flex-col gap-6">
+          {secoes.map((secao) => (
+            <div key={`${secao.territory.layer}:${secao.territory.key}`}>
+              <DomainSectionHeader
+                territoryKey={secao.territory.key}
+                layerLabel={secao.territory.layer === 'domain' ? 'Domínio' : 'Vertical'}
+                name={secao.territory.name}
+                right={`${secao.items.length} módulo${secao.items.length === 1 ? '' : 's'}`}
+              />
+              <ul className="divide-y divide-bos-border">
+                {secao.items.map((m) => (
+                  <LinhaModulo key={m.entry.moduleId} m={m} saude={saude} />
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
       )}
 
       {disponiveis.length > 0 ? (
-        <p className="mt-4 text-xs text-bos-muted">
+        <p className="mt-6 text-xs text-bos-muted">
           Disponíveis para instalar: {disponiveis.map((m) => m.entry.name).join(' · ')}.
         </p>
       ) : null}
     </Panel>
+  );
+}
+
+/** Uma linha de módulo instalado: ponto de saúde + nome + versão + última atividade. */
+function LinhaModulo({
+  m,
+  saude,
+}: {
+  m: ShelfItem;
+  saude: ReadonlyMap<string, ModuleHealth>;
+}) {
+  const h = saude.get(m.entry.moduleId);
+  return (
+    <li className="flex flex-wrap items-baseline gap-x-3 gap-y-1 py-2.5">
+      {h !== undefined ? <PontoSaude verdict={h.verdict} /> : null}
+      <span className="text-sm text-bos-text">{m.entry.name}</span>
+      {/* ⚠️ A versão exibida é a QUE ESTE TENANT TEM, quando diferente da
+          publicada. Mostrar sempre a do catálogo faria a tela mentir logo
+          depois de uma publicação. */}
+      <span className="font-mono text-[11px] text-bos-muted">
+        {m.entry.moduleId} v{m.installedVersion ?? m.entry.version}
+      </span>
+      {m.installedVersion !== null && m.installedVersion !== m.entry.version ? (
+        <Badge tone="info">catálogo v{m.entry.version}</Badge>
+      ) : null}
+      {/* ⭐ Última atividade REAL da trilha — ou o silêncio honesto. */}
+      <span className="ml-auto text-[11px] text-bos-muted">
+        {h?.lastActivityAt != null
+          ? `ativo ${haQuanto(h.lastActivityAt)}`
+          : 'sem atividade recente'}
+      </span>
+    </li>
   );
 }
 
