@@ -484,31 +484,44 @@ function ModulosDoTenant({
   falhou: boolean;
   saude: ReadonlyMap<string, ModuleHealth>;
 }) {
+  const cabecalho = (
+    <div className="flex flex-wrap items-baseline justify-between gap-3">
+      <h2 className="font-display text-lg text-bos-text">Os seus módulos</h2>
+      <Link
+        href="/store"
+        className="text-xs text-bos-muted underline-offset-4 transition-colors hover:text-bos-text hover:underline"
+      >
+        ver o catálogo
+      </Link>
+    </div>
+  );
+
+  // ⭐ Primeira corrida do tenant: nenhum módulo ainda. Não é uma lista vazia —
+  // é o convite. Estado vazio DESENHADO com um CTA de VERDADE (Onda UX Viva
+  // 4/6): a Store existe, o passo é real, o botão leva a ele. Sem outra Panel
+  // por fora (o próprio EmptyState é a moldura) — nada de borda dupla.
+  if (!falhou && instalados.length === 0) {
+    return (
+      <div className="flex h-full flex-col gap-3">
+        {cabecalho}
+        <EmptyState
+          title="Nenhum módulo instalado ainda"
+          hint="O Core já está de pé. A empresa não compra um sistema — monta o dela, Core mais módulos, como Lego. Falta escolher o primeiro."
+          action={{ label: 'Escolher o primeiro módulo', href: '/store' }}
+        />
+      </div>
+    );
+  }
+
   return (
     <Panel className="h-full px-6 py-5">
-      <div className="flex flex-wrap items-baseline justify-between gap-3">
-        <h2 className="font-display text-lg text-bos-text">Os seus módulos</h2>
-        <Link
-          href="/store"
-          className="text-xs text-bos-muted underline-offset-4 transition-colors hover:text-bos-text hover:underline"
-        >
-          ver o catálogo
-        </Link>
-      </div>
+      {cabecalho}
       <p className="mt-1 max-w-2xl text-sm text-bos-muted">
         A empresa não compra um sistema. Ela monta o dela — Core mais módulos, como Lego.
       </p>
 
       {falhou ? (
         <p className="mt-4 text-sm text-bos-muted">Não foi possível ler o catálogo agora.</p>
-      ) : instalados.length === 0 ? (
-        <p className="mt-4 text-sm text-bos-muted">
-          Nenhum módulo instalado ainda. O Core já está de pé — falta escolher o primeiro na{' '}
-          <Link href="/store" className="text-bos-text underline underline-offset-4">
-            Store
-          </Link>
-          .
-        </p>
       ) : (
         <ul className="mt-4 divide-y divide-bos-border border-t border-bos-border">
           {instalados.map((m) => {

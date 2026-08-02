@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import Link from 'next/link';
 
 /**
  * Os estados que todo mundo esquece — e que o CRIVO cobra.
@@ -93,9 +94,34 @@ export function Panel({ children, className = '' }: { children: ReactNode; class
   );
 }
 
+/**
+ * ⭐ Um CTA de VERDADE para um estado vazio (Onda UX Viva 4/6).
+ *
+ * ⚠️ **Lei 7 no botão:** só passe `action` quando o próximo passo for uma rota
+ * REAL e alcançável — a Store, um formulário ancorado nesta mesma página. Se
+ * não há ação que o usuário POSSA tomar aqui (falta um convite que só outra
+ * pessoa envia, falta um teto de plano que só o dono declara), **não passe
+ * `action`**: o silêncio honesto é melhor do que um botão que não resolve. Um
+ * CTA decorativo é a Lei 7 com o sinal trocado.
+ */
+export interface EmptyAction {
+  readonly label: string;
+  /** Rota real (`/store`) ou âncora na própria página (`#novo`). Nunca `#`. */
+  readonly href: string;
+}
+
 /** Estado vazio desenhado — nunca tela branca: moldura de cantoneiras,
-    o Sol em opacidade mínima, serifa itálica. Composição, não ausência. */
-export function EmptyState({ title, hint }: { title: string; hint?: string }) {
+    o Sol em opacidade mínima, serifa itálica. Composição, não ausência.
+    Quando há um próximo passo real, ganha um CTA (ver `EmptyAction`). */
+export function EmptyState({
+  title,
+  hint,
+  action,
+}: {
+  title: string;
+  hint?: string;
+  action?: EmptyAction;
+}) {
   return (
     <Panel className="blueprint relative px-6 py-16 text-center">
       <span aria-hidden className="absolute top-3 left-3 h-4 w-4 border-t border-l border-bos-accent/30" />
@@ -116,6 +142,26 @@ export function EmptyState({ title, hint }: { title: string; hint?: string }) {
       <p className="font-display text-lg text-bos-text">{title}</p>
       {hint ? (
         <p className="mx-auto mt-2 max-w-md font-display text-sm italic text-bos-muted">{hint}</p>
+      ) : null}
+      {action ? (
+        <Link
+          href={action.href}
+          className="mt-6 inline-flex items-center gap-2 rounded-md border border-bos-accent/60 bg-bos-accent/10 px-4 py-2 text-sm text-bos-text transition-colors duration-200 hover:border-bos-accent hover:bg-bos-accent/15 focus:outline-none focus-visible:ring-1 focus-visible:ring-bos-accent/60"
+        >
+          {action.label}
+          <svg
+            aria-hidden
+            viewBox="0 0 24 24"
+            className="size-3.5"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M5 12h14M13 6l6 6-6 6" />
+          </svg>
+        </Link>
       ) : null}
     </Panel>
   );
