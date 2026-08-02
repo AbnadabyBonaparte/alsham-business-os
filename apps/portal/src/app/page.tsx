@@ -295,6 +295,13 @@ function CartaoVisao({ c, indice = 0 }: { c: OverviewCard; indice?: number }) {
             sem leitura agora — o dado existe, esta tela não conseguiu lê-lo
           </p>
         </>
+      ) : c.value === 0 && c.zeroText ? (
+        /* ⭐ Estado-zero contextual (Mandato de Beleza 4/6): o zero de
+           ausência-de-dado vira texto — mesma verdade, sem parecer quebrado. */
+        <>
+          <p className="mt-2 font-display text-lg leading-tight text-bos-muted">{c.zeroText}</p>
+          {c.hint ? <p className="mt-1 text-[11px] text-bos-muted">{c.hint}</p> : null}
+        </>
       ) : (
         <>
           <p className={`tabular mt-2 font-display text-2xl ${tom}`}>{formatarValor(c)}</p>

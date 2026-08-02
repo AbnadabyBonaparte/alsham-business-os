@@ -46,6 +46,17 @@ export interface OverviewCard {
   readonly href?: string;
   /** Realce de estado — nunca decorativo (vencendo/crítico). O ouro fica de fora. */
   readonly tone?: 'neutral' | 'warning' | 'danger';
+  /**
+   * ⭐ **Texto de estado-zero** (Mandato de Beleza 4/6) — a glosa a mostrar
+   * QUANDO `value === 0` e o zero significa **ausência-de-dado** ("ainda sem
+   * lançamento"), no lugar do número cru que parece produto quebrado.
+   *
+   * ⚠️ Quem decide é o ADAPTER, não a tela: só vem preenchido quando o zero é
+   * ausência-de-dado. Onde o zero é **ausência-de-problema** (ex.: "0 itens com
+   * saldo negativo" é boa notícia), fica `undefined` e a tela mostra o `0` —
+   * o teste é o que o zero comunica.
+   */
+  readonly zeroText?: string;
 }
 
 /**

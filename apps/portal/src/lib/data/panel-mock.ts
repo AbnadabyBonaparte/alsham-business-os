@@ -175,12 +175,16 @@ export function createPanelMockPort(): PanelPort {
     // ⭐ A Visão Geral do demo — números MODESTOS (Lei 7 vale na vitrine). Só os
     // módulos que o demo instala têm cartão; `crm` sem 'estoque-critico' porque
     // o inv é que dá esse cartão. Nenhum zero fabricado: são dados de exemplo.
+    // ⭐ Demo dos TRÊS comportamentos de estado-zero (Mandato de Beleza 4/6):
+    // número real (caixa, clientes); zero de ausência-de-dado que vira TEXTO
+    // (receita, contas vencendo); e zero de BOA notícia que mantém o número
+    // (estoque crítico = 0). Mesma verdade, sem parecer produto quebrado.
     async loadOverview(): Promise<OverviewCard[]> {
       return [
         { key: 'caixa-disponivel', label: 'Caixa disponível', moduleId: 'cash', kind: 'currency', value: 1845000, currency: 'BRL', href: '/caixa', hint: 'Saldo do livro-caixa.', tone: 'neutral' },
-        { key: 'receita-mes', label: 'Receita do mês', moduleId: 'cash', kind: 'currency', value: 732000, currency: 'BRL', href: '/caixa', hint: 'Entradas do mês corrente.', tone: 'neutral' },
-        { key: 'contas-vencendo', label: 'Contas vencendo', moduleId: 'ar', kind: 'count', value: 3, href: '/contas-a-receber', hint: 'A receber, em aberto, até 7 dias.', tone: 'warning' },
-        { key: 'estoque-critico', label: 'Estoque crítico', moduleId: 'inv', kind: 'count', value: 1, href: '/estoque', hint: 'Itens com saldo zerado ou negativo.', tone: 'danger' },
+        { key: 'receita-mes', label: 'Receita do mês', moduleId: 'cash', kind: 'currency', value: 0, currency: 'BRL', href: '/caixa', hint: 'Entradas do mês corrente.', tone: 'neutral', zeroText: 'sem entradas neste mês' },
+        { key: 'contas-vencendo', label: 'Contas vencendo', moduleId: 'ar', kind: 'count', value: 0, href: '/contas-a-receber', hint: 'A receber, em aberto, até 7 dias.', tone: 'neutral', zeroText: 'nenhuma conta vencendo' },
+        { key: 'estoque-critico', label: 'Estoque crítico', moduleId: 'inv', kind: 'count', value: 0, href: '/estoque', hint: 'Itens com saldo zerado ou negativo.', tone: 'neutral' },
         { key: 'clientes-ativos', label: 'Clientes ativos', moduleId: 'crm', kind: 'count', value: 12, href: '/relacionamentos', hint: 'Contrapartes ativas.', tone: 'neutral' },
       ];
     },
