@@ -18,6 +18,7 @@ import { resolveSession } from '@/lib/session';
 import { Badge, DemoNotice, EmptyState, Panel, SectionHeader } from '@/components/states';
 import { EventTimeline } from '@/components/event-timeline';
 import { DomainSectionHeader } from '@/components/domain-section';
+import { Table, TBody, TR, TD } from '@/components/table';
 import { mapShelfToTaxonomy, type TerritorySection } from '@/lib/store-taxonomy';
 
 export const dynamic = 'force-dynamic';
@@ -546,11 +547,13 @@ function ModulosDoTenant({
                 name={secao.territory.name}
                 right={`${secao.items.length} módulo${secao.items.length === 1 ? '' : 's'}`}
               />
-              <ul className="divide-y divide-bos-border">
-                {secao.items.map((m) => (
-                  <LinhaModulo key={m.entry.moduleId} m={m} saude={saude} />
-                ))}
-              </ul>
+              <Table>
+                <TBody>
+                  {secao.items.map((m) => (
+                    <LinhaModulo key={m.entry.moduleId} m={m} saude={saude} />
+                  ))}
+                </TBody>
+              </Table>
             </div>
           ))}
         </div>
@@ -565,7 +568,11 @@ function ModulosDoTenant({
   );
 }
 
-/** Uma linha de módulo instalado: ponto de saúde + nome + versão + última atividade. */
+/**
+ * Uma linha de módulo — agora TABELA DE VERDADE (Mandato de Beleza 3/6):
+ * colunas alinhadas linha a linha, a última atividade à direita com tabular
+ * figures. Ponto de saúde + nome | identificação | atividade.
+ */
 function LinhaModulo({
   m,
   saude,
@@ -574,26 +581,36 @@ function LinhaModulo({
   saude: ReadonlyMap<string, ModuleHealth>;
 }) {
   const h = saude.get(m.entry.moduleId);
+  const versaoDivergente =
+    m.installedVersion !== null && m.installedVersion !== m.entry.version;
   return (
-    <li className="flex flex-wrap items-baseline gap-x-3 gap-y-1 py-2.5">
-      {h !== undefined ? <PontoSaude verdict={h.verdict} /> : null}
-      <span className="text-sm text-bos-text">{m.entry.name}</span>
-      {/* ⚠️ A versão exibida é a QUE ESTE TENANT TEM, quando diferente da
-          publicada. Mostrar sempre a do catálogo faria a tela mentir logo
-          depois de uma publicação. */}
-      <span className="font-mono text-[11px] text-bos-muted">
-        {m.entry.moduleId} v{m.installedVersion ?? m.entry.version}
-      </span>
-      {m.installedVersion !== null && m.installedVersion !== m.entry.version ? (
-        <Badge tone="info">catálogo v{m.entry.version}</Badge>
-      ) : null}
-      {/* ⭐ Última atividade REAL da trilha — ou o silêncio honesto. */}
-      <span className="ml-auto text-[11px] text-bos-muted">
-        {h?.lastActivityAt != null
-          ? `ativo ${haQuanto(h.lastActivityAt)}`
-          : 'sem atividade recente'}
-      </span>
-    </li>
+    <TR className="transition-colors hover:bg-bos-elevated/30">
+      <TD>
+        <span className="flex items-center gap-2.5">
+          {/* espaço fixo para o ponto — o nome alinha mesmo sem leitura de saúde */}
+          <span className="flex w-2 shrink-0 justify-center">
+            {h !== undefined ? <PontoSaude verdict={h.verdict} /> : null}
+          </span>
+          <span className="text-bos-text">{m.entry.name}</span>
+        </span>
+      </TD>
+      <TD className="whitespace-nowrap">
+        {/* ⚠️ A versão exibida é a QUE ESTE TENANT TEM, quando diferente da
+            publicada. Mostrar sempre a do catálogo faria a tela mentir. */}
+        <span className="font-mono text-[11px] text-bos-muted">
+          {m.entry.moduleId} v{m.installedVersion ?? m.entry.version}
+        </span>
+        {versaoDivergente ? (
+          <span className="ml-2 align-middle">
+            <Badge tone="info">catálogo v{m.entry.version}</Badge>
+          </span>
+        ) : null}
+      </TD>
+      {/* ⭐ Última atividade REAL da trilha (à direita, tabular) — ou o silêncio honesto. */}
+      <TD num className="whitespace-nowrap text-[11px] text-bos-muted">
+        {h?.lastActivityAt != null ? `ativo ${haQuanto(h.lastActivityAt)}` : 'sem atividade recente'}
+      </TD>
+    </TR>
   );
 }
 
