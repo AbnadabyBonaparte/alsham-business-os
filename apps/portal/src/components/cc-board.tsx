@@ -15,6 +15,7 @@ import {
 import type { ByCenterRow, CenterRow, ExecutionRow, RuleRow } from '@/lib/data';
 import { money, shortDate } from '@/lib/format';
 import { Badge, EmptyState, Panel } from '@/components/states';
+import { Table, THead, TBody, TR, TH, TD } from '@/components/table';
 
 const campo = 'rounded-md border border-bos-border bg-bos-bg px-2 py-1.5 text-xs text-bos-text';
 const botao = 'rounded-md border border-bos-border px-2.5 py-1 text-xs text-bos-text hover:border-bos-accent';
@@ -79,14 +80,22 @@ export function CcBoard({
         <section>
           <h3 className="mb-2 text-sm font-medium text-bos-text">Rateado por centro</h3>
           <Panel className="px-5 py-4">
-            <ul className="flex flex-col gap-1">
-              {byCenter.map((b) => (
-                <li key={`${b.centerId}-${b.currency}`} className="flex items-center justify-between text-sm text-bos-text">
-                  <span>{b.centerName}</span>
-                  <span className="font-medium">{money(b.allocatedCents, b.currency)}</span>
-                </li>
-              ))}
-            </ul>
+            <Table>
+              <THead>
+                <TR>
+                  <TH>Centro</TH>
+                  <TH num>Rateado</TH>
+                </TR>
+              </THead>
+              <TBody>
+                {byCenter.map((b) => (
+                  <TR key={`${b.centerId}-${b.currency}`} className="transition-colors hover:bg-bos-elevated/30">
+                    <TD>{b.centerName}</TD>
+                    <TD num>{money(b.allocatedCents, b.currency)}</TD>
+                  </TR>
+                ))}
+              </TBody>
+            </Table>
           </Panel>
         </section>
       ) : null}
@@ -94,14 +103,26 @@ export function CcBoard({
       {executions.length > 0 ? (
         <section>
           <h3 className="mb-2 text-sm font-medium text-bos-text">Execuções</h3>
-          <ul className="flex flex-col gap-1.5">
-            {executions.map((e) => (
-              <li key={e.id} className="text-xs text-bos-muted">
-                <span className="text-bos-text">{e.ruleName}</span> · {money(e.totalCents, e.currency)} ·{' '}
-                {e.sourceName || e.sourceKind} · competência {shortDate(e.competenceOn)}
-              </li>
-            ))}
-          </ul>
+          <Table>
+            <THead>
+              <TR>
+                <TH>Regra</TH>
+                <TH num>Total</TH>
+                <TH>Origem</TH>
+                <TH>Competência</TH>
+              </TR>
+            </THead>
+            <TBody>
+              {executions.map((e) => (
+                <TR key={e.id} className="transition-colors hover:bg-bos-elevated/30">
+                  <TD>{e.ruleName}</TD>
+                  <TD num>{money(e.totalCents, e.currency)}</TD>
+                  <TD>{e.sourceName || e.sourceKind}</TD>
+                  <TD>{shortDate(e.competenceOn)}</TD>
+                </TR>
+              ))}
+            </TBody>
+          </Table>
         </section>
       ) : null}
     </div>
