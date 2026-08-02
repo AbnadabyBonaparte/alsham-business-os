@@ -7,9 +7,16 @@ import { visibleMenu } from '@alsham/permissions';
 import type { ShelfItem } from '@alsham/permissions';
 
 import { getPanelPort, loadAllPermissions } from '@/lib/data';
-import type { AuditRow, CourierSummary, OverviewCard, PlanUsageRow } from '@/lib/data/panel-port';
+import type {
+  AuditRow,
+  CourierSummary,
+  ModuleHealth,
+  OverviewCard,
+  PlanUsageRow,
+} from '@/lib/data/panel-port';
 import { resolveSession } from '@/lib/session';
 import { Badge, DemoNotice, EmptyState, Panel, SectionHeader } from '@/components/states';
+import { EventTimeline } from '@/components/event-timeline';
 
 export const dynamic = 'force-dynamic';
 
@@ -57,14 +64,16 @@ export default async function Painel() {
 
   // ⚠️ `Promise.allSettled`, não `all`: uma seção que não carrega não pode
   // apagar as outras. O Painel é a home — ele degrada por partes.
-  const [correio, consumo, trilha, prateleira, visao, permissoes] = await Promise.allSettled([
-    port.loadCourier(),
-    port.loadPlanUsage(),
-    port.loadRecentAudit(),
-    port.loadShelf(),
-    port.loadOverview(),
-    loadAllPermissions(),
-  ]);
+  const [correio, consumo, trilha, prateleira, visao, saudeMod, permissoes] =
+    await Promise.allSettled([
+      port.loadCourier(),
+      port.loadPlanUsage(),
+      port.loadRecentAudit(),
+      port.loadShelf(),
+      port.loadOverview(),
+      port.loadModuleHealth(),
+      loadAllPermissions(),
+    ]);
 
   const saude = correio.status === 'fulfilled' ? correio.value : null;
   const metricas = consumo.status === 'fulfilled' ? consumo.value : null;
@@ -74,6 +83,11 @@ export default async function Painel() {
   // falhar, a seção some (nunca inventa cartão). Cada cartão de dentro já vem
   // isolado do adapter — um que falhou vem com value=null e diz "sem leitura".
   const cartoes = visao.status === 'fulfilled' ? visao.value : [];
+  // ⭐ A saúde por módulo — um mapa moduleId → veredito. Se a leitura falhar,
+  // o mapa fica vazio e os módulos aparecem sem o ponto (nunca "ativo" forjado).
+  const saudePorModulo = new Map(
+    (saudeMod.status === 'fulfilled' ? saudeMod.value : []).map((s) => [s.moduleId, s]),
+  );
   const permissoesDoUsuario =
     permissoes.status === 'fulfilled' ? permissoes.value : new Set<string>();
 
@@ -103,7 +117,12 @@ export default async function Painel() {
 
       <div className="mt-4 grid gap-4 lg:grid-cols-3">
         <div className="lg:col-span-2">
-          <ModulosDoTenant instalados={instalados} disponiveis={disponiveis} falhou={modulos === null} />
+          <ModulosDoTenant
+            instalados={instalados}
+            disponiveis={disponiveis}
+            falhou={modulos === null}
+            saude={saudePorModulo}
+          />
         </div>
         <Atalhos itens={atalhos} />
       </div>
@@ -221,8 +240,8 @@ function VisaoGeral({ cartoes }: { cartoes: readonly OverviewCard[] }) {
     <section className="mb-4">
       <h2 className="bos-eyebrow mb-3">Visão geral</h2>
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
-        {cartoes.map((c) => (
-          <CartaoVisao key={c.key} c={c} />
+        {cartoes.map((c, i) => (
+          <CartaoVisao key={c.key} c={c} indice={i} />
         ))}
       </div>
     </section>
@@ -241,10 +260,15 @@ function formatarValor(c: OverviewCard): string {
   return c.value.toLocaleString('pt-BR');
 }
 
-function CartaoVisao({ c }: { c: OverviewCard }) {
+function CartaoVisao({ c, indice = 0 }: { c: OverviewCard; indice?: number }) {
   const tom = CARD_TOM[c.tone ?? 'neutral'];
   const corpo = (
-    <Panel className="bos-sheen h-full px-4 py-4 transition-colors duration-200 hover:border-bos-accent/50">
+    <Panel
+      className="bos-sheen bos-lift bos-enter h-full px-4 py-4 transition-colors duration-200 hover:border-bos-accent/50"
+      // ⭐ Cascata sutil na entrada — cada cartão surge um instante depois do
+      //    anterior. Sob prefers-reduced-motion o bos-enter nem anima (globals).
+      style={{ animationDelay: `${indice * 60}ms` }}
+    >
       <div className="flex items-start justify-between gap-2">
         <p className="text-xs text-bos-muted">{c.label}</p>
         <svg
@@ -432,56 +456,103 @@ function ConsumoDoPlano({ metricas }: { metricas: PlanUsageRow[] | null }) {
  * OS MÓDULOS
  * ────────────────────────────────────────────────────────────────────── */
 
+/** ⭐ Relativo curto em pt-BR — "hoje", "há 3 dias". Sem lib, sem enfeite. */
+function haQuanto(iso: string): string {
+  const dias = Math.floor((Date.now() - new Date(iso).getTime()) / (24 * 60 * 60 * 1000));
+  if (dias <= 0) return 'hoje';
+  if (dias === 1) return 'ontem';
+  if (dias < 30) return `há ${dias} dias`;
+  const meses = Math.floor(dias / 30);
+  return meses === 1 ? 'há 1 mês' : `há ${meses} meses`;
+}
+
+/** O ponto de saúde — verde (ativo) / âmbar (parado). Nunca o ouro (é estado). */
+function PontoSaude({ verdict }: { verdict: ModuleHealth['verdict'] }) {
+  const cor = verdict === 'active' ? 'bg-bos-success' : 'bg-bos-warning';
+  const rotulo = verdict === 'active' ? 'ativo' : 'parado';
+  return (
+    <span className="inline-flex items-center gap-1.5" title={`Módulo ${rotulo}`}>
+      <span aria-hidden className={`size-1.5 rounded-full ${cor}`} />
+      <span className="sr-only">{rotulo}</span>
+    </span>
+  );
+}
+
 function ModulosDoTenant({
   instalados,
   disponiveis,
   falhou,
+  saude,
 }: {
   instalados: readonly ShelfItem[];
   disponiveis: readonly ShelfItem[];
   falhou: boolean;
+  saude: ReadonlyMap<string, ModuleHealth>;
 }) {
+  const cabecalho = (
+    <div className="flex flex-wrap items-baseline justify-between gap-3">
+      <h2 className="font-display text-lg text-bos-text">Os seus módulos</h2>
+      <Link
+        href="/store"
+        className="text-xs text-bos-muted underline-offset-4 transition-colors hover:text-bos-text hover:underline"
+      >
+        ver o catálogo
+      </Link>
+    </div>
+  );
+
+  // ⭐ Primeira corrida do tenant: nenhum módulo ainda. Não é uma lista vazia —
+  // é o convite. Estado vazio DESENHADO com um CTA de VERDADE (Onda UX Viva
+  // 4/6): a Store existe, o passo é real, o botão leva a ele. Sem outra Panel
+  // por fora (o próprio EmptyState é a moldura) — nada de borda dupla.
+  if (!falhou && instalados.length === 0) {
+    return (
+      <div className="flex h-full flex-col gap-3">
+        {cabecalho}
+        <EmptyState
+          title="Nenhum módulo instalado ainda"
+          hint="O Core já está de pé. A empresa não compra um sistema — monta o dela, Core mais módulos, como Lego. Falta escolher o primeiro."
+          action={{ label: 'Escolher o primeiro módulo', href: '/store' }}
+        />
+      </div>
+    );
+  }
+
   return (
     <Panel className="h-full px-6 py-5">
-      <div className="flex flex-wrap items-baseline justify-between gap-3">
-        <h2 className="font-display text-lg text-bos-text">Os seus módulos</h2>
-        <Link
-          href="/store"
-          className="text-xs text-bos-muted underline-offset-4 transition-colors hover:text-bos-text hover:underline"
-        >
-          ver o catálogo
-        </Link>
-      </div>
+      {cabecalho}
       <p className="mt-1 max-w-2xl text-sm text-bos-muted">
         A empresa não compra um sistema. Ela monta o dela — Core mais módulos, como Lego.
       </p>
 
       {falhou ? (
         <p className="mt-4 text-sm text-bos-muted">Não foi possível ler o catálogo agora.</p>
-      ) : instalados.length === 0 ? (
-        <p className="mt-4 text-sm text-bos-muted">
-          Nenhum módulo instalado ainda. O Core já está de pé — falta escolher o primeiro na{' '}
-          <Link href="/store" className="text-bos-text underline underline-offset-4">
-            Store
-          </Link>
-          .
-        </p>
       ) : (
         <ul className="mt-4 divide-y divide-bos-border border-t border-bos-border">
-          {instalados.map((m) => (
-            <li key={m.entry.moduleId} className="flex flex-wrap items-baseline gap-x-3 gap-y-1 py-3">
-              <span className="text-sm text-bos-text">{m.entry.name}</span>
-              {/* ⚠️ A versão exibida é a QUE ESTE TENANT TEM, quando diferente
-                  da publicada. Mostrar sempre a do catálogo faria a tela mentir
-                  logo depois de uma publicação. */}
-              <span className="font-mono text-[11px] text-bos-muted">
-                {m.entry.moduleId} v{m.installedVersion ?? m.entry.version}
-              </span>
-              {m.installedVersion !== null && m.installedVersion !== m.entry.version ? (
-                <Badge tone="info">catálogo v{m.entry.version}</Badge>
-              ) : null}
-            </li>
-          ))}
+          {instalados.map((m) => {
+            const h = saude.get(m.entry.moduleId);
+            return (
+              <li key={m.entry.moduleId} className="flex flex-wrap items-baseline gap-x-3 gap-y-1 py-3">
+                {h !== undefined ? <PontoSaude verdict={h.verdict} /> : null}
+                <span className="text-sm text-bos-text">{m.entry.name}</span>
+                {/* ⚠️ A versão exibida é a QUE ESTE TENANT TEM, quando diferente
+                    da publicada. Mostrar sempre a do catálogo faria a tela mentir
+                    logo depois de uma publicação. */}
+                <span className="font-mono text-[11px] text-bos-muted">
+                  {m.entry.moduleId} v{m.installedVersion ?? m.entry.version}
+                </span>
+                {m.installedVersion !== null && m.installedVersion !== m.entry.version ? (
+                  <Badge tone="info">catálogo v{m.entry.version}</Badge>
+                ) : null}
+                {/* ⭐ Última atividade REAL da trilha — ou o silêncio honesto. */}
+                <span className="ml-auto text-[11px] text-bos-muted">
+                  {h?.lastActivityAt != null
+                    ? `ativo ${haQuanto(h.lastActivityAt)}`
+                    : 'sem atividade recente'}
+                </span>
+              </li>
+            );
+          })}
         </ul>
       )}
 
@@ -544,24 +615,7 @@ function UltimasLinhas({ linhas }: { linhas: readonly AuditRow[] }) {
           forma.
         </p>
       ) : (
-        <ul className="mt-4 divide-y divide-bos-border border-t border-bos-border">
-          {linhas.map((l) => (
-            <li key={l.id} className="flex flex-wrap items-baseline gap-x-3 gap-y-1 py-2.5">
-              <span className="font-mono text-xs text-bos-text">{l.action}</span>
-              <span className="text-xs text-bos-muted">{l.resourceType}</span>
-              {l.moduleId !== null ? (
-                <span className="font-mono text-[11px] text-bos-muted">{l.moduleId}</span>
-              ) : null}
-              {l.actorKind !== 'user' ? <Badge tone="neutral">{l.actorKind}</Badge> : null}
-              <time
-                dateTime={l.occurredAt}
-                className="ml-auto font-mono text-[11px] text-bos-muted"
-              >
-                {l.occurredAt.slice(0, 16).replace('T', ' ')}
-              </time>
-            </li>
-          ))}
-        </ul>
+        <EventTimeline linhas={linhas} />
       )}
     </Panel>
   );

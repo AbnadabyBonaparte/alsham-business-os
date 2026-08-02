@@ -4,6 +4,7 @@ import type { CatalogEntry, ShelfItem } from '@alsham/permissions';
 import type {
   AuditRow,
   CourierSummary,
+  ModuleHealth,
   OverviewCard,
   PanelPort,
   PlanUsageRow,
@@ -168,6 +169,18 @@ export function createPanelMockPort(): PanelPort {
         { key: 'contas-vencendo', label: 'Contas vencendo', moduleId: 'ar', kind: 'count', value: 3, href: '/contas-a-receber', hint: 'A receber, em aberto, até 7 dias.', tone: 'warning' },
         { key: 'estoque-critico', label: 'Estoque crítico', moduleId: 'inv', kind: 'count', value: 1, href: '/estoque', hint: 'Itens com saldo zerado ou negativo.', tone: 'danger' },
         { key: 'clientes-ativos', label: 'Clientes ativos', moduleId: 'crm', kind: 'count', value: 12, href: '/relacionamentos', hint: 'Contrapartes ativas.', tone: 'neutral' },
+      ];
+    },
+
+    // ⭐ A saúde dos módulos do demo — uma mistura realista de ativo/parado.
+    // Números modestos, datas de exemplo (Lei 7 na vitrine).
+    async loadModuleHealth(): Promise<ModuleHealth[]> {
+      return [
+        { moduleId: 'ops', lastActivityAt: `${HOJE}T09:12:00.000Z`, verdict: 'active' },
+        { moduleId: 'cash', lastActivityAt: `${HOJE}T08:40:00.000Z`, verdict: 'active' },
+        { moduleId: 'crm', lastActivityAt: `${HOJE}T07:55:00.000Z`, verdict: 'active' },
+        { moduleId: 'ar', lastActivityAt: '2026-07-10T14:00:00.000Z', verdict: 'idle' },
+        { moduleId: 'inv', lastActivityAt: null, verdict: 'idle' },
       ];
     },
   };

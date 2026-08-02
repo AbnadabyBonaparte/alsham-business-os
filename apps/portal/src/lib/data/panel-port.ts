@@ -48,6 +48,22 @@ export interface OverviewCard {
   readonly tone?: 'neutral' | 'warning' | 'danger';
 }
 
+/**
+ * ⭐ A SAÚDE DE UM MÓDULO INSTALADO (Onda UX Viva) — objetiva, nunca decorativa.
+ *
+ * Lei 7 no critério: o veredito sai de dado REAL da trilha do tenant, não de
+ * enfeite. `active` = houve atividade na trilha nos últimos 7 dias; `idle` =
+ * instalado, mas sem atividade recente (parado). O vermelho (erro real de
+ * handler / carta morta por módulo) fica DECLARADO mas não é mostrado sem sinal
+ * real — forjar um 🔴 seria decorar, o oposto de honesto.
+ */
+export interface ModuleHealth {
+  readonly moduleId: string;
+  /** ISO do último fato deste módulo na trilha, ou `null` se não há atividade recente. */
+  readonly lastActivityAt: string | null;
+  readonly verdict: 'active' | 'idle';
+}
+
 /** Uma linha da trilha DO TENANT. */
 export interface AuditRow {
   readonly id: string;
@@ -79,5 +95,10 @@ export interface PanelPort {
    * derruba os outros nem a página). Módulo não instalado ⇒ sem cartão.
    */
   loadOverview(): Promise<OverviewCard[]>;
+  /**
+   * ⭐ A saúde de cada módulo instalado — última atividade real (da trilha) e o
+   * veredito objetivo. Uma leitura só, tenant-scoped sob RLS.
+   */
+  loadModuleHealth(): Promise<ModuleHealth[]>;
   readonly planCode: string;
 }

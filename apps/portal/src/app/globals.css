@@ -202,6 +202,42 @@ body {
   animation: bos-pulse 2.2s var(--bos-ease) infinite;
 }
 
+/* ⭐ Microinterações (Onda UX Viva 6/6) — o gesto é curto e sem bounce
+   (IDENTIDADE-VISUAL §5.6), a paleta é a mesma (nenhuma cor nova, Lei dos
+   Planetas): o realce é o próprio ouro da borda, o movimento é só profundidade.
+   ⛔ Tudo mora sob `prefers-reduced-motion: no-preference`: quem pediu menos
+   movimento não ganha transform nenhum — o card fica firme, o hover de cor
+   (inline, `transition-colors`) continua valendo. */
+@media (prefers-reduced-motion: no-preference) {
+  /* Elevação sutil no hover: sobe 2px e cresce ~2%. O card responde à mão. */
+  .bos-lift {
+    transition:
+      transform 260ms var(--bos-ease),
+      border-color 260ms var(--bos-ease),
+      box-shadow 260ms var(--bos-ease);
+  }
+  .bos-lift:hover {
+    transform: translateY(-2px) scale(1.02);
+    box-shadow: 0 8px 24px -12px color-mix(in srgb, var(--bos-obsidian) 90%, transparent);
+  }
+
+  /* A entrada da paleta de comandos — aparece de cima, curta, sem estalo. */
+  .bos-pop {
+    animation: bos-pop 200ms var(--bos-ease) both;
+  }
+}
+
+@keyframes bos-pop {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
 /* ==========================================================================
    O SISTEMA DE ATMOSFERAS — "a Catedral acesa".
    --------------------------------------------------------------------------

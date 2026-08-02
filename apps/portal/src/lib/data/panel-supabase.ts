@@ -7,10 +7,14 @@ import { DataPortError } from './port';
 import type {
   AuditRow,
   CourierSummary,
+  ModuleHealth,
   OverviewCard,
   PanelPort,
   PlanUsageRow,
 } from './panel-port';
+
+/** ⭐ Janela do veredito de saúde: atividade nos últimos 7 dias ⇒ ativo. */
+const HEALTH_ACTIVE_DAYS = 7;
 
 /**
  * O adapter REAL do Painel — tudo sob RLS, como o usuário.
@@ -263,6 +267,47 @@ export function createPanelSupabasePort(
             : 'neutral';
         return { ...s, tone, value: lido.value, currency: lido.currency };
       });
+    },
+
+    // ⭐ A saúde de cada módulo instalado — UMA leitura da trilha, reduzida à
+    // última atividade por módulo. Critério objetivo (Lei 7): atividade nos
+    // últimos HEALTH_ACTIVE_DAYS ⇒ `active`; senão `idle`. Sem 🔴 forjado.
+    async loadModuleHealth(): Promise<ModuleHealth[]> {
+      const { data: inst, error: e1 } = await db
+        .schema('core')
+        .from('tenant_modules')
+        .select('module_id, status');
+      if (e1) return [];
+      const instalados = ((inst ?? []) as { module_id: string; status: string }[])
+        .filter((r) => r.status === 'active')
+        .map((r) => r.module_id);
+      if (instalados.length === 0) return [];
+
+      // Uma janela recente da trilha; reduz à última atividade por módulo. Se a
+      // leitura falhar, a saúde some (nunca inventa "ativo").
+      const { data: trilha, error: e2 } = await db
+        .schema('core')
+        .from('audit_log')
+        .select('module_id, occurred_at')
+        .not('module_id', 'is', null)
+        .order('occurred_at', { ascending: false })
+        .limit(500);
+      if (e2) return [];
+
+      const ultimo = new Map<string, string>();
+      for (const row of (trilha ?? []) as { module_id: string; occurred_at: string }[]) {
+        // como vem ordenado desc, o primeiro visto por módulo é o mais recente.
+        if (!ultimo.has(row.module_id)) ultimo.set(row.module_id, row.occurred_at);
+      }
+
+      const corte = Date.now() - HEALTH_ACTIVE_DAYS * 24 * 60 * 60 * 1000;
+      return instalados
+        .map((moduleId): ModuleHealth => {
+          const at = ultimo.get(moduleId) ?? null;
+          const active = at !== null && new Date(at).getTime() >= corte;
+          return { moduleId, lastActivityAt: at, verdict: active ? 'active' : 'idle' };
+        })
+        .sort((a, b) => a.moduleId.localeCompare(b.moduleId));
     },
   };
 }
