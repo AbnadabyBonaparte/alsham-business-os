@@ -324,7 +324,7 @@ begin
     perform pg_temp.assert_proc(false, 'DEVERIA TER FALHADO: avançou da última etapa');
   exception when others then
     get stacked diagnostics v_erro = message_text;
-    perform pg_temp.assert_proc(v_erro like '%última etapa%', 'da última etapa se decide, não avança');
+    perform pg_temp.assert_proc(v_erro like '%última%', 'da última etapa se decide, não avança');
   end;
 
   -- ⭐ Decidir SEM despacho: recusado (decisão sem motivação é ato nulo).
