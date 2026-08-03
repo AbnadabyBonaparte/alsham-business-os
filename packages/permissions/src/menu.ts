@@ -136,6 +136,10 @@ const MENU: readonly MenuItem[] = [
   { href: '/prontuario', label: 'Prontuário', moduleId: 'record' },
   { href: '/exames', label: 'Exames', moduleId: 'exam' },
   { href: '/receitas', label: 'Receitas', moduleId: 'prescription' },
+  { href: '/protocolo', label: 'Protocolo', moduleId: 'proc' },
+  { href: '/ouvidoria', label: 'Ouvidoria', moduleId: 'ombuds' },
+  { href: '/licitacoes', label: 'Licitações', moduleId: 'bid' },
+  { href: '/fiscalizacao', label: 'Fiscalização', moduleId: 'fisc' },
   { href: '/store', label: 'Store', moduleId: null },
   { href: '/ajustes', label: 'Ajustes', moduleId: null },
 ];

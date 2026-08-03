@@ -293,7 +293,12 @@ A consequência é operacional e não é opinião:
   - `record` (`0102`): Prontuário — cada entrada é FATO CONSUMADO imutável 2 camadas; ⭐⭐ trilha de LEITURA (`record.read_patient()` é a única porta, e LOGA). O conteúdo clínico NÃO vai no envelope.
   - `prescription` (`0103`): Receitas — cabeçalho (metadata legível) + itens (medicamento+posologia); emitir CONGELA (`draft → issued` terminal, a física do `quote`); ⭐⭐ trilha de LEITURA do CONTEÚDO (`prescription.read_items()`, o DIVERGE do `record`: só a medicação atrás da porta).
   - `exam` (`0104`): Exames pedido→resultado (duas fases); o resultado é ato IMUTÁVEL apenso 1:1 (a física do `chk`); `requested → resulted | cancelled`; ⭐⭐ trilha de LEITURA do RESULTADO (`exam.read_result()`). Laudo/imagem em Storage FORA (é texto).
-- ⚠️ **A lacuna `0015`/`0016` é proposital** e vem da main. Com a Onda Vinte e Um (`0100`–`0104`), a próxima numeração livre é **`0105`**.
+- ⭐ **A ONDA GOVERNO (Fase 3) entregou os Módulos 90–93 num PR, um commit por módulo** (migrations `0105`–`0108`, ARQUIVO — apply do dono): **ABRE o Vertical 🏛 Governo** (`vertical_key='government'`), o QUINTO bloco vertical. A Taxonomia §6 lista 8 capacidades; **4 viram módulo, 4 ficam FORA**: *Convênios* (=`ctr`), *Patrimônio público* (=`pat`, nº de tombamento é `reference`), *Tributos* (Lei 3 — lançamento com força de título executivo, integra), *Obras* (=`proj`/`sched`/`pcost`). ⚠️ **Decisão de dono (03/08/2026): CONSTRUIR o `fisc`** — a fiscalização tem cadastro de alvos PRÓPRIO (o `occ` não carrega roster); é a física do `sec`. O auto de infração e os Tributos ficam FORA por Lei 3. Os QUATRO têm **`consumes` VAZIO** — sem redeploy do `apps/api`. O catálogo passa de 89 para **93 módulos publicados** (22 verticais: 5 shopping-centers + 4 retail + 4 energy + 5 health + 4 government). Ver `ONDA-GOVERNO-DECISOES.md`. Módulos:
+  - `proc` (`0105`) — **Protocolo** (Módulo 90): a Lei das Etapas do `ops` re-perguntada para o processo PÚBLICO (o `kanban` do Governo). ⭐ nº de protocolo público, interessado id solto + nome carimbado, e a **decisão formal TERMINAL** (`deferido`/`indeferido`/`arquivado` com despacho obrigatório — o DIVERGE do `ops` reabrível). A trilha imutável carimba o NOME da etapa.
+  - `ombuds` (`0106`) — **Ouvidoria** (Módulo 91): reaproveita DELIBERADAMENTE o **anonimato-físico do `whistle`** (anônima nunca grava o cidadão — gatilho + CHECK + RLS por `reporter_id`). Tipo de manifestação (CHECK das 5 da Lei 13.460), protocolo público, tratamento `received → under_review → answered/dismissed`. O relato não passeia no envelope.
+  - `bid` (`0107`) — **Licitações** (Módulo 92): a identidade "o comprador premia" do `rfq`, com o DIVERGE assinado: `draft → open → homologated/cancelled` (o `homologated` da Lei 14.133 × o `awarded` do `rfq`); edital + itens + `proposals` (livro imutável de propostas). Modalidade texto livre. ⛔ Publicação no PNCP FORA (Lei 3).
+  - `fisc` (`0108`) — **Fiscalização** (Módulo 93): a física do `sec` (roster + livro imutável) para a inspeção pública. `fisc.targets` (`active ↔ archived`) + `fisc.inspections` (ato pontual imutável, carimbado pelo servidor). ⛔ O auto de infração FORA (Lei 3): a vistoria CONSTATA, a penalidade integra.
+- ⚠️ **A lacuna `0015`/`0016` é proposital** e vem da main. Com a Onda Governo (`0105`–`0108`), a próxima numeração livre é **`0109`**.
 - ⛔ **A limpeza do runbook §7.3 FOI EXECUTADA** em 28/07/2026: a concessão global de permissão de módulo **não existe mais em produção**. O tenant piloto tem papel próprio, com as permissões concedidas por `core.install_module()` — pela Store, com o clique do dono. Nunca volte a conceder permissão de módulo no seed.
 - `packages/workflow` é **o correio do Core** — o entregador da caixa de saída: idempotência por consumidor, backoff exponencial, `dead` sem apagar. **ENGINE, não módulo** (Taxonomia §4): não aparece na Store.
 - `apps/api` é **a COMPOSIÇÃO** — o único lugar do repositório onde os módulos se conhecem. Ele importa `workflow`, `marketing`, `finance-reconciliation`, `accounts-payable`, `accounts-receivable` e `billing`; **nenhum deles importa nenhum outro**. ⭐ Desde a Etapa 10 o mesmo pacote (`finance-reconciliation`) é PRODUTOR numa inscrição e CONSUMIDOR em outra — e continua sem conhecer ninguém. Traz a persistência real do correio (contra Postgres, com arrendamento e `skip locked`), os adaptadores dos consumidores, o endpoint protegido e a saúde da fila.
@@ -445,7 +450,15 @@ supabase/migrations/   0001_core … 0014_ap_apply_recon_match
                                                             trilha de LEITURA em
                                                             record/exam/prescription);
                                                             apply do dono
-                       (lacuna 0015–0016 proposital; próxima livre: 0105)
+                       0105_proc · 0106_ombuds · 0107_bid
+                       · 0108_fisc                        — Onda Governo
+                                                            (Fase 3 — ABRE o Vertical
+                                                            🏛 Governo; fisc = decisão
+                                                            de dono, roster + livro do
+                                                            sec; auto de infração e
+                                                            Tributos FORA por Lei 3);
+                                                            apply do dono
+                       (lacuna 0015–0016 proposital; próxima livre: 0109)
 supabase/seed/         0001_platform.sql                — catálogo, idempotente; zero tenant
 supabase/tests/        shim · isolamento · uso · consumo entre módulos
                        · instalador · triângulo · relacionamentos · a receber
@@ -571,6 +584,10 @@ packages/              core auth organizations workflow billing
                        subscription                     — Módulo 82 (a fatia da geração; nasce ativa sem pending; cancelled terminal: o DIVERGE do catalog)
                        genreading                       — Módulo 83 (a leitura de geração imutável: a identidade do esg; usina obrigatória: o DIVERGE)
                        creditbalance                    — Módulo 84 (o livro de créditos SCEE; consumo>saldo recusado por física própria: a terceira resposta)
+                       proc                             — Módulo 90 (a Lei das Etapas do ops no processo público; protocolo + decisão formal terminal)
+                       ombuds                           — Módulo 91 (o anonimato-físico do whistle para o cidadão; Lei 13.460)
+                       bid                              — Módulo 92 (o comprador premia do rfq; edital + homologated: o DIVERGE, Lei 14.133)
+                       fisc                             — Módulo 93 (a física do sec; roster + vistoria imutável; auto de infração FORA por Lei 3)
                        workflow (o correio) · billing (uso) · ai (a forja)
                                                         — Engines/capacidades do Core
 ```

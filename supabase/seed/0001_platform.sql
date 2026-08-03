@@ -4910,7 +4910,198 @@ on conflict (module_id) do update set
   status          = excluded.status,
   updated_at      = now();
 
--- ⛔ Oitenta e nove módulos no catálogo (71 domain + 18 vertical), zero
+-- ---------------------------------------------------------------------------
+-- ⭐ ONDA GOVERNO (Fase 3) — o Vertical 🏛 Governo (`vertical_key='government'`),
+-- o quinto bloco vertical. Quatro cartões: proc · ombuds · bid · fisc. As
+-- outras 4 capacidades ficam FORA: Convênios (=ctr), Patrimônio público (=pat),
+-- Tributos (Lei 3), Obras (=proj/sched/pcost). Ver ONDA-GOVERNO-DECISOES.
+-- ---------------------------------------------------------------------------
+
+insert into core.module_registry (
+  module_id, name, version, summary,
+  layer, vertical_key,
+  capabilities, permissions, events_emits, events_consumes, agents,
+  requires_core, status
+)
+values (
+  'proc',
+  'Protocolo',
+  '0.1.0',
+  'O processo administrativo do órgão: o cidadão protocola um pedido, recebe um NÚMERO DE PROTOCOLO público para acompanhar, e o processo anda por um RITO que o próprio órgão desenha (as etapas são DADO DO TENANT, jamais enum — a Lei das Etapas do ops, re-perguntada). O interessado é id solto + nome carimbado (o padrão do deal). ⭐⭐ A decisão formal é TERMINAL — deferido/indeferido/arquivado, o ATO DE IMPÉRIO — e exige o despacho (a razão, obrigatória); um processo decidido que volta é recurso ou novo protocolo (o DIVERGE do ops, cujo done reabre). A trilha é imutável e carimba o NOME da etapa (sobrevive ao redesenho do rito). consumes VAZIO.',
+  'vertical', 'government',
+  '[
+     {"key":"protocol","canonicalName":"Protocolo"}
+   ]'::jsonb,
+  '[
+     {"key":"proc.workflow.manage","moduleId":"proc","description":"Desenhar o rito: criar etapas, ordená-las e dizer quais exigem aprovação ou podem ser puladas."},
+     {"key":"proc.process.manage","moduleId":"proc","description":"Protocolar processos, movê-los pelas etapas comuns do rito e editar seus dados."},
+     {"key":"proc.process.decide","moduleId":"proc","description":"Decidir: passar de uma etapa que exige aprovação, pular uma etapa, devolver para refazer, e proferir a decisão formal (deferir, indeferir, arquivar) com o despacho."}
+   ]'::jsonb,
+  '[
+     {"type":"proc.process.registered","version":1,"description":"Um processo foi protocolado num rito do órgão, com número de protocolo, interessado e a etapa em que começou — pelo NOME, não só pelo id."},
+     {"type":"proc.stage.advanced","version":1,"description":"O processo passou para a próxima etapa do rito, com de onde para onde e o que ficou anotado."},
+     {"type":"proc.stage.skipped","version":1,"description":"Uma etapa foi PULADA, com quem pulou, quando e a razão. Pular nunca apaga a etapa da história do processo."},
+     {"type":"proc.process.sent-back","version":1,"description":"O processo foi devolvido para uma etapa anterior com a instrução do que refazer. Processo já decidido NÃO se devolve."},
+     {"type":"proc.process.decided","version":1,"description":"A decisão formal foi proferida — deferido, indeferido ou arquivado, com o despacho. É o ato de império, e é TERMINAL."}
+   ]'::jsonb,
+  '[]'::jsonb,
+  '[]'::jsonb,
+  '0.0.x',
+  'published'
+)
+on conflict (module_id) do update set
+  name            = excluded.name,
+  version         = excluded.version,
+  summary         = excluded.summary,
+  layer           = excluded.layer,
+  domain_key      = excluded.domain_key,
+  vertical_key    = excluded.vertical_key,
+  capabilities    = excluded.capabilities,
+  permissions     = excluded.permissions,
+  events_emits    = excluded.events_emits,
+  events_consumes = excluded.events_consumes,
+  agents          = excluded.agents,
+  requires_core   = excluded.requires_core,
+  status          = excluded.status,
+  updated_at      = now();
+
+insert into core.module_registry (
+  module_id, name, version, summary,
+  layer, vertical_key,
+  capabilities, permissions, events_emits, events_consumes, agents,
+  requires_core, status
+)
+values (
+  'ombuds',
+  'Ouvidoria',
+  '0.1.0',
+  'A Ouvidoria do cidadão (Lei 13.460): a manifestação nasce IMUTÁVEL (fato consumado) e só o tratamento anda (received → under_review → answered/dismissed, terminais, com resposta escrita). ⭐⭐ O anonimato é físico, reaproveitado do whistle: se a manifestação é anônima, o cidadão NUNCA é gravado — não é "não mostra", é NÃO GRAVA (a única forma de nunca vazar é nunca ter); ele acompanha pelo protocolo público carimbado pelo servidor. A natureza é uma das 5 da Lei 13.460 (reclamação/denúncia/sugestão/elogio/informação). A confidencialidade mora na RLS: só a ouvidoria (manifestation.handle) lê tudo. consumes VAZIO.',
+  'vertical', 'government',
+  '[
+     {"key":"ombudsman","canonicalName":"Ouvidoria"}
+   ]'::jsonb,
+  '[
+     {"key":"ombuds.manifestation.submit","moduleId":"ombuds","description":"Registrar uma manifestação (anônima ou identificada) e acompanhar a própria, quando não-anônima."},
+     {"key":"ombuds.manifestation.handle","moduleId":"ombuds","description":"Tratar manifestações — a ouvidoria lê todas e move o status (analisar, responder, arquivar) com a resposta escrita."}
+   ]'::jsonb,
+  '[
+     {"type":"ombuds.manifestation.registered","version":1,"description":"Uma manifestação nasceu (sempre recebida). O envelope leva SÓ metadado seguro (tipo/status/anônima/protocolo) — nunca o relato nem o cidadão."},
+     {"type":"ombuds.manifestation.reviewed","version":1,"description":"A manifestação entrou em análise (received → under_review)."},
+     {"type":"ombuds.manifestation.answered","version":1,"description":"A manifestação foi respondida — terminal, com a resposta escrita."},
+     {"type":"ombuds.manifestation.dismissed","version":1,"description":"A manifestação foi arquivada — terminal, com a resposta escrita."}
+   ]'::jsonb,
+  '[]'::jsonb,
+  '[]'::jsonb,
+  '0.0.x',
+  'published'
+)
+on conflict (module_id) do update set
+  name            = excluded.name,
+  version         = excluded.version,
+  summary         = excluded.summary,
+  layer           = excluded.layer,
+  domain_key      = excluded.domain_key,
+  vertical_key    = excluded.vertical_key,
+  capabilities    = excluded.capabilities,
+  permissions     = excluded.permissions,
+  events_emits    = excluded.events_emits,
+  events_consumes = excluded.events_consumes,
+  agents          = excluded.agents,
+  requires_core   = excluded.requires_core,
+  status          = excluded.status,
+  updated_at      = now();
+
+insert into core.module_registry (
+  module_id, name, version, summary,
+  layer, vertical_key,
+  capabilities, permissions, events_emits, events_consumes, agents,
+  requires_core, status
+)
+values (
+  'bid',
+  'Licitações',
+  '0.1.0',
+  'A licitação pública ancorada num EDITAL: o órgão publica o que precisa (itens em texto livre), recebe as propostas dos licitantes e, ao final, HOMOLOGA um vencedor ou cancela. Publicar o edital congela o conteúdo; homologar e cancelar são terminais. ⭐ A identidade é a do rfq (quem conduz decide, não o fornecedor), com o DIVERGE assinado: o terminal é homologated (o ato solene da Lei 14.133), não o awarded do rfq. A modalidade (pregão, concorrência…) é TEXTO LIVRE, nunca enum — muda por lei. ⛔ Publicação no PNCP (Portal Nacional de Contratações Públicas) é integração certificada com o Estado, FORA (Lei 3). consumes VAZIO.',
+  'vertical', 'government',
+  '[
+     {"key":"tenders","canonicalName":"Licitações"}
+   ]'::jsonb,
+  '[
+     {"key":"bid.tender.manage","moduleId":"bid","description":"Criar e editar a licitação em rascunho, incluir itens, publicar o edital, registrar propostas e cancelar."},
+     {"key":"bid.tender.homologate","moduleId":"bid","description":"Homologar o licitante vencedor — o ato de decisão da licitação (Lei 14.133)."}
+   ]'::jsonb,
+  '[
+     {"type":"bid.tender.registered","version":1,"description":"Uma licitação nasceu (sempre em rascunho)."},
+     {"type":"bid.tender.opened","version":1,"description":"O edital foi publicado (aberto para propostas) — o conteúdo congelou."},
+     {"type":"bid.tender.homologated","version":1,"description":"O órgão homologou um licitante vencedor. Terminal."},
+     {"type":"bid.tender.cancelled","version":1,"description":"A licitação foi encerrada sem vencedor, com razão. Terminal."}
+   ]'::jsonb,
+  '[]'::jsonb,
+  '[]'::jsonb,
+  '0.0.x',
+  'published'
+)
+on conflict (module_id) do update set
+  name            = excluded.name,
+  version         = excluded.version,
+  summary         = excluded.summary,
+  layer           = excluded.layer,
+  domain_key      = excluded.domain_key,
+  vertical_key    = excluded.vertical_key,
+  capabilities    = excluded.capabilities,
+  permissions     = excluded.permissions,
+  events_emits    = excluded.events_emits,
+  events_consumes = excluded.events_consumes,
+  agents          = excluded.agents,
+  requires_core   = excluded.requires_core,
+  status          = excluded.status,
+  updated_at      = now();
+
+insert into core.module_registry (
+  module_id, name, version, summary,
+  layer, vertical_key,
+  capabilities, permissions, events_emits, events_consumes, agents,
+  requires_core, status
+)
+values (
+  'fisc',
+  'Fiscalização',
+  '0.1.0',
+  'A fiscalização municipal: o rol de alvos fiscalizáveis (texto livre, desenho do tenant, volta do arquivo) e o livro de vistorias — o que o fiscal constatou em campo, ato pontual imutável carimbado pelo servidor. A vistoria CONSTATA; o auto de infração NÃO mora aqui (é integração, Lei 3).',
+  'vertical', 'government',
+  '[
+     {"key":"inspection","canonicalName":"Fiscalização"}
+   ]'::jsonb,
+  '[
+     {"key":"fisc.target.manage","moduleId":"fisc","description":"Manter o rol de alvos fiscalizáveis do tenant (texto livre; voltam do arquivo)."},
+     {"key":"fisc.inspection.record","moduleId":"fisc","description":"Registrar a vistoria de um alvo — ato imutável, carimbado pelo servidor."}
+   ]'::jsonb,
+  '[
+     {"type":"fisc.target.registered","version":1,"description":"Um alvo fiscalizável entrou no rol sob jurisdição."},
+     {"type":"fisc.inspection.recorded","version":1,"description":"A vistoria constatou o alvo — o carimbo do servidor, ato pontual imutável."}
+   ]'::jsonb,
+  '[]'::jsonb,
+  '[]'::jsonb,
+  '0.0.x',
+  'published'
+)
+on conflict (module_id) do update set
+  name            = excluded.name,
+  version         = excluded.version,
+  summary         = excluded.summary,
+  layer           = excluded.layer,
+  domain_key      = excluded.domain_key,
+  vertical_key    = excluded.vertical_key,
+  capabilities    = excluded.capabilities,
+  permissions     = excluded.permissions,
+  events_emits    = excluded.events_emits,
+  events_consumes = excluded.events_consumes,
+  agents          = excluded.agents,
+  requires_core   = excluded.requires_core,
+  status          = excluded.status,
+  updated_at      = now();
+
+-- ⛔ Noventa e três módulos no catálogo (71 domain + 22 vertical), zero
 -- permissão concedida pelo seed. ⭐ Onda Vinte (Fase 3): o Vertical ☀️ Energia
 -- (plant · subscription · genreading · creditbalance) aberto — o terceiro bloco
 -- vertical, dor viva da Curva C solar. As 4 capacidades restantes ficam FORA:
