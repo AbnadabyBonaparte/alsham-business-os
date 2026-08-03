@@ -203,20 +203,26 @@ begin
   begin
     update bid.proposals set amount_cents = 1 where id = v_prop;
     perform pg_temp.assert97(false, 'DEVERIA TER FALHADO: editou uma proposta');
-  exception when others then
-    get stacked diagnostics v_erro = message_text;
-    perform pg_temp.assert97(v_erro like '%fato consumado%' or v_erro like '%insufficient%',
-      '⭐ a proposta não se edita — fato consumado');
+  exception
+    when insufficient_privilege then
+      perform pg_temp.assert97(true, '⭐ a proposta não se edita — sem grant, barrado antes do gatilho');
+    when others then
+      get stacked diagnostics v_erro = message_text;
+      perform pg_temp.assert97(v_erro like '%fato consumado%',
+        '⭐ a proposta não se edita — fato consumado (o gatilho, como dono)');
   end;
 
   -- ⭐ E delete recusado (segunda camada — gatilho até para o dono).
   begin
     delete from bid.proposals where id = v_prop;
     perform pg_temp.assert97(false, 'DEVERIA TER FALHADO: apagou uma proposta');
-  exception when others then
-    get stacked diagnostics v_erro = message_text;
-    perform pg_temp.assert97(v_erro like '%fato consumado%' or v_erro like '%insufficient%',
-      '⭐ a proposta não se apaga — fato consumado');
+  exception
+    when insufficient_privilege then
+      perform pg_temp.assert97(true, '⭐ a proposta não se apaga — sem grant, barrado antes do gatilho');
+    when others then
+      get stacked diagnostics v_erro = message_text;
+      perform pg_temp.assert97(v_erro like '%fato consumado%',
+        '⭐ a proposta não se apaga — fato consumado (o gatilho, como dono)');
   end;
 
   -- ⛔ No rascunho não entra proposta: nada foi a mercado ainda.
