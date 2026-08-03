@@ -131,6 +131,11 @@ const MENU: readonly MenuItem[] = [
   { href: '/assinaturas', label: 'Assinaturas', moduleId: 'subscription' },
   { href: '/geracao', label: 'Geração', moduleId: 'genreading' },
   { href: '/creditos', label: 'Créditos de Compensação', moduleId: 'creditbalance' },
+  { href: '/pacientes', label: 'Pacientes', moduleId: 'patient' },
+  { href: '/agenda', label: 'Agenda médica', moduleId: 'appointment' },
+  { href: '/prontuario', label: 'Prontuário', moduleId: 'record' },
+  { href: '/exames', label: 'Exames', moduleId: 'exam' },
+  { href: '/receitas', label: 'Receitas', moduleId: 'prescription' },
   { href: '/store', label: 'Store', moduleId: null },
   { href: '/ajustes', label: 'Ajustes', moduleId: null },
 ];
