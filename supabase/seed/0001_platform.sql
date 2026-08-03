@@ -4674,12 +4674,252 @@ on conflict (module_id) do update set
   status          = excluded.status,
   updated_at      = now();
 
--- ⛔ Oitenta e quatro módulos no catálogo (71 domain + 13 vertical), zero
+-- =============================================================================
+-- ⭐ Onda Vinte e Um (Fase 3) — o Vertical 🏥 SAÚDE (health)
+-- Cinco cartões: patient · appointment · record · exam · prescription.
+-- 3 capacidades FORA: Convênios→ctr, Faturamento TISS→Lei 3, Telemedicina→Engine.
+-- ⚠️⚠️ DADO SENSÍVEL: record/exam/prescription têm TRILHA DE LEITURA (access_log);
+-- patient/appointment ficam no write-trail. Ver ONDA-VINTE-E-UM-DECISOES.md.
+-- =============================================================================
+
+insert into core.module_registry (
+  module_id, name, version, summary,
+  layer, vertical_key,
+  capabilities, permissions, events_emits, events_consumes, agents,
+  requires_core, status
+)
+values (
+  'patient',
+  'Pacientes',
+  '0.1.0',
+  'O cadastro demográfico do paciente, em VALA PRÓPRIA — NÃO consolida no crm (misturar dado sensível de saúde com contato comercial é a proibição da LGPD). Nome neutro, nº de prontuário e plano/convênio em TEXTO LIVRE (o convênio como CONTRATO é o ctr), nascimento opcional. active ↔ archived (o paciente que volta é o MESMO — a física do crm/catalog, o DIVERGE do hr terminal). NÃO carrega conteúdo clínico: fica no write-trail (a trilha de LEITURA é dos três módulos clínicos). consumes VAZIO.',
+  'vertical', 'health',
+  '[
+     {"key":"patients","canonicalName":"Pacientes"}
+   ]'::jsonb,
+  '[
+     {"key":"patient.patient.manage","moduleId":"patient","description":"Cadastrar pacientes e editar dados demográficos (nome, nº de prontuário, nascimento, plano)."},
+     {"key":"patient.patient.decide","moduleId":"patient","description":"Arquivar ou reativar um paciente — o mesmo paciente que volta."}
+   ]'::jsonb,
+  '[
+     {"type":"patient.patient.registered","version":1,"description":"Um paciente foi cadastrado (sempre ativo)."},
+     {"type":"patient.patient.updated","version":1,"description":"Os dados demográficos de um paciente mudaram."},
+     {"type":"patient.patient.archived","version":1,"description":"O paciente saiu do cadastro vivo — reversível."},
+     {"type":"patient.patient.reactivated","version":1,"description":"O paciente voltou ao cadastro vivo — o mesmo paciente."}
+   ]'::jsonb,
+  '[]'::jsonb,
+  '[]'::jsonb,
+  '0.0.x',
+  'published'
+)
+on conflict (module_id) do update set
+  name            = excluded.name,
+  version         = excluded.version,
+  summary         = excluded.summary,
+  layer           = excluded.layer,
+  domain_key      = excluded.domain_key,
+  vertical_key    = excluded.vertical_key,
+  capabilities    = excluded.capabilities,
+  permissions     = excluded.permissions,
+  events_emits    = excluded.events_emits,
+  events_consumes = excluded.events_consumes,
+  agents          = excluded.agents,
+  requires_core   = excluded.requires_core,
+  status          = excluded.status,
+  updated_at      = now();
+
+insert into core.module_registry (
+  module_id, name, version, summary,
+  layer, vertical_key,
+  capabilities, permissions, events_emits, events_consumes, agents,
+  requires_core, status
+)
+values (
+  'appointment',
+  'Agenda médica',
+  '0.1.0',
+  'A marcação: horário + profissional (id solto, registro CRM/CRO/CRP em TEXTO LIVRE) + paciente (id solto ao patient). ⭐ O NO-SHOW é dado (a física do agendamentos.comparecimento do Peritus, referência não integração): scheduled → attended | no_show | cancelled, os TRÊS TERMINAIS (quem remarca abre outra — a física do subscription/proj). Remarcar só enquanto agendada (manage); marcar o desfecho é decide; cancelar exige razão. O no-show justifica módulo próprio — o Engine de Agenda genérico não modela falta. Telemedicina amarra por id solto (Engine de Vídeo, FORA). Write-trail. consumes VAZIO.',
+  'vertical', 'health',
+  '[
+     {"key":"medical-agenda","canonicalName":"Agenda médica"}
+   ]'::jsonb,
+  '[
+     {"key":"appointment.appointment.manage","moduleId":"appointment","description":"Marcar e remarcar consultas (horário, profissional, paciente)."},
+     {"key":"appointment.appointment.decide","moduleId":"appointment","description":"Marcar o desfecho da consulta — compareceu, faltou (no-show) ou cancelou."}
+   ]'::jsonb,
+  '[
+     {"type":"appointment.appointment.scheduled","version":1,"description":"Uma consulta foi marcada."},
+     {"type":"appointment.appointment.rescheduled","version":1,"description":"Uma consulta agendada foi remarcada (horário/profissional)."},
+     {"type":"appointment.appointment.attended","version":1,"description":"O paciente compareceu à consulta."},
+     {"type":"appointment.appointment.missed","version":1,"description":"O paciente faltou (no-show). O fato é .missed — o outbox recusa _ no verbo."},
+     {"type":"appointment.appointment.cancelled","version":1,"description":"A consulta foi cancelada (com razão)."}
+   ]'::jsonb,
+  '[]'::jsonb,
+  '[]'::jsonb,
+  '0.0.x',
+  'published'
+)
+on conflict (module_id) do update set
+  name            = excluded.name,
+  version         = excluded.version,
+  summary         = excluded.summary,
+  layer           = excluded.layer,
+  domain_key      = excluded.domain_key,
+  vertical_key    = excluded.vertical_key,
+  capabilities    = excluded.capabilities,
+  permissions     = excluded.permissions,
+  events_emits    = excluded.events_emits,
+  events_consumes = excluded.events_consumes,
+  agents          = excluded.agents,
+  requires_core   = excluded.requires_core,
+  status          = excluded.status,
+  updated_at      = now();
+
+insert into core.module_registry (
+  module_id, name, version, summary,
+  layer, vertical_key,
+  capabilities, permissions, events_emits, events_consumes, agents,
+  requires_core, status
+)
+values (
+  'record',
+  'Prontuário',
+  '0.1.0',
+  'O coração clínico. Cada entrada é FATO CONSUMADO IMUTÁVEL em duas camadas (a física do genreading/occ) — corrigir é lançar OUTRA (retificação), nunca editar. Paciente por id solto, tipo TEXTO LIVRE, autor carimbado. ⚠️⚠️ DADO SENSÍVEL (LGPD): ⭐⭐ TRILHA DE LEITURA — entries NÃO concede SELECT; a única porta é record.read_patient() (security definer), que registra usuário→paciente→quando em record.access_log (imutável, append-only) ANTES de devolver. Não há leitura sem log — o padrão de EHR sério. O conteúdo clínico NÃO vai no envelope. consumes VAZIO.',
+  'vertical', 'health',
+  '[
+     {"key":"medical-record","canonicalName":"Prontuário"}
+   ]'::jsonb,
+  '[
+     {"key":"record.entry.write","moduleId":"record","description":"Registrar uma entrada no prontuário (fato consumado, imutável)."},
+     {"key":"record.entry.read","moduleId":"record","description":"Ler o prontuário de um paciente — pela porta que LOGA o acesso."},
+     {"key":"record.access.read","moduleId":"record","description":"Auditar a trilha de acesso (quem consultou o prontuário de quem, quando) — compliance."}
+   ]'::jsonb,
+  '[
+     {"type":"record.entry.recorded","version":1,"description":"Uma entrada do prontuário foi registrada. O conteúdo clínico NÃO vai no envelope."}
+   ]'::jsonb,
+  '[]'::jsonb,
+  '[]'::jsonb,
+  '0.0.x',
+  'published'
+)
+on conflict (module_id) do update set
+  name            = excluded.name,
+  version         = excluded.version,
+  summary         = excluded.summary,
+  layer           = excluded.layer,
+  domain_key      = excluded.domain_key,
+  vertical_key    = excluded.vertical_key,
+  capabilities    = excluded.capabilities,
+  permissions     = excluded.permissions,
+  events_emits    = excluded.events_emits,
+  events_consumes = excluded.events_consumes,
+  agents          = excluded.agents,
+  requires_core   = excluded.requires_core,
+  status          = excluded.status,
+  updated_at      = now();
+
+insert into core.module_registry (
+  module_id, name, version, summary,
+  layer, vertical_key,
+  capabilities, permissions, events_emits, events_consumes, agents,
+  requires_core, status
+)
+values (
+  'exam',
+  'Exames',
+  '0.1.0',
+  'Duas fases: o PEDIDO nasce (requested, tipo TEXTO LIVRE, paciente id solto) e o RESULTADO é ato IMUTÁVEL apenso, 1:1 (a física do chk: o modelo congela, a resposta não se rasura). requested → resulted | cancelled, terminais; anexar resultado leva o pedido a resulted; cancelar exige razão; resultado errado é exame NOVO. ⚠️⚠️ DADO SENSÍVEL: ⭐⭐ TRILHA DE LEITURA do RESULTADO — results NÃO concede SELECT; a única porta é exam.read_result() (security definer), que loga em exam.access_log ANTES de devolver. Laudo/imagem em Storage (Core não construído) FORA — o resultado é TEXTO. consumes VAZIO.',
+  'vertical', 'health',
+  '[
+     {"key":"medical-exams","canonicalName":"Exames"}
+   ]'::jsonb,
+  '[
+     {"key":"exam.exam.write","moduleId":"exam","description":"Pedir um exame, anexar o resultado ou cancelar o pedido."},
+     {"key":"exam.exam.read","moduleId":"exam","description":"Ler o resultado de um exame — pela porta que LOGA o acesso."},
+     {"key":"exam.access.read","moduleId":"exam","description":"Auditar a trilha de acesso ao resultado — compliance."}
+   ]'::jsonb,
+  '[
+     {"type":"exam.request.requested","version":1,"description":"Um exame foi pedido."},
+     {"type":"exam.request.resulted","version":1,"description":"O resultado do exame foi anexado. O laudo NÃO vai no envelope."},
+     {"type":"exam.request.cancelled","version":1,"description":"O pedido de exame foi cancelado (com razão)."}
+   ]'::jsonb,
+  '[]'::jsonb,
+  '[]'::jsonb,
+  '0.0.x',
+  'published'
+)
+on conflict (module_id) do update set
+  name            = excluded.name,
+  version         = excluded.version,
+  summary         = excluded.summary,
+  layer           = excluded.layer,
+  domain_key      = excluded.domain_key,
+  vertical_key    = excluded.vertical_key,
+  capabilities    = excluded.capabilities,
+  permissions     = excluded.permissions,
+  events_emits    = excluded.events_emits,
+  events_consumes = excluded.events_consumes,
+  agents          = excluded.agents,
+  requires_core   = excluded.requires_core,
+  status          = excluded.status,
+  updated_at      = now();
+
+insert into core.module_registry (
+  module_id, name, version, summary,
+  layer, vertical_key,
+  capabilities, permissions, events_emits, events_consumes, agents,
+  requires_core, status
+)
+values (
+  'prescription',
+  'Receitas',
+  '0.1.0',
+  'Cabeçalho (paciente id solto, prescritor carimbado, registro TEXTO LIVRE) + itens (medicamento + posologia em TEXTO LIVRE). Emitir CONGELA (draft → issued terminal — a física do quote/chk); receita emitida não se edita, a correta é uma NOVA; item só nasce/muda/some enquanto rascunho; emitir exige ao menos um item. ⚠️⚠️ DADO SENSÍVEL: ⭐⭐ TRILHA DE LEITURA do CONTEÚDO — items NÃO concede SELECT; a única porta é prescription.read_items() (security definer), que loga em prescription.access_log ANTES de devolver (o DIVERGE do record: o cabeçalho é metadata legível, só a medicação fica atrás da porta). Os medicamentos NÃO vão no envelope. Assinatura digital = Engine; SNGPC/controle especial = Lei 3, FORA. consumes VAZIO.',
+  'vertical', 'health',
+  '[
+     {"key":"prescriptions","canonicalName":"Receitas"}
+   ]'::jsonb,
+  '[
+     {"key":"prescription.prescription.write","moduleId":"prescription","description":"Escrever o rascunho da receita (cabeçalho + itens) e emitir (congela)."},
+     {"key":"prescription.prescription.read","moduleId":"prescription","description":"Ler os itens (medicamento + posologia) — pela porta que LOGA o acesso."},
+     {"key":"prescription.access.read","moduleId":"prescription","description":"Auditar a trilha de acesso ao conteúdo da receita — compliance."}
+   ]'::jsonb,
+  '[
+     {"type":"prescription.prescription.drafted","version":1,"description":"Uma receita foi iniciada (rascunho)."},
+     {"type":"prescription.prescription.issued","version":1,"description":"A receita foi emitida e congelada. Os medicamentos NÃO vão no envelope."}
+   ]'::jsonb,
+  '[]'::jsonb,
+  '[]'::jsonb,
+  '0.0.x',
+  'published'
+)
+on conflict (module_id) do update set
+  name            = excluded.name,
+  version         = excluded.version,
+  summary         = excluded.summary,
+  layer           = excluded.layer,
+  domain_key      = excluded.domain_key,
+  vertical_key    = excluded.vertical_key,
+  capabilities    = excluded.capabilities,
+  permissions     = excluded.permissions,
+  events_emits    = excluded.events_emits,
+  events_consumes = excluded.events_consumes,
+  agents          = excluded.agents,
+  requires_core   = excluded.requires_core,
+  status          = excluded.status,
+  updated_at      = now();
+
+-- ⛔ Oitenta e nove módulos no catálogo (71 domain + 18 vertical), zero
 -- permissão concedida pelo seed. ⭐ Onda Vinte (Fase 3): o Vertical ☀️ Energia
 -- (plant · subscription · genreading · creditbalance) aberto — o terceiro bloco
 -- vertical, dor viva da Curva C solar. As 4 capacidades restantes ficam FORA:
 -- Geração distribuída (consolidada no plant), Manutenção de usina (=mnt),
 -- Contratos de energia (=ctr), Comercialização e leads (=lead).
+-- ⭐ Onda Vinte e Um (Fase 3): o Vertical 🏥 Saúde (patient · appointment ·
+-- record · exam · prescription) aberto — o quarto bloco vertical. As 3
+-- capacidades restantes ficam FORA: Convênios (=ctr), Faturamento TISS (Lei 3),
+-- Telemedicina (=Engine de Vídeo).
 
 -- =============================================================================
 -- 5. PLANOS-BASE
