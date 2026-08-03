@@ -287,7 +287,13 @@ A consequência é operacional e não é opinião:
   - `packages/subscription` é o **Módulo 82 — Assinatura de Energia** (`subscription`, Vertical `energy`): o consumidor assina uma FATIA (`allocation_percent` `0<x<=100`) da geração de uma usina (id solto ao `plant`), cliente por id solto ao `crm`. ⭐⭐ **Nasce ativa — SEM `pending`** (o intermediário seria viés de uma distribuidora); ⭐ `active → cancelled` **TERMINAL** — quem re-assina faz OUTRA (a física do `proj`, o DIVERGE consciente do `catalog`); cancelar exige razão + `.decide`. Desconto/faturamento FORA. Ver `MODULO-SUBSCRIPTION-SPEC`.
   - `packages/genreading` é o **Módulo 83 — Monitoramento de Geração** (`genreading`, Vertical `energy`): ⭐ **reaproveita a identidade do `esg`** — leitura periódica IMUTÁVEL (duas camadas), `generated_kwh >= 0` (zero é leitura real — à noite; o MANTIDO do `esg`), unidade TEXTO LIVRE, sem ciclo. ⭐ **O DIVERGE do `esg`:** a usina é OBRIGATÓRIA (`plant_id NOT NULL` — não há geração no ar), por id solto. Performance ratio/alerta FORA. Ver `MODULO-GENREADING-SPEC`.
   - `packages/creditbalance` é o **Módulo 84 — Créditos de Compensação** (`creditbalance`, Vertical `energy`) — ⭐ **FECHA a onda**: o livro de créditos do SCEE/ANEEL, a identidade do `loyalty` (direção no `credit_type`, `quantity_kwh > 0`, saldo é VIEW). ⭐⭐ **Consumir > saldo é RECUSADO — a TERCEIRA resposta, por física PRÓPRIA** (não copiada do `loyalty`): crédito é energia realmente gerada, saldo negativo inventaria energia inexistente (a razão infísica do `esg`); `bank`/`inv` permitem negativo, `loyalty`/`invest` recusam por promessa/posse, `creditbalance` recusa porque energia não se deve, se gera. Validade (60m)/abatimento na fatura FORA. Ver `MODULO-CREDITBALANCE-SPEC`.
-- ⚠️ **A lacuna `0015`/`0016` é proposital** e vem da main. Com a Onda Vinte (`0096`–`0099`), a próxima numeração livre é **`0100`**.
+- ⭐ **A ONDA VINTE E UM (Fase 3) fechou os cinco módulos do Vertical 🏥 SAÚDE num PR** (migrations `0100`–`0104`, ARQUIVO — apply do dono, runbook §34): **ABRE o Vertical 🏥 Saúde** (`vertical_key='health'`), o QUARTO bloco vertical. A Taxonomia §6 lista 8 capacidades; **5 viram módulo, 3 ficam FORA**: *Convênios* (=`ctr`, categoria "convênio"; o plano do paciente é campo TEXTO LIVRE no `patient`), *Faturamento TISS* (Lei 3 — padrão ANS regulado, integra), *Telemedicina* (=Engine de Vídeo, amarra ao `appointment` por id solto). ⚠️⚠️ **DADO SENSÍVEL (LGPD Art. 5º, II):** `record`/`exam`/`prescription` são clínicos e ganham a ⭐⭐ **TRILHA DE LEITURA** (`*.access_log` imutável append-only + `read_*()` `security definer` que loga usuário→paciente→quando ANTES de devolver — o padrão de EHR sério); `patient`/`appointment` ficam no write-trail. Os CINCO têm **`consumes` VAZIO** — sem redeploy do `apps/api`. O catálogo passa de 84 para **89 módulos publicados** (18 verticais: 5 shopping-centers + 4 retail + 4 energy + 5 health). ⚠️ o `record` (`0102`) fora entregue no PR #48 só como migration — este PR o FECHA (cartão no seed + teste + ligação no CI, que o #48 não tinha). Ver `ONDA-VINTE-E-UM-DECISOES.md`. Módulos:
+  - `patient` (`0100`): cadastro demográfico em VALA PRÓPRIA (NÃO o `crm` — proibição LGPD de misturar PHI com contato comercial); nº de prontuário/plano TEXTO LIVRE; `active ↔ archived` (a física do `crm`/`catalog`). Write-trail.
+  - `appointment` (`0101`): agenda com **NO-SHOW** (a física do `agendamentos.comparecimento` do Peritus, referência não integração); `scheduled → attended | no_show | cancelled`, os TRÊS TERMINAIS; profissional/paciente id solto, registro CRM/CRO/CRP TEXTO LIVRE. ⚠️ status `no_show` mas o fato é `.missed` (o outbox recusa `_` no verbo). Write-trail.
+  - `record` (`0102`): Prontuário — cada entrada é FATO CONSUMADO imutável 2 camadas; ⭐⭐ trilha de LEITURA (`record.read_patient()` é a única porta, e LOGA). O conteúdo clínico NÃO vai no envelope.
+  - `prescription` (`0103`): Receitas — cabeçalho (metadata legível) + itens (medicamento+posologia); emitir CONGELA (`draft → issued` terminal, a física do `quote`); ⭐⭐ trilha de LEITURA do CONTEÚDO (`prescription.read_items()`, o DIVERGE do `record`: só a medicação atrás da porta).
+  - `exam` (`0104`): Exames pedido→resultado (duas fases); o resultado é ato IMUTÁVEL apenso 1:1 (a física do `chk`); `requested → resulted | cancelled`; ⭐⭐ trilha de LEITURA do RESULTADO (`exam.read_result()`). Laudo/imagem em Storage FORA (é texto).
+- ⚠️ **A lacuna `0015`/`0016` é proposital** e vem da main. Com a Onda Vinte e Um (`0100`–`0104`), a próxima numeração livre é **`0105`**.
 - ⛔ **A limpeza do runbook §7.3 FOI EXECUTADA** em 28/07/2026: a concessão global de permissão de módulo **não existe mais em produção**. O tenant piloto tem papel próprio, com as permissões concedidas por `core.install_module()` — pela Store, com o clique do dono. Nunca volte a conceder permissão de módulo no seed.
 - `packages/workflow` é **o correio do Core** — o entregador da caixa de saída: idempotência por consumidor, backoff exponencial, `dead` sem apagar. **ENGINE, não módulo** (Taxonomia §4): não aparece na Store.
 - `apps/api` é **a COMPOSIÇÃO** — o único lugar do repositório onde os módulos se conhecem. Ele importa `workflow`, `marketing`, `finance-reconciliation`, `accounts-payable`, `accounts-receivable` e `billing`; **nenhum deles importa nenhum outro**. ⭐ Desde a Etapa 10 o mesmo pacote (`finance-reconciliation`) é PRODUTOR numa inscrição e CONSUMIDOR em outra — e continua sem conhecer ninguém. Traz a persistência real do correio (contra Postgres, com arrendamento e `skip locked`), os adaptadores dos consumidores, o endpoint protegido e a saúde da fila.
@@ -364,6 +370,7 @@ docs/canon/            taxonomia · roadmap · core-spec · identidade-visual
                        · modulo-genreading-spec · modulo-creditbalance-spec
                        · ONDA-DEZENOVE-DECISOES (as 23 capacidades)
                        · ONDA-VINTE-DECISOES (as 8 capacidades do Energia)
+                       · ONDA-VINTE-E-UM-DECISOES (as 8 capacidades da Saúde)
                                                         — leitura obrigatória
 docs/comercial/        VERTICAL-SHOPPING.md             — dossiê de venda
 docs/balancos/         tecnologia + supabase            — de onde minerar
@@ -431,7 +438,14 @@ supabase/migrations/   0001_core … 0014_ap_apply_recon_match
                        · 0098_genreading · 0099_creditbalance  — Onda Vinte
                                                             (Fase 3 — ABRE o Vertical
                                                             ☀️ Energia); apply do dono
-                       (lacuna 0015–0016 proposital; próxima livre: 0100)
+                       0100_patient · 0101_appointment · 0102_record
+                       · 0103_prescription · 0104_exam        — Onda Vinte e Um
+                                                            (Fase 3 — ABRE o Vertical
+                                                            🏥 Saúde; DADO SENSÍVEL:
+                                                            trilha de LEITURA em
+                                                            record/exam/prescription);
+                                                            apply do dono
+                       (lacuna 0015–0016 proposital; próxima livre: 0105)
 supabase/seed/         0001_platform.sql                — catálogo, idempotente; zero tenant
 supabase/tests/        shim · isolamento · uso · consumo entre módulos
                        · instalador · triângulo · relacionamentos · a receber
@@ -454,6 +468,9 @@ supabase/tests/        shim · isolamento · uso · consumo entre módulos
                        · lojistas (mall) · locação (lease)
                        · fundo de promoção (fund) · estacionamento (park)
                        · segurança/rondas (sec)
+                       · pacientes (patient) · agenda médica (appointment)
+                       · prontuário+trilha (record) · receitas+trilha (prescription)
+                       · exames+trilha (exam)
                                                         — só CI; NUNCA no Supabase real
 docs/runbook/          APLICAR.md                       — o passo a passo do dono
 .github/scripts/       guarda de defasagem de documento — encanamento de CI

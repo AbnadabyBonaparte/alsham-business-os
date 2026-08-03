@@ -547,6 +547,20 @@ jobs:
       - name: aplicar 0099_creditbalance.sql
         run: $PSQL -f supabase/migrations/0099_creditbalance.sql
 
+      # ⭐ Onda Vinte e Um (Fase 3) — o Vertical 🏥 Saúde (patient · appointment ·
+      # record · exam · prescription). ⚠️⚠️ DADO SENSÍVEL: record/exam/prescription
+      # têm TRILHA DE LEITURA (access_log); patient/appointment no write-trail.
+      - name: aplicar 0100_patient.sql
+        run: $PSQL -f supabase/migrations/0100_patient.sql
+      - name: aplicar 0101_appointment.sql
+        run: $PSQL -f supabase/migrations/0101_appointment.sql
+      - name: aplicar 0102_record.sql
+        run: $PSQL -f supabase/migrations/0102_record.sql
+      - name: aplicar 0103_prescription.sql
+        run: $PSQL -f supabase/migrations/0103_prescription.sql
+      - name: aplicar 0104_exam.sql
+        run: $PSQL -f supabase/migrations/0104_exam.sql
+
       # ---------------------------------------------------------------------
       # 2. SEED — e a prova de que reaplicar não muda nada
       # ---------------------------------------------------------------------
@@ -2007,6 +2021,20 @@ jobs:
         run: $PSQL -f supabase/tests/88_genreading_isolation.sql
       - name: teste de créditos de compensação (creditbalance)
         run: $PSQL -f supabase/tests/89_creditbalance_isolation.sql
+
+      # ⭐ Onda Vinte e Um — o Vertical 🏥 Saúde (patient·appointment·record·
+      # exam·prescription). ⚠️⚠️ DADO SENSÍVEL: os testes clínicos provam a
+      # TRILHA DE LEITURA (sem SELECT direto; a porta LOGA) e a imutabilidade.
+      - name: teste de pacientes (patient)
+        run: $PSQL -f supabase/tests/90_patient_isolation.sql
+      - name: teste de agenda médica (appointment)
+        run: $PSQL -f supabase/tests/91_appointment_isolation.sql
+      - name: teste de prontuário + trilha de leitura (record)
+        run: $PSQL -f supabase/tests/92_record_isolation.sql
+      - name: teste de receitas + trilha de leitura (prescription)
+        run: $PSQL -f supabase/tests/93_prescription_isolation.sql
+      - name: teste de exames + trilha de leitura (exam)
+        run: $PSQL -f supabase/tests/94_exam_isolation.sql
 
       # ⭐ Os quatro cartões da Onda Quatorze são DOMAIN quality — o território
       # novo. As outras 3 capacidades da Qualidade (Indicadores/Documentos/
