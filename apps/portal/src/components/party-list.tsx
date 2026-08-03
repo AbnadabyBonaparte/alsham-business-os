@@ -11,18 +11,20 @@ import { stamp } from '@/lib/format';
 import { Badge, EmptyState, Panel } from '@/components/states';
 import { PartyForm } from '@/components/party-form';
 import { InteractionTimeline } from '@/components/interaction-timeline';
+import { Table, THead, TBody, TR, TH, TD } from '@/components/table';
 
 /**
- * A carteira de contrapartes — o rosto do Módulo 4.
+ * A carteira de contrapartes — agora TABELA DE VERDADE (Mandato de Beleza,
+ * Bloco Comercial & CRM). Cada contraparte é uma linha: nome, identificador,
+ * contato e a contagem de contatos à direita com tabular figures. O histórico
+ * de contato, a edição do cadastro e a ação de arquivar/trazer de volta —
+ * **com a confirmação explícita em dois passos** (padrão CRIVO) — vivem numa
+ * LINHA EXPANSÍVEL.
  *
- * ⭐ **Este componente não decide nada.** Se uma contraparte bate com a busca,
- * se pode ser arquivada e se pode voltar são perguntas feitas a `@alsham/crm`.
- * Se alguém escrever `p.displayName.includes(busca)` aqui, a mesma pergunta
- * passa a ter duas respostas no dia em que a busca também acontecer no
- * servidor — e há guarda no CI para o dia em que tentarem.
- *
- * Arquivar tem **confirmação explícita em dois passos** (padrão CRIVO): o
- * primeiro clique arma, o segundo confirma, e há sempre saída.
+ * ⭐ **Este componente não decide nada.** Se bate com a busca, se pode ser
+ * arquivada e se pode voltar são perguntas feitas a `@alsham/crm`. Se alguém
+ * escrever `p.displayName.includes(busca)` aqui, há guarda no CI para o dia em
+ * que tentarem.
  */
 
 const FILTROS: readonly { key: 'all' | PartyStatus; label: string }[] = [
@@ -97,22 +99,37 @@ export function PartyList({
           hint="Nada bate com a busca ou com o filtro. Limpe os dois para ver a carteira inteira."
         />
       ) : (
-        visiveis.map((p) => (
-          <PartyCard
-            key={p.id}
-            party={p}
-            interactions={interactionsByParty[p.id] ?? []}
-            canManage={canManage}
-            canArchiveParties={canArchiveParties}
-            canRecord={canRecord}
-          />
-        ))
+        <Panel className="px-2 py-1.5">
+          <Table>
+            <THead>
+              <TR>
+                <TH>Contraparte</TH>
+                <TH>Contato</TH>
+                <TH num>Contatos</TH>
+                <TH>Situação</TH>
+                <TH className="w-8" />
+              </TR>
+            </THead>
+            <TBody>
+              {visiveis.map((p) => (
+                <PartyRowItem
+                  key={p.id}
+                  party={p}
+                  interactions={interactionsByParty[p.id] ?? []}
+                  canManage={canManage}
+                  canArchiveParties={canArchiveParties}
+                  canRecord={canRecord}
+                />
+              ))}
+            </TBody>
+          </Table>
+        </Panel>
       )}
     </div>
   );
 }
 
-function PartyCard({
+function PartyRowItem({
   party,
   interactions,
   canManage,
@@ -126,94 +143,97 @@ function PartyCard({
   canRecord: boolean;
 }) {
   const [aberto, setAberto] = useState(false);
+  const [verHistorico, setVerHistorico] = useState(false);
   const [editando, setEditando] = useState(false);
+  const painelId = `party-${party.id}`;
 
   return (
-    <Panel className="px-6 py-5">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="min-w-0">
-          <div className="flex flex-wrap items-baseline gap-2">
-            <h2 className="font-display text-lg text-bos-text">{party.displayName}</h2>
-            {party.taxId ? (
-              <span className="font-mono text-[11px] text-bos-muted">{party.taxId}</span>
-            ) : null}
-          </div>
-
-          <p className="mt-1 text-xs text-bos-muted">
+    <>
+      <TR className="transition-colors hover:bg-bos-elevated/30">
+        <TD>
+          <span className="text-bos-text">{party.displayName}</span>
+          {party.taxId ? (
+            <span className="ml-2 font-mono text-[11px] text-bos-muted">{party.taxId}</span>
+          ) : null}
+          <span className="mt-0.5 block text-xs text-bos-muted">
             {party.kind === 'person' ? 'pessoa' : 'organização'}
-            {party.email ? <> · {party.email}</> : null}
-            {party.phone ? <> · {party.phone}</> : null}
-            {' · '}
-            {interactions.length === 0
-              ? 'sem contato registrado'
-              : `${interactions.length} contato(s) registrado(s)`}
-          </p>
-
-          {party.note ? (
-            <p className="mt-2 max-w-2xl text-sm text-bos-muted">{party.note}</p>
-          ) : null}
-
-          {party.tags.length > 0 ? (
-            <div className="mt-2 flex flex-wrap gap-1.5">
-              {party.tags.map((t) => (
-                <span
-                  key={t}
-                  className="rounded-md border border-bos-border px-2 py-0.5 text-[11px] text-bos-muted"
-                >
-                  {t}
-                </span>
-              ))}
-            </div>
-          ) : null}
-        </div>
-
-        <div className="flex shrink-0 flex-col items-end gap-2">
+            {party.tags.length > 0 ? ` · ${party.tags.join(' · ')}` : ''}
+          </span>
+        </TD>
+        <TD className="text-bos-muted">
+          {party.email ?? (party.phone ? '' : '—')}
+          {party.email && party.phone ? ' · ' : ''}
+          {party.phone ?? ''}
+        </TD>
+        <TD num className="whitespace-nowrap text-bos-muted">
+          {interactions.length}
+        </TD>
+        <TD className="whitespace-nowrap">
           <Badge tone={party.status === 'active' ? 'success' : 'neutral'}>
             {party.status === 'active' ? 'ativa' : 'arquivada'}
           </Badge>
-          <span className="text-[11px] text-bos-muted">desde {stamp(party.createdAt)}</span>
-        </div>
-      </div>
-
-      <div className="mt-4 flex flex-wrap items-center gap-3 border-t border-bos-border pt-4">
-        <button
-          type="button"
-          onClick={() => setAberto((v) => !v)}
-          className="rounded-md border border-bos-border px-3 py-1.5 text-xs text-bos-text transition-colors hover:bg-bos-surface"
-        >
-          {aberto ? 'Fechar histórico' : 'Ver histórico de contato'}
-        </button>
-
-        {canManage && !editando ? (
+          <span className="mt-0.5 block text-[11px] text-bos-muted">desde {stamp(party.createdAt)}</span>
+        </TD>
+        <TD className="text-right">
           <button
             type="button"
-            onClick={() => setEditando(true)}
-            className="text-xs text-bos-muted transition-colors hover:text-bos-text"
+            onClick={() => setAberto((v) => !v)}
+            aria-expanded={aberto}
+            aria-controls={painelId}
+            className="text-[11px] text-bos-muted transition-colors hover:text-bos-text"
           >
-            Editar cadastro
+            {aberto ? 'fechar' : 'detalhes'}
           </button>
-        ) : null}
-
-        <StatusButton party={party} canArchiveParties={canArchiveParties} />
-      </div>
-
-      {editando ? (
-        <div className="mt-4">
-          <PartyForm canManage={canManage} party={party} onDone={() => setEditando(false)} />
-        </div>
-      ) : null}
+        </TD>
+      </TR>
 
       {aberto ? (
-        <div className="mt-4">
-          <InteractionTimeline
-            partyId={party.id}
-            partyName={party.displayName}
-            interactions={interactions}
-            canRecord={canRecord}
-          />
-        </div>
+        <TR>
+          <TD colSpan={5} className="bg-bos-elevated/20">
+            <div id={painelId} className="flex flex-col gap-3 px-1 py-1">
+              {party.note ? (
+                <p className="max-w-2xl text-sm text-bos-muted">{party.note}</p>
+              ) : null}
+
+              <div className="flex flex-wrap items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setVerHistorico((v) => !v)}
+                  className="rounded-md border border-bos-border px-3 py-1.5 text-xs text-bos-text transition-colors hover:bg-bos-surface"
+                >
+                  {verHistorico ? 'Fechar histórico' : 'Ver histórico de contato'}
+                </button>
+
+                {canManage && !editando ? (
+                  <button
+                    type="button"
+                    onClick={() => setEditando(true)}
+                    className="text-xs text-bos-muted transition-colors hover:text-bos-text"
+                  >
+                    Editar cadastro
+                  </button>
+                ) : null}
+
+                <StatusButton party={party} canArchiveParties={canArchiveParties} />
+              </div>
+
+              {editando ? (
+                <PartyForm canManage={canManage} party={party} onDone={() => setEditando(false)} />
+              ) : null}
+
+              {verHistorico ? (
+                <InteractionTimeline
+                  partyId={party.id}
+                  partyName={party.displayName}
+                  interactions={interactions}
+                  canRecord={canRecord}
+                />
+              ) : null}
+            </div>
+          </TD>
+        </TR>
       ) : null}
-    </Panel>
+    </>
   );
 }
 
