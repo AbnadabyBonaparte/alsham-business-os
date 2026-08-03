@@ -1767,6 +1767,53 @@ migration livre é **`0100`** (a lacuna `0015`–`0016` é proposital).
 Nenhum agente aplica em produção. A conferência de segurança do PASSO 15
 (§ pós-apply) vale para os schemas novos.
 
+## PASSO 34 — A ONDA VINTE E UM: ABRE o Vertical 🏥 Saúde (`0100`–`0104`) — Fase 3
+
+⭐ A Onda Vinte e Um abre o **Vertical 🏥 Saúde** (`vertical_key='health'`) — o
+QUARTO bloco vertical. A Taxonomia §6 lista **8 capacidades**; a investigação (ver
+`docs/canon/ONDA-VINTE-E-UM-DECISOES.md`) construiu **5 módulos** e declarou **3
+FORA**: *Convênios* → `ctr` (o plano do paciente é campo TEXTO LIVRE no `patient`);
+*Faturamento TISS* → **Lei 3** (padrão ANS regulado, integra); *Telemedicina* →
+Engine de Vídeo (amarra ao `appointment` por id solto).
+
+⚠️⚠️ **DADO SENSÍVEL DE SAÚDE (LGPD Art. 5º, II).** Além do padrão (RLS
+enable+FORCE, zero grant `anon`, imutabilidade, carimbo do servidor), os três
+módulos CLÍNICOS têm a camada a mais que todo EHR sério tem — a **TRILHA DE
+LEITURA**: `record`/`exam`/`prescription` guardam o conteúdo clínico atrás de uma
+função `security definer` (`record.read_patient()` / `exam.read_result()` /
+`prescription.read_items()`) que **registra o acesso** (`*.access_log`, imutável
+append-only) ANTES de devolver. Não há leitura sem log. `patient`/`appointment`
+ficam no write-trail (não carregam conteúdo clínico).
+
+1. **Aplicar as cinco migrations** no SQL Editor, em ordem:
+   - `0100_patient.sql` — Pacientes, cadastro demográfico (schema `patient`)
+   - `0101_appointment.sql` — Agenda médica com no-show (schema `appointment`)
+   - `0102_record.sql` — Prontuário + trilha de leitura (schema `record`)
+   - `0103_prescription.sql` — Receitas + trilha de leitura (schema `prescription`)
+   - `0104_exam.sql` — Exames pedido→resultado + trilha de leitura (schema `exam`)
+   ⚠️ O `0102_record.sql` foi entregue no PR #48 só como arquivo (sem cartão/teste/CI);
+   este apply é o primeiro em que ele entra junto com os outros quatro, fechado.
+2. **Reaplicar o seed** — os cinco cartões entram no catálogo (`health`×5). A Store
+   gradua a seção do Vertical Saúde.
+3. ⚠️ **Expor os schemas novos na Data API**: `patient`, `appointment`, `record`,
+   `exam`, `prescription`.
+4. ✅ **SEM redeploy do `apps/api`** — os cinco têm `consumes` VAZIO (Lei 7).
+   Guarda de CI confere.
+5. **Instalar os módulos pela Store**, no tenant que os contratou.
+
+⭐⭐ **A conferência de segurança dos módulos clínicos, além do PASSO 15:** confirme
+que `record.entries`, `prescription.items` e `exam.results` **NÃO concedem SELECT**
+ao cliente (a leitura é só pela função que loga), e que `*.access_log` não aceita
+INSERT/UPDATE/DELETE do cliente. Os testes `92`–`94` provam isso no CI.
+
+⭐ **Ao concluir este apply, o catálogo chega a 89 módulos publicados** (84 + 5 da
+Onda Vinte e Um; 18 verticais: 5 shopping-centers + 4 retail + 4 energy + 5
+health). A próxima migration livre é **`0105`** (a lacuna `0015`–`0016` é
+proposital).
+
+Nenhum agente aplica em produção. A conferência de segurança do PASSO 15
+(§ pós-apply) vale para os schemas novos.
+
 ## O QUE AINDA NÃO EXISTE
 
 Honestidade de escopo, para você não procurar o que não foi construído:
