@@ -7,19 +7,21 @@ import type { Campaign, CampaignStatus, TransitionVerdict } from '@alsham/market
 import { changeCampaignStatus } from '@/app/marketing-actions';
 import { money, shortDate } from '@/lib/format';
 import { Badge, EmptyState, Panel } from '@/components/states';
+import { Table, THead, TBody, TR, TH, TD } from '@/components/table';
 
 /**
- * A carteira de campanhas.
+ * A carteira de campanhas — agora TABELA DE VERDADE (Mandato de Beleza). Cada
+ * campanha é uma LINHA de resumo: nome, verba prevista, situação e agenda. A
+ * descrição, o público, o estado da verba e as transições de estado vivem numa
+ * LINHA EXPANSÍVEL.
  *
  * ⭐ **Este componente não decide nada.** Ele recebe, para cada campanha, o
  * veredito que `planTransition()` já produziu no servidor — inclusive a
- * MENSAGEM de recusa. Se a regra mudar no pacote, esta tela muda junto sem
- * ninguém tocar nela; e se alguém escrever a regra aqui, ela passa a existir
- * em dois lugares que vão divergir.
+ * MENSAGEM de recusa. Se a regra mudar no pacote, esta tela muda junto.
  *
  * Ação de estado tem **confirmação explícita em dois passos** (padrão CRIVO):
- * o primeiro clique arma, o segundo confirma, e há sempre saída. Publicar e
- * cancelar põem evento na caixa de saída do Core — não são cliques baratos.
+ * publicar e cancelar põem evento na caixa de saída do Core — não são cliques
+ * baratos.
  */
 
 type Tone = 'success' | 'warning' | 'danger' | 'info' | 'neutral';
@@ -98,72 +100,116 @@ export function CampaignBoard({
   }
 
   return (
-    <div className="flex flex-col gap-4">
-      {rows.map((row) => (
-        <CampaignCard key={row.campaign.id} row={row} canPublish={canPublish} />
-      ))}
-    </div>
+    <Panel className="px-2 py-1.5">
+      <Table>
+        <THead>
+          <TR>
+            <TH>Campanha</TH>
+            <TH num>Verba</TH>
+            <TH>Situação</TH>
+            <TH>Agenda</TH>
+            <TH className="w-8" />
+          </TR>
+        </THead>
+        <TBody>
+          {rows.map((row) => (
+            <CampaignRowItem key={row.campaign.id} row={row} canPublish={canPublish} />
+          ))}
+        </TBody>
+      </Table>
+    </Panel>
   );
 }
 
-function CampaignCard({ row, canPublish }: { row: CampaignRow; canPublish: boolean }) {
+function CampaignRowItem({ row, canPublish }: { row: CampaignRow; canPublish: boolean }) {
   const { campaign: c } = row;
+  const [aberto, setAberto] = useState(false);
   const verba = VERBA[c.budgetStatus];
   const proximos = PROXIMOS[c.status] ?? [];
+  const painelId = `campaign-${c.id}`;
 
   return (
-    <Panel className="px-6 py-6">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="min-w-0">
-          <h2 className="font-display text-lg text-bos-text">{c.name}</h2>
-          {c.description ? (
-            <p className="mt-1 max-w-2xl text-sm text-bos-muted">{c.description}</p>
-          ) : null}
-          <p className="mt-2 text-xs text-bos-muted">
-            {c.scheduledFor ? <>agendada para {shortDate(c.scheduledFor)} · </> : null}
-            {c.publishedAt ? <>no ar desde {shortDate(c.publishedAt)} · </> : null}
-            {c.completedAt ? <>encerrada em {shortDate(c.completedAt)} · </> : null}
-            {c.budgetPlannedCents !== null && c.currency
-              ? `verba prevista ${money(c.budgetPlannedCents, c.currency)}`
-              : 'sem verba declarada'}
-          </p>
-          {c.audienceNote ? (
-            <p className="mt-2 max-w-2xl text-xs text-bos-muted">público: {c.audienceNote}</p>
-          ) : null}
-        </div>
-
-        <div className="flex shrink-0 flex-col items-end gap-2">
+    <>
+      <TR className="transition-colors hover:bg-bos-elevated/30">
+        <TD>
+          <span className="text-bos-text">{c.name}</span>
+          {c.audienceNote ? <span className="mt-0.5 block text-xs text-bos-muted">público: {c.audienceNote}</span> : null}
+        </TD>
+        <TD num className="whitespace-nowrap">
+          {c.budgetPlannedCents !== null && c.currency ? (
+            <span className="text-bos-text">{money(c.budgetPlannedCents, c.currency)}</span>
+          ) : (
+            <span className="text-bos-muted">—</span>
+          )}
+        </TD>
+        <TD className="whitespace-nowrap">
           <Badge tone={TOM[c.status]}>{ROTULO[c.status]}</Badge>
-          {c.budgetRef ? (
-            <>
-              <Badge tone={verba.tone}>{verba.label}</Badge>
-              <span className="font-mono text-[11px] text-bos-muted">{c.budgetRef}</span>
-            </>
-          ) : null}
-        </div>
-      </div>
+        </TD>
+        <TD className="whitespace-nowrap text-bos-muted">
+          {c.publishedAt ? <>no ar {shortDate(c.publishedAt)}</>
+            : c.scheduledFor ? <>→ {shortDate(c.scheduledFor)}</>
+            : c.completedAt ? <>fim {shortDate(c.completedAt)}</>
+            : <span className="italic">—</span>}
+        </TD>
+        <TD className="text-right">
+          <button
+            type="button"
+            onClick={() => setAberto((v) => !v)}
+            aria-expanded={aberto}
+            aria-controls={painelId}
+            className="text-[11px] text-bos-muted transition-colors hover:text-bos-text"
+          >
+            {aberto ? 'fechar' : 'detalhes'}
+          </button>
+        </TD>
+      </TR>
 
-      {proximos.length > 0 ? (
-        <div className="mt-5 flex flex-wrap gap-2 border-t border-bos-border pt-4">
-          {proximos.map(({ to, label }) => (
-            <TransitionButton
-              key={to}
-              campaignId={c.id}
-              to={to}
-              label={label}
-              consequence={CONSEQUENCIA[to] ?? ''}
-              verdict={row.verdicts[to]}
-              canPublish={canPublish}
-            />
-          ))}
-        </div>
-      ) : (
-        <p className="mt-5 border-t border-bos-border pt-4 text-xs text-bos-muted">
-          Estado terminal: campanha {ROTULO[c.status]} não muda mais. Reabrir apagaria a fronteira
-          entre o que aconteceu e o que se quis que acontecesse.
-        </p>
-      )}
-    </Panel>
+      {aberto ? (
+        <TR>
+          <TD colSpan={5} className="bg-bos-elevated/20">
+            <div id={painelId} className="flex flex-col gap-3 px-1 py-1">
+              {c.description ? <p className="max-w-2xl text-sm text-bos-muted">{c.description}</p> : null}
+              <p className="text-xs text-bos-muted">
+                {c.scheduledFor ? <>agendada para {shortDate(c.scheduledFor)} · </> : null}
+                {c.publishedAt ? <>no ar desde {shortDate(c.publishedAt)} · </> : null}
+                {c.completedAt ? <>encerrada em {shortDate(c.completedAt)} · </> : null}
+                {c.budgetPlannedCents !== null && c.currency
+                  ? `verba prevista ${money(c.budgetPlannedCents, c.currency)}`
+                  : 'sem verba declarada'}
+              </p>
+
+              {c.budgetRef ? (
+                <p className="flex flex-wrap items-center gap-2">
+                  <Badge tone={verba.tone}>{verba.label}</Badge>
+                  <span className="font-mono text-[11px] text-bos-muted">{c.budgetRef}</span>
+                </p>
+              ) : null}
+
+              {proximos.length > 0 ? (
+                <div className="flex flex-wrap gap-2 border-t border-bos-border pt-2">
+                  {proximos.map(({ to, label }) => (
+                    <TransitionButton
+                      key={to}
+                      campaignId={c.id}
+                      to={to}
+                      label={label}
+                      consequence={CONSEQUENCIA[to] ?? ''}
+                      verdict={row.verdicts[to]}
+                      canPublish={canPublish}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <p className="border-t border-bos-border pt-2 text-xs text-bos-muted">
+                  Estado terminal: campanha {ROTULO[c.status]} não muda mais. Reabrir apagaria a fronteira
+                  entre o que aconteceu e o que se quis que acontecesse.
+                </p>
+              )}
+            </div>
+          </TD>
+        </TR>
+      ) : null}
+    </>
   );
 }
 
