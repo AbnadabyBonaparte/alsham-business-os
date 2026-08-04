@@ -6,6 +6,8 @@ import type {
   ParsedStatement,
   Payable,
   Receivable,
+  ReconciliationMatch,
+  SourcedStatementLine,
   StatementLine,
 } from '@alsham/finance-reconciliation';
 
@@ -58,7 +60,23 @@ export interface DataPort {
    */
   loadCsvMapping(): Promise<CsvMapping | null>;
 
-  loadStatementLines(): Promise<StatementLine[]>;
+  /**
+   * As linhas em aberto do extrato, **com a conta bancária de origem** (join
+   * com `bank_statements`). A mesa mostra de qual conta cada linha veio — sem
+   * isso, "sem correspondência" não diz nem em qual conta procurar.
+   */
+  loadStatementLines(): Promise<SourcedStatementLine[]>;
+
+  /**
+   * Os casamentos JÁ GRAVADOS em `recon.reconciliation_matches` para as linhas
+   * dadas — com o score, a estratégia e a procedência (auto/manual) do momento
+   * em que foram feitos. A mesa usa o gravado como verdade, em vez de recalcular
+   * por cima. `statementLineIds` vazio devolve `[]` sem ir ao banco.
+   */
+  loadReconciliationMatches(
+    statementLineIds: readonly string[],
+  ): Promise<ReconciliationMatch[]>;
+
   loadPayables(): Promise<Payable[]>;
   /** Projeções locais de títulos a receber (crédito do extrato). */
   loadReceivables(): Promise<Receivable[]>;

@@ -40,6 +40,25 @@ interface ScoredPair {
   readonly matchedAmountCents: Cents;
 }
 
+/**
+ * A avaliação CRUA de um par linha↔título — score e distâncias, **sem portão**.
+ *
+ * `scorePair`/`scoreReceivablePair` (o motor de sugestão) aplicam os portões de
+ * tolerância e limiar sobre ela. A classificação de divergência (`mesa.ts`)
+ * usa a mesma avaliação SEM portão para responder *por que* não casou — e é
+ * por passar pela mesma régua que o "quase casou" da divergência bate com o
+ * casamento que o motor faria. Régua de casar e régua de explicar são a MESMA.
+ */
+export interface PairEvaluation {
+  readonly score: number;
+  readonly strategy: string;
+  readonly matchedAmountCents: Cents;
+  /** |fluxo| − saldo restante, em centavos. `0` = valor exato. */
+  readonly amountDeltaCents: Cents;
+  /** Distância entre a data do lançamento e o vencimento, em dias. */
+  readonly dateDeltaDays: number;
+}
+
 /** Remove tudo que não for alfanumérico e sobe para maiúsculas. */
 export function normalizeTaxId(value: string | null | undefined): string | null {
   if (!value) return null;
@@ -100,7 +119,7 @@ function nameOverlap(a: string, b: string): number {
   return hits / Math.min(wa.size, wb.size);
 }
 
-function scoreSignals(
+function evaluateSignals(
   line: StatementLine,
   remaining: number,
   flowAbs: number,
@@ -109,9 +128,9 @@ function scoreSignals(
   taxId: string | null | undefined,
   counterpartyName: string | null | undefined,
   settings: MatchingSettings,
-): ScoredPair | null {
+): PairEvaluation {
   const amountDistance = Math.abs(flowAbs - remaining);
-  if (amountDistance > settings.amountToleranceCents) return null;
+  const dateDistance = daysBetween(line.postedAt, dueDate);
 
   const signals: Signal[] = [
     {
@@ -122,7 +141,7 @@ function scoreSignals(
     {
       key: 'date',
       weight: WEIGHTS.date,
-      strength: decay(daysBetween(line.postedAt, dueDate), settings.dateToleranceDays),
+      strength: decay(dateDistance, settings.dateToleranceDays),
     },
   ];
 
@@ -157,8 +176,6 @@ function scoreSignals(
   const weighted = signals.reduce((sum, s) => sum + s.weight * s.strength, 0);
   const score = Math.round((weighted / totalWeight) * 10_000) / 10_000;
 
-  if (score < settings.minScore) return null;
-
   const strategy = signals
     .filter((s) => s.strength > 0)
     .map((s) => s.key)
@@ -168,7 +185,74 @@ function scoreSignals(
     score,
     strategy,
     matchedAmountCents: Math.min(flowAbs, remaining),
+    amountDeltaCents: amountDistance,
+    dateDeltaDays: dateDistance,
   };
+}
+
+/**
+ * Avalia um par linha↔título a pagar SEM portão — score cru e distâncias.
+ *
+ * `null` só quando o par nem é candidato: direção errada (crédito), moeda
+ * diferente, ou título sem saldo. Portão de tolerância/limiar é de quem chama.
+ */
+export function evaluatePair(
+  line: StatementLine,
+  payable: Payable,
+  settings: MatchingSettings,
+): PairEvaluation | null {
+  // Título a pagar quita-se com SAÍDA de dinheiro. Entrada não é candidata.
+  if (line.amountCents >= 0) return null;
+  if (line.currency !== payable.currency) return null;
+
+  const outflow = Math.abs(line.amountCents);
+  const remaining = payable.amountCents - payable.settledAmountCents;
+  if (remaining <= 0) return null;
+
+  return evaluateSignals(
+    line,
+    remaining,
+    outflow,
+    payable.dueDate,
+    payable.externalRef,
+    payable.supplierTaxId,
+    payable.supplierName,
+    settings,
+  );
+}
+
+/** Avalia um par linha↔título a receber SEM portão. Espelho de `evaluatePair`. */
+export function evaluateReceivablePair(
+  line: StatementLine,
+  receivable: Receivable,
+  settings: MatchingSettings,
+): PairEvaluation | null {
+  // Título a receber quita-se com ENTRADA de dinheiro. Saída não é candidata.
+  if (line.amountCents <= 0) return null;
+  if (line.currency !== receivable.currency) return null;
+
+  const inflow = line.amountCents;
+  const remaining = Math.max(0, receivable.amountCents - receivable.receivedAmountCents);
+  if (remaining <= 0) return null;
+
+  return evaluateSignals(
+    line,
+    remaining,
+    inflow,
+    receivable.dueDate,
+    receivable.externalRef,
+    receivable.counterpartyTaxId,
+    receivable.counterpartyName,
+    settings,
+  );
+}
+
+/** Aplica os portões (tolerância de valor + limiar) sobre a avaliação crua. */
+function gate(ev: PairEvaluation | null, settings: MatchingSettings): ScoredPair | null {
+  if (ev === null) return null;
+  if (ev.amountDeltaCents > settings.amountToleranceCents) return null;
+  if (ev.score < settings.minScore) return null;
+  return { score: ev.score, strategy: ev.strategy, matchedAmountCents: ev.matchedAmountCents };
 }
 
 /**
@@ -181,25 +265,7 @@ export function scorePair(
   payable: Payable,
   settings: MatchingSettings,
 ): ScoredPair | null {
-  // Título a pagar quita-se com SAÍDA de dinheiro. Entrada não é candidata.
-  if (line.amountCents >= 0) return null;
-
-  if (line.currency !== payable.currency) return null;
-
-  const outflow = Math.abs(line.amountCents);
-  const remaining = payable.amountCents - payable.settledAmountCents;
-  if (remaining <= 0) return null;
-
-  return scoreSignals(
-    line,
-    remaining,
-    outflow,
-    payable.dueDate,
-    payable.externalRef,
-    payable.supplierTaxId,
-    payable.supplierName,
-    settings,
-  );
+  return gate(evaluatePair(line, payable, settings), settings);
 }
 
 /**
@@ -213,25 +279,7 @@ export function scoreReceivablePair(
   receivable: Receivable,
   settings: MatchingSettings,
 ): ScoredPair | null {
-  // Título a receber quita-se com ENTRADA de dinheiro. Saída não é candidata.
-  if (line.amountCents <= 0) return null;
-
-  if (line.currency !== receivable.currency) return null;
-
-  const inflow = line.amountCents;
-  const remaining = Math.max(0, receivable.amountCents - receivable.receivedAmountCents);
-  if (remaining <= 0) return null;
-
-  return scoreSignals(
-    line,
-    remaining,
-    inflow,
-    receivable.dueDate,
-    receivable.externalRef,
-    receivable.counterpartyTaxId,
-    receivable.counterpartyName,
-    settings,
-  );
+  return gate(evaluateReceivablePair(line, receivable, settings), settings);
 }
 
 function targetKey(s: MatchSuggestion): string {
