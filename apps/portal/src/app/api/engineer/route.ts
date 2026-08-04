@@ -1,7 +1,14 @@
 import { NextResponse } from 'next/server';
 
 import { accessibleModules } from '@alsham/permissions';
-import { buildSystemPrompt, buildTools, type EngineerTurn } from '@alsham/engineer';
+import {
+  buildSystemPrompt,
+  buildTools,
+  pageOf,
+  redactFields,
+  type EngineerTurn,
+  type FormField,
+} from '@alsham/engineer';
 
 import { resolveSession } from '@/lib/session';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
@@ -46,6 +53,8 @@ function auditar(entry: {
 interface EngineerRequestBody {
   readonly messages?: EngineerTurn[];
   readonly currentPath?: string | null;
+  /** O snapshot do formulário visível — a consciência de FORMULÁRIO. */
+  readonly fields?: FormField[];
 }
 
 export async function POST(req: Request) {
@@ -83,11 +92,25 @@ export async function POST(req: Request) {
   const userEmail =
     (session.mode === 'authenticated' ? session.email : 'demo@alsham') ?? 'usuário';
 
+  // ⭐ Consciência de LOCALIZAÇÃO: o servidor resolve a página do catálogo pela
+  // rota — o cliente não escolhe qual é.
+  const page = pageOf(body.currentPath ?? null);
+
+  // ⛔ FRONTEIRA DE SIGILO — 2ª camada (servidor). Em tela sigilosa, o servidor
+  // suprime o valor DE NOVO, mesmo que o navegador já tenha suprimido: um cliente
+  // adulterado não injeta dado clínico no prompt. Ver MODELO-ENGENHEIRO §4.
+  const fields = redactFields(
+    Array.isArray(body.fields) ? body.fields : undefined,
+    page?.sigilosa,
+  );
+
   const system = buildSystemPrompt({
     tenantName,
     userEmail,
     accessibleModules: modulos,
     currentPath: body.currentPath ?? null,
+    page,
+    fields,
     demo,
   });
 
