@@ -33,6 +33,8 @@ import { createCtrMockPort } from './ctr-mock';
 import { createCashMockPort } from './cash-mock';
 import { createMallMockPort } from './mall-mock';
 import { createMallSupabasePort } from './mall-supabase';
+import { createLeaseMockPort } from './lease-mock';
+import { createLeaseSupabasePort } from './lease-supabase';
 import { createCatalogMockPort } from './catalog-mock';
 import { createCatalogSupabasePort } from './catalog-supabase';
 import { createPlantMockPort } from './plant-mock';
@@ -93,6 +95,7 @@ import type { DunPort } from './dun-port';
 import type { CtrPort } from './ctr-port';
 import type { CashPort } from './cash-port';
 import type { MallPort } from './mall-port';
+import type { LeasePort } from './lease-port';
 import type { CatalogPort } from './catalog-port';
 import type { PlantPort } from './plant-port';
 import type { CarePort } from './care-port';
@@ -135,6 +138,7 @@ export type { DunPort, RulerWithSteps, DunTitleRow } from './dun-port';
 export type { CtrPort, ContractRow } from './ctr-port';
 export type { CashPort, EntryRow } from './cash-port';
 export type { MallPort, MallStoreRow } from './mall-port';
+export type { LeasePort, LeaseAgreementRow, LeaseSalesReportRow } from './lease-port';
 export type { CatalogPort, CatalogProductRow } from './catalog-port';
 export type { PlantPort, PlantRow, GenReadingRow } from './plant-port';
 export type { CarePort, TicketRow } from './care-port';
@@ -416,6 +420,14 @@ export async function getMallPort(): Promise<MallPort> {
   const db = await createSupabaseServerClient();
   if (!db) return createMallMockPort();
   return createMallSupabasePort(db, session.activeTenant.id);
+}
+
+export async function getLeasePort(): Promise<LeasePort> {
+  const session = await resolveSession();
+  if (session.mode !== 'authenticated') return createLeaseMockPort();
+  const db = await createSupabaseServerClient();
+  if (!db) return createLeaseMockPort();
+  return createLeaseSupabasePort(db, session.activeTenant.id);
 }
 
 export async function getCatalogPort(): Promise<CatalogPort> {
