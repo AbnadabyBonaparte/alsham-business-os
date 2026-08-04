@@ -31,6 +31,12 @@ import { createEvtSupabasePort } from './evt-supabase';
 import { createDunMockPort } from './dun-mock';
 import { createCtrMockPort } from './ctr-mock';
 import { createCashMockPort } from './cash-mock';
+import { createMallMockPort } from './mall-mock';
+import { createMallSupabasePort } from './mall-supabase';
+import { createCatalogMockPort } from './catalog-mock';
+import { createCatalogSupabasePort } from './catalog-supabase';
+import { createPlantMockPort } from './plant-mock';
+import { createPlantSupabasePort } from './plant-supabase';
 import { createCareMockPort } from './care-mock';
 import { createOccMockPort } from './occ-mock';
 import { createMntMockPort } from './mnt-mock';
@@ -86,6 +92,9 @@ import type { EvtPort } from './evt-port';
 import type { DunPort } from './dun-port';
 import type { CtrPort } from './ctr-port';
 import type { CashPort } from './cash-port';
+import type { MallPort } from './mall-port';
+import type { CatalogPort } from './catalog-port';
+import type { PlantPort } from './plant-port';
 import type { CarePort } from './care-port';
 import type { OccPort } from './occ-port';
 import type { MntPort } from './mnt-port';
@@ -125,6 +134,9 @@ export type { EvtPort, EventRow, RegistrationRow } from './evt-port';
 export type { DunPort, RulerWithSteps, DunTitleRow } from './dun-port';
 export type { CtrPort, ContractRow } from './ctr-port';
 export type { CashPort, EntryRow } from './cash-port';
+export type { MallPort, MallStoreRow } from './mall-port';
+export type { CatalogPort, CatalogProductRow } from './catalog-port';
+export type { PlantPort, PlantRow, GenReadingRow } from './plant-port';
 export type { CarePort, TicketRow } from './care-port';
 export type { OccPort, OccurrenceRow } from './occ-port';
 export type { MntPort, MntOrderRow } from './mnt-port';
@@ -394,6 +406,32 @@ export async function getCashPort(): Promise<CashPort> {
   if (!db) return createCashMockPort();
 
   return createCashSupabasePort(db, session.activeTenant.id);
+}
+
+// ⭐ As telas-âncora dos verticais (Shopping · Varejo · Energia) — leitura pura,
+// sob a sessão×RLS do usuário, mesmo padrão do getCashPort.
+export async function getMallPort(): Promise<MallPort> {
+  const session = await resolveSession();
+  if (session.mode !== 'authenticated') return createMallMockPort();
+  const db = await createSupabaseServerClient();
+  if (!db) return createMallMockPort();
+  return createMallSupabasePort(db, session.activeTenant.id);
+}
+
+export async function getCatalogPort(): Promise<CatalogPort> {
+  const session = await resolveSession();
+  if (session.mode !== 'authenticated') return createCatalogMockPort();
+  const db = await createSupabaseServerClient();
+  if (!db) return createCatalogMockPort();
+  return createCatalogSupabasePort(db, session.activeTenant.id);
+}
+
+export async function getPlantPort(): Promise<PlantPort> {
+  const session = await resolveSession();
+  if (session.mode !== 'authenticated') return createPlantMockPort();
+  const db = await createSupabaseServerClient();
+  if (!db) return createPlantMockPort();
+  return createPlantSupabasePort(db, session.activeTenant.id);
 }
 
 export async function getCarePort(): Promise<CarePort> {
