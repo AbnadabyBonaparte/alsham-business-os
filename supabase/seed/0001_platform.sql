@@ -5101,7 +5101,145 @@ on conflict (module_id) do update set
   status          = excluded.status,
   updated_at      = now();
 
--- ⛔ Noventa e três módulos no catálogo (71 domain + 22 vertical), zero
+-- =============================================================================
+-- Onda Eventos (Fase 3): o Vertical 🎪 Eventos — accred · lineup · sponsor.
+-- 3 cartões vertical_key='events'; consumes VAZIO nos três.
+-- =============================================================================
+
+insert into core.module_registry (
+  module_id, name, version, summary,
+  layer, vertical_key,
+  capabilities, permissions, events_emits, events_consumes, agents,
+  requires_core, status
+)
+values (
+  'accred',
+  'Credenciamento & Check-in',
+  '0.1.0',
+  'As credenciais de acesso de um evento (id solto ao evt; portador, tipo e nível de acesso em texto livre; active ↔ revoked, a credencial volta do bloqueio) e o check-in — a chegada validada no portão contra a credencial ativa, ato pontual imutável carimbado pelo servidor (a física do vis/train). Sem ingresso/pagamento (Lei 3) e sem check-out nesta onda.',
+  'vertical', 'events',
+  '[
+     {"key":"accreditation","canonicalName":"Credenciamento"},
+     {"key":"checkin","canonicalName":"Check-in"}
+   ]'::jsonb,
+  '[
+     {"key":"accred.credential.manage","moduleId":"accred","description":"Emitir, editar e revogar/reativar credenciais de um evento (texto livre; voltam do bloqueio)."},
+     {"key":"accred.checkin.record","moduleId":"accred","description":"Registrar a chegada no portão contra a credencial ativa — ato imutável, carimbado pelo servidor."}
+   ]'::jsonb,
+  '[
+     {"type":"accred.credential.registered","version":1,"description":"Uma credencial foi emitida para um evento — evento, portador, tipo e nível no envelope."},
+     {"type":"accred.checkin.recorded","version":1,"description":"Uma chegada foi registrada no portão — o carimbo do servidor, ato pontual imutável."}
+   ]'::jsonb,
+  '[]'::jsonb,
+  '[]'::jsonb,
+  '0.0.x',
+  'published'
+)
+on conflict (module_id) do update set
+  name            = excluded.name,
+  version         = excluded.version,
+  summary         = excluded.summary,
+  layer           = excluded.layer,
+  domain_key      = excluded.domain_key,
+  vertical_key    = excluded.vertical_key,
+  capabilities    = excluded.capabilities,
+  permissions     = excluded.permissions,
+  events_emits    = excluded.events_emits,
+  events_consumes = excluded.events_consumes,
+  agents          = excluded.agents,
+  requires_core   = excluded.requires_core,
+  status          = excluded.status,
+  updated_at      = now();
+
+insert into core.module_registry (
+  module_id, name, version, summary,
+  layer, vertical_key,
+  capabilities, permissions, events_emits, events_consumes, agents,
+  requires_core, status
+)
+values (
+  'lineup',
+  'Programação/line-up',
+  '0.1.0',
+  'A grade de programação de um evento: atrações/sessões/palestras com palco e horário (texto livre; horário opcional — o programa pode nascer TBD), atração/palestrante opcional e posição para a ordenação manual. Vínculo ao evento por id solto + nome carimbado. ⭐⭐ A agenda é PLANO MUTÁVEL: o item se edita e se APAGA (a física do gantt/edcal), sem status e sem ciclo de vida — o DIVERGE do sched. Ingressos, credenciamento e patrocínio ficam em outras capacidades do vertical.',
+  'vertical', 'events',
+  '[
+     {"key":"lineup","canonicalName":"Programação/line-up"}
+   ]'::jsonb,
+  '[
+     {"key":"lineup.slot.manage","moduleId":"lineup","description":"Criar, editar, reordenar e remover itens da grade de programação."}
+   ]'::jsonb,
+  '[
+     {"type":"lineup.slot.registered","version":1,"description":"Um item entrou na grade de programação."},
+     {"type":"lineup.slot.updated","version":1,"description":"Um item da grade mudou (a agenda é plano — a edição é o fato)."}
+   ]'::jsonb,
+  '[]'::jsonb,
+  '[]'::jsonb,
+  '0.0.x',
+  'published'
+)
+on conflict (module_id) do update set
+  name            = excluded.name,
+  version         = excluded.version,
+  summary         = excluded.summary,
+  layer           = excluded.layer,
+  domain_key      = excluded.domain_key,
+  vertical_key    = excluded.vertical_key,
+  capabilities    = excluded.capabilities,
+  permissions     = excluded.permissions,
+  events_emits    = excluded.events_emits,
+  events_consumes = excluded.events_consumes,
+  agents          = excluded.agents,
+  requires_core   = excluded.requires_core,
+  status          = excluded.status,
+  updated_at      = now();
+
+insert into core.module_registry (
+  module_id, name, version, summary,
+  layer, vertical_key,
+  capabilities, permissions, events_emits, events_consumes, agents,
+  requires_core, status
+)
+values (
+  'sponsor',
+  'Patrocínios',
+  '0.1.0',
+  'A camada de patrocínio do evento: o contrato jurídico vive no ctr (id solto), a negociação no deal (id solto) e o evento no evt (id solto); aqui mora só a cota (tier em texto livre, dado do tenant), o valor opcional e o checklist de entregáveis de ativação por evento (logo no palco, cortesias, ativação no foyer). ⭐ active ↔ archived (o patrocinador que volta é a MESMA relação — a física do vendor/mall, o DIVERGE do lease terminal); os entregáveis são MUTÁVEIS. consumes VAZIO.',
+  'vertical', 'events',
+  '[
+     {"key":"sponsorships","canonicalName":"Patrocínios"}
+   ]'::jsonb,
+  '[
+     {"key":"sponsor.sponsorship.manage","moduleId":"sponsor","description":"Registrar o patrocínio (evento/contrato/contraparte por id solto, cota e valor) e arquivá-lo ou reabri-lo."},
+     {"key":"sponsor.deliverable.manage","moduleId":"sponsor","description":"Cadastrar os entregáveis de ativação do patrocínio e marcá-los como cumpridos."}
+   ]'::jsonb,
+  '[
+     {"type":"sponsor.sponsorship.registered","version":1,"description":"Um patrocínio foi registrado — evento, contrato e contraparte por id solto, cota e valor."},
+     {"type":"sponsor.sponsorship.archived","version":1,"description":"O patrocínio foi arquivado (a relação saiu do mapa; reversível)."},
+     {"type":"sponsor.sponsorship.reopened","version":1,"description":"O patrocínio arquivado voltou ao mapa — a mesma relação comercial."}
+   ]'::jsonb,
+  '[]'::jsonb,
+  '[]'::jsonb,
+  '0.0.x',
+  'published'
+)
+on conflict (module_id) do update set
+  name            = excluded.name,
+  version         = excluded.version,
+  summary         = excluded.summary,
+  layer           = excluded.layer,
+  domain_key      = excluded.domain_key,
+  vertical_key    = excluded.vertical_key,
+  capabilities    = excluded.capabilities,
+  permissions     = excluded.permissions,
+  events_emits    = excluded.events_emits,
+  events_consumes = excluded.events_consumes,
+  agents          = excluded.agents,
+  requires_core   = excluded.requires_core,
+  status          = excluded.status,
+  updated_at      = now();
+
+-- ⛔ Noventa e seis módulos no catálogo (71 domain + 25 vertical), zero
 -- permissão concedida pelo seed. ⭐ Onda Vinte (Fase 3): o Vertical ☀️ Energia
 -- (plant · subscription · genreading · creditbalance) aberto — o terceiro bloco
 -- vertical, dor viva da Curva C solar. As 4 capacidades restantes ficam FORA:
@@ -5111,6 +5249,10 @@ on conflict (module_id) do update set
 -- record · exam · prescription) aberto — o quarto bloco vertical. As 3
 -- capacidades restantes ficam FORA: Convênios (=ctr), Faturamento TISS (Lei 3),
 -- Telemedicina (=Engine de Vídeo).
+-- ⭐ Onda Eventos (Fase 3): o Vertical 🎪 Eventos (accred · lineup · sponsor)
+-- aberto — vertical de maior risco de duplicação. As 4 capacidades restantes
+-- ficam FORA: Ingressos (Lei 3 + canta-siriema), Fornecedores (=vendor),
+-- Afiliados (canta-siriema), Pós-evento (=nps). Catálogo 93 → 96.
 
 -- =============================================================================
 -- 5. PLANOS-BASE

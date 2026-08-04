@@ -241,6 +241,19 @@ importers:
         specifier: ^5.7.2
         version: 5.9.3
 
+  packages/accred:
+    dependencies:
+      '@alsham/core':
+        specifier: workspace:*
+        version: link:../core
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.2
+        version: 22.20.1
+      typescript:
+        specifier: ^5.7.2
+        version: 5.9.3
+
   packages/ai:
     dependencies:
       '@alsham/billing':
@@ -876,6 +889,19 @@ importers:
         specifier: ^5.7.2
         version: 5.9.3
 
+  packages/lineup:
+    dependencies:
+      '@alsham/core':
+        specifier: workspace:*
+        version: link:../core
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.2
+        version: 22.20.1
+      typescript:
+        specifier: ^5.7.2
+        version: 5.9.3
+
   packages/logperf:
     dependencies:
       '@alsham/core':
@@ -1312,6 +1338,19 @@ importers:
         version: 5.9.3
 
   packages/spaces:
+    dependencies:
+      '@alsham/core':
+        specifier: workspace:*
+        version: link:../core
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.2
+        version: 22.20.1
+      typescript:
+        specifier: ^5.7.2
+        version: 5.9.3
+
+  packages/sponsor:
     dependencies:
       '@alsham/core':
         specifier: workspace:*

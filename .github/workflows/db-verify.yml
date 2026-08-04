@@ -574,6 +574,12 @@ jobs:
         run: $PSQL -f supabase/migrations/0107_bid.sql
       - name: aplicar 0108_fisc.sql
         run: $PSQL -f supabase/migrations/0108_fisc.sql
+      - name: aplicar 0109_accred.sql
+        run: $PSQL -f supabase/migrations/0109_accred.sql
+      - name: aplicar 0110_lineup.sql
+        run: $PSQL -f supabase/migrations/0110_lineup.sql
+      - name: aplicar 0111_sponsor.sql
+        run: $PSQL -f supabase/migrations/0111_sponsor.sql
 
       # ---------------------------------------------------------------------
       # 2. SEED — e a prova de que reaplicar não muda nada
@@ -2062,6 +2068,38 @@ jobs:
         run: $PSQL -f supabase/tests/97_bid_isolation.sql
       - name: teste de fiscalização (fisc)
         run: $PSQL -f supabase/tests/98_fisc_isolation.sql
+
+      # ⭐ ONDA EVENTOS (Fase 3) — o Vertical 🎪 Eventos. accred prova o par
+      # credencial→check-in (cadastro revogável + ato imutável); lineup prova o
+      # plano mutável sem ciclo (o DIVERGE do sched); sponsor prova active↔
+      # archived + os entregáveis mutáveis (o DIVERGE do lease).
+      - name: teste de credenciamento & check-in (accred)
+        run: $PSQL -f supabase/tests/99_accred_isolation.sql
+      - name: teste de programação/line-up (lineup)
+        run: $PSQL -f supabase/tests/100_lineup_isolation.sql
+      - name: teste de patrocínios (sponsor)
+        run: $PSQL -f supabase/tests/101_sponsor_isolation.sql
+
+      # ⭐ Os três cartões da Onda Eventos são VERTICAL events, consumes vazio
+      # (Lei 7). As outras 4 capacidades (Ingressos→Lei 3/canta-siriema,
+      # Fornecedores→vendor, Afiliados→canta-siriema, Pós-evento→nps) ficam FORA.
+      - name: os três módulos da Onda Eventos são vertical events
+        run: |
+          N=$($PSQL -tAc "select count(*) from core.module_registry
+                           where layer='vertical' and vertical_key='events'
+                             and module_id in ('accred','lineup','sponsor');")
+          [ "$N" = "3" ] || { echo "::error::esperava 3 cartões vertical events na Onda Eventos: [$N]"; exit 1; }
+          # ⛔ vertical não pode ter domain_key (CHECK do 0001), e vice-versa.
+          BAD=$($PSQL -tAc "select count(*) from core.module_registry
+                             where module_id in ('accred','lineup','sponsor')
+                               and domain_key is not null;")
+          [ "$BAD" = "0" ] || { echo "::error::um cartão da Onda Eventos carregou domain_key"; exit 1; }
+          # Os três têm consumes VAZIO (Lei 7).
+          for M in accred lineup sponsor; do
+            C=$($PSQL -tAc "select jsonb_array_length(events_consumes) from core.module_registry where module_id='$M';")
+            [ "$C" = "0" ] || { echo "::error::o módulo $M deveria ter consumes vazio: [$C]"; exit 1; }
+          done
+          echo "accred·lineup·sponsor — vertical events, consumes vazio (Lei 7)."
 
       # ⭐ Os quatro cartões da Onda Governo são VERTICAL government, consumes
       # vazio (Lei 7). As outras 4 capacidades (Convênios→ctr, Patrimônio→pat,
