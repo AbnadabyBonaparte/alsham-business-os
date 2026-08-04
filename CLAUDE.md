@@ -29,6 +29,17 @@ Antes de decidir de onde minerar uma peça, leia também:
 
 ---
 
+## 1.5 ⭐⭐ O MEMORANDO DA DIVISÃO DE ÁGUAS — leitura obrigatória antes de qualquer decisão de arquitetura, produto ou posicionamento
+
+**`docs/canon/MEMORANDO-DIVISAO-DE-AGUAS.md`** — decretado 04/08/2026. A tese: **inteligência artificial é a raiz da ALSHAM GLOBAL; qualquer sistema (ERP incluso) é o acessório, nunca o contrário.** Nasceu de uma apresentação onde um cliente de porte apontou a lacuna real (o Engenheiro do Business OS era reativo; o esperado era proativo) — e virou reposicionamento formal, não emocional (a formulação inicial, "lei marcial"/exército sem supervisão, foi corrigida no próprio documento).
+
+**O que isso muda pra quem trabalha neste repositório:**
+- Toda capacidade nova de IA (o Engenheiro, qualquer motor futuro) é avaliada primeiro pelo padrão de **proatividade real e provada** (Parte VII do memorando) — nunca por promessa de capacidade que ainda não existe (Lei 7 continua valendo com MAIS força, não menos: ver o precedente do Anexo A, o caso Quantum).
+- O **modelo de decisão** do memorando (Parte IV) é o que já rege este repositório: decisão técnica não sobe para o dono; decisão de negócio, sim; o clique de merge continua do dono.
+- A **estratégia fast-follower/Hunter** (Parte V e VI) é o filtro contra achismo de mercado — nenhuma tecnologia entra na conversa sem sinal FORTE (disponibilidade geral de líder de mercado, case nomeado com resultado medido), nunca hype cru.
+
+Se você é um agente chegando neste repositório pela primeira vez, leia o memorando inteiro depois do VERTEX acima — ele é a lente por trás de toda decisão de produto daqui pra frente.
+
 ## 2. AS 6 LEIS DO PROJETO (resumo — texto integral no README.md)
 
 1. **Lei 7 (fonte):** nenhum número ou promessa vai ao ar sem estar construído e provado.
@@ -45,7 +56,7 @@ Antes de decidir de onde minerar uma peça, leia também:
 - ❌ **Nome de cliente** — nenhum nome, razão social, marca, CNPJ, endereço, contato ou apelido de cliente em nenhum arquivo, commit, branch, comentário ou nome de pasta. Escreva sempre "cliente inaugural" ou "o tenant".
 - ❌ **Número sem fonte** — todo número precisa de origem verificável. O que não foi verificado se escreve, literalmente, **NÃO VERIFICADO**. Nunca estime, nunca arredonde para cima, nunca herde um número de um documento antigo sem reconferir.
 - ❌ **Segredo em código** — nenhuma chave, token, secret, connection string ou `.env` com valor real. Só `.env.example` com placeholders.
-- ❌ **Merge sem o dono** — você trabalha em branch e abre PR. **Você não mergeia.** O merge é do dono.
+- ❌ **Merge sem avaliação de risco** — trabalho que toca schema, dado de cliente real ou comportamento de produção **sempre** vai pro dono decidir o clique (é a Parte IV do MEMORANDO-DIVISAO-DE-AGUAS: o clique final marca **quem assume a responsabilidade**, não uma reavaliação do código). Trabalho docs-only, **zero SQL, zero código de produto** pode ser mergeado pelo próprio agente — contanto que isso seja dito **explicitamente no corpo do PR** (quem mergeou, por que era seguro, e a autorização do dono).
 - ❌ **Taxonomia paralela** — não crie uma segunda organização de capacidades. Referencie a Taxonomia.
 - ❌ **Módulo antes do Core** — nada da Fase 2 em diante nasce antes do Core da Fase 1 estar pronto.
 - ❌ **Dependência direta entre módulos** — toda comunicação passa pelo Core.
