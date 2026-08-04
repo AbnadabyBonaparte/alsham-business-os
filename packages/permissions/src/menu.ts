@@ -143,6 +143,10 @@ const MENU: readonly MenuItem[] = [
   { href: '/credenciamento', label: 'Credenciamento & Check-in', moduleId: 'accred' },
   { href: '/programacao', label: 'Programação/line-up', moduleId: 'lineup' },
   { href: '/patrocinios', label: 'Patrocínios', moduleId: 'sponsor' },
+  { href: '/agendamentos', label: 'Agendamento', moduleId: 'booking' },
+  { href: '/profissionais', label: 'Profissionais', moduleId: 'professional' },
+  { href: '/comissoes', label: 'Comissões', moduleId: 'commission' },
+  { href: '/pacotes', label: 'Pacotes', moduleId: 'pack' },
   { href: '/store', label: 'Store', moduleId: null },
   { href: '/ajustes', label: 'Ajustes', moduleId: null },
 ];

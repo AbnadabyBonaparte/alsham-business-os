@@ -302,7 +302,12 @@ A consequência é operacional e não é opinião:
   - `accred` (`0109`) — **Credenciamento & Check-in** (Módulo 94): ⭐⭐ **UM schema, DUAS capacidades** — a física do `train` no portão: a credencial é o cadastro revogável (`active ↔ revoked`), o check-in é o ato pontual imutável carimbado pelo servidor (a física do `vis`). ⭐ **O DIVERGE do `train`:** a inscrição vai além da presença; o check-in NÃO tem sequência — quem volta amanhã faz OUTRO. Evento por id solto ao `evt`; tipo/nível de acesso TEXTO LIVRE. ⛔ Ingresso/pagamento (Lei 3) e check-out FORA.
   - `lineup` (`0110`) — **Programação/line-up** (Módulo 95): a grade de atrações/sessões/palestras (palco e horário TEXTO LIVRE, ordenadas por posição). ⭐⭐ **A agenda é PLANO MUTÁVEL — o item se edita e se APAGA, SEM `status` e sem ciclo** (a física do `gantt`/`edcal`): o DIVERGE assinado do `sched`, cujo marco tem máquina de estados. Só dois fatos: `registered` e `updated`. Evento por id solto + nome carimbado.
   - `sponsor` (`0111`) — **Patrocínios** (Módulo 96): a camada de patrocínio (cota/tier TEXTO LIVRE, valor opcional, checklist de entregáveis de ativação por evento). ⭐ O contrato jurídico continua no `ctr` e a negociação no `deal` (id solto) — o `sponsor` é a camada de patrocínio como o `lease` é a camada comercial sobre o `ctr`. ⭐ **`active ↔ archived`** (o patrocinador que volta é a MESMA relação — a física do `vendor`/`mall`, o DIVERGE do `lease` terminal); os entregáveis são MUTÁVEIS (o DIVERGE do `sales_reports` imutável do `lease`), FK intra-schema × `event_id` solto.
-- ⚠️ **A lacuna `0015`/`0016` é proposital** e vem da main. Com a Onda Eventos (`0109`–`0111`), a próxima numeração livre é **`0112`**.
+- ⭐⭐ **A ONDA BELEZA (Fase 3) entregou os Módulos 97–100 num PR, um commit por módulo** (migrations `0112`–`0115`, ARQUIVO — apply do dono): **ABRE o Vertical 💇 Beleza & Estética** (`vertical_key='beauty'`), o SÉTIMO bloco vertical. ⚠️ O `Suprema Beleza` é **DOSSIÊ** (design, não código provado) — minerou-se vocabulário, a física foi decidida por conta própria sobre precedentes PROVADOS. A Taxonomia §6 lista 6 capacidades; **4 viram módulo, 2 ficam FORA**: *Fidelidade* (=`loyalty`), *Estoque de produtos* (=`inv`/`catalog`). Os QUATRO têm **`consumes` VAZIO** — sem redeploy do `apps/api`. O catálogo passa de 96 para **100 módulos publicados** (29 verticais: 5 shopping-centers + 4 retail + 4 energy + 5 health + 4 government + 3 events + 4 beauty). ⭐⭐ **O `pack` é o Módulo 100 — a meta "rumo aos 100 módulos" alcançada.** Ver `ONDA-BELEZA-DECISOES.md`. Módulos:
+  - `booking` (`0112`) — **Agendamento** (Módulo 97): ⭐ **reaproveita a FÍSICA do no-show do `appointment`** (`scheduled → attended | no_show | cancelled`, três terminais, carimbo do desfecho pelo servidor, cancelar exige razão, no_show → fato `.missed`). ⭐ **O DIVERGE do `appointment`:** cliente=`crm` por id solto (NÃO `patient`/PHI), serviço TEXTO LIVRE, profissional id solto ao `professional` — **zero trilha clínica** (agendar um corte não é ato de saúde). Split `manage`/`decide`.
+  - `professional` (`0113`) — **Profissionais** (Módulo 98): o roster de quem executa o serviço; nome neutro + especialidade TEXTO LIVRE. ⭐ **`active ↔ archived` — o DIVERGE do `hr` terminal** (o profissional que volta é o MESMO: a física do `vendor`/`mall`). `hr_employee_id` id solto OPCIONAL — a cadeira alugada autônoma não é RH, e por isso o roster é próprio.
+  - `commission` (`0114`) — **Comissões** (Módulo 99): ⭐ o **livro IMUTÁVEL** de comissão do profissional por serviço (a física do `timesheet`): profissional id solto + nome, serviço TEXTO LIVRE, valor em centavos. ⚠️ **NÃO é motor de cálculo (Lei 7):** o valor é REGISTRADO por quem lança, nunca derivado de regra de %. Corrigir é lançar o ato inverso.
+  - `pack` (`0115`) — **Pacotes** (Módulo 100): ⭐⭐ **a peça 100 do catálogo**. Bundle FECHADO de sessões — `pack.packages` (compra congelada) + `pack.uses` (consumo imutável), FK intra-schema. ⭐ **A física do `loyalty`/`invest`:** saldo é VIEW (total − consumido), **consumir > saldo é RECUSADO** (a terceira resposta). ⭐⭐ **O DIVERGE do `loyalty`:** o ponto é fungível; o pacote é bound a UM serviço (texto livre) e UM cliente (id solto `crm`) com identidade de compra própria.
+- ⚠️ **A lacuna `0015`/`0016` é proposital** e vem da main. Com a Onda Beleza (`0112`–`0115`), a próxima numeração livre é **`0116`**.
 - ⛔ **A limpeza do runbook §7.3 FOI EXECUTADA** em 28/07/2026: a concessão global de permissão de módulo **não existe mais em produção**. O tenant piloto tem papel próprio, com as permissões concedidas por `core.install_module()` — pela Store, com o clique do dono. Nunca volte a conceder permissão de módulo no seed.
 - `packages/workflow` é **o correio do Core** — o entregador da caixa de saída: idempotência por consumidor, backoff exponencial, `dead` sem apagar. **ENGINE, não módulo** (Taxonomia §4): não aparece na Store.
 - `apps/api` é **a COMPOSIÇÃO** — o único lugar do repositório onde os módulos se conhecem. Ele importa `workflow`, `marketing`, `finance-reconciliation`, `accounts-payable`, `accounts-receivable` e `billing`; **nenhum deles importa nenhum outro**. ⭐ Desde a Etapa 10 o mesmo pacote (`finance-reconciliation`) é PRODUTOR numa inscrição e CONSUMIDOR em outra — e continua sem conhecer ninguém. Traz a persistência real do correio (contra Postgres, com arrendamento e `skip locked`), os adaptadores dos consumidores, o endpoint protegido e a saúde da fila.
@@ -379,10 +384,13 @@ docs/canon/            taxonomia · roadmap · core-spec · identidade-visual
                        · modulo-genreading-spec · modulo-creditbalance-spec
                        · modulo-accred-spec · modulo-lineup-spec
                        · modulo-sponsor-spec
+                       · modulo-booking-spec · modulo-professional-spec
+                       · modulo-commission-spec · modulo-pack-spec
                        · ONDA-DEZENOVE-DECISOES (as 23 capacidades)
                        · ONDA-VINTE-DECISOES (as 8 capacidades do Energia)
                        · ONDA-VINTE-E-UM-DECISOES (as 8 capacidades da Saúde)
                        · ONDA-EVENTOS-DECISOES (as 8 capacidades dos Eventos)
+                       · ONDA-BELEZA-DECISOES (as 6 capacidades da Beleza)
                                                         — leitura obrigatória
 docs/comercial/        VERTICAL-SHOPPING.md             — dossiê de venda
 docs/balancos/         tecnologia + supabase            — de onde minerar
@@ -472,7 +480,14 @@ supabase/migrations/   0001_core … 0014_ap_apply_recon_match
                                                             events-os; Ingressos e
                                                             Afiliados FORA por Lei 3 +
                                                             canta-siriema); apply do dono
-                       (lacuna 0015–0016 proposital; próxima livre: 0112)
+                       0112_booking · 0113_professional · 0114_commission
+                       · 0115_pack                        — Onda Beleza
+                                                            (Fase 3 — ABRE o Vertical
+                                                            💇 Beleza & Estética;
+                                                            Fidelidade→loyalty, Estoque
+                                                            de produtos→inv/catalog FORA;
+                                                            pack = Módulo 100); apply do dono
+                       (lacuna 0015–0016 proposital; próxima livre: 0116)
 supabase/seed/         0001_platform.sql                — catálogo, idempotente; zero tenant
 supabase/tests/        shim · isolamento · uso · consumo entre módulos
                        · instalador · triângulo · relacionamentos · a receber
@@ -500,6 +515,8 @@ supabase/tests/        shim · isolamento · uso · consumo entre módulos
                        · exames+trilha (exam)
                        · credenciamento+check-in (accred) · programação (lineup)
                        · patrocínios (sponsor)
+                       · agendamento (booking) · profissionais (professional)
+                       · comissões (commission) · pacotes (pack)
                                                         — só CI; NUNCA no Supabase real
 docs/runbook/          APLICAR.md                       — o passo a passo do dono
 .github/scripts/       guarda de defasagem de documento — encanamento de CI
@@ -607,6 +624,10 @@ packages/              core auth organizations workflow billing
                        accred                           — Módulo 94 (um schema, duas caps: credencial revogável + check-in imutável; a física do train/vis)
                        lineup                           — Módulo 95 (a grade mutável sem ciclo: o DIVERGE do sched; só registered/updated)
                        sponsor                          — Módulo 96 (a camada de patrocínio sobre o ctr/deal; active↔archived; entregáveis mutáveis: o DIVERGE do lease)
+                       booking                          — Módulo 97 (a física do no-show do appointment sem PHI; cliente=crm id solto; serviço texto livre)
+                       professional                     — Módulo 98 (o roster active↔archived: o DIVERGE do hr; cadeira alugada não é RH)
+                       commission                       — Módulo 99 (o livro imutável de comissão por serviço; não é motor de cálculo, Lei 7)
+                       pack                             — Módulo 100 (a peça 100; bundle de sessões, consumo>saldo recusado; o DIVERGE do loyalty fungível)
                        workflow (o correio) · billing (uso) · ai (a forja)
                                                         — Engines/capacidades do Core
 ```

@@ -5239,7 +5239,189 @@ on conflict (module_id) do update set
   status          = excluded.status,
   updated_at      = now();
 
--- ⛔ Noventa e seis módulos no catálogo (71 domain + 25 vertical), zero
+-- =============================================================================
+-- Onda Beleza (Fase 3): o Vertical 💇 Beleza & Estética — booking · professional
+-- · commission · pack. 4 cartões vertical_key='beauty'; consumes VAZIO nos quatro.
+-- ⭐⭐ O pack é o Módulo 100 do catálogo — a meta "rumo aos 100 módulos".
+-- =============================================================================
+
+insert into core.module_registry (
+  module_id, name, version, summary,
+  layer, vertical_key,
+  capabilities, permissions, events_emits, events_consumes, agents,
+  requires_core, status
+)
+values (
+  'booking',
+  'Agendamento',
+  '0.1.0',
+  'A agenda de serviços do salão: cliente (id solto ao crm — não paciente, não PHI), profissional (id solto ao módulo professional), serviço em TEXTO LIVRE (corte/coloração/limpeza de pele) e horário. ⭐ Reaproveita a física do no-show: scheduled → attended | no_show | cancelled, os três TERMINAIS (quem remarca abre outro). Marcar o desfecho é decisão carimbada pelo servidor; cancelar exige razão. consumes VAZIO.',
+  'vertical', 'beauty',
+  '[
+     {"key":"scheduling","canonicalName":"Agendamento"}
+   ]'::jsonb,
+  '[
+     {"key":"booking.booking.manage","moduleId":"booking","description":"Criar um agendamento e remarcá-lo enquanto ainda está agendado."},
+     {"key":"booking.booking.decide","moduleId":"booking","description":"Marcar o desfecho do agendamento — comparecimento, falta (no-show) ou cancelamento."}
+   ]'::jsonb,
+  '[
+     {"type":"booking.booking.scheduled","version":1,"description":"Um agendamento foi marcado — cliente, profissional e serviço por id solto/texto no envelope."},
+     {"type":"booking.booking.attended","version":1,"description":"O cliente compareceu ao agendamento."},
+     {"type":"booking.booking.missed","version":1,"description":"O cliente faltou (no-show) — a falta é dado, não silêncio."},
+     {"type":"booking.booking.cancelled","version":1,"description":"O agendamento foi cancelado (com razão escrita)."}
+   ]'::jsonb,
+  '[]'::jsonb,
+  '[]'::jsonb,
+  '0.0.x',
+  'published'
+)
+on conflict (module_id) do update set
+  name            = excluded.name,
+  version         = excluded.version,
+  summary         = excluded.summary,
+  layer           = excluded.layer,
+  domain_key      = excluded.domain_key,
+  vertical_key    = excluded.vertical_key,
+  capabilities    = excluded.capabilities,
+  permissions     = excluded.permissions,
+  events_emits    = excluded.events_emits,
+  events_consumes = excluded.events_consumes,
+  agents          = excluded.agents,
+  requires_core   = excluded.requires_core,
+  status          = excluded.status,
+  updated_at      = now();
+
+insert into core.module_registry (
+  module_id, name, version, summary,
+  layer, vertical_key,
+  capabilities, permissions, events_emits, events_consumes, agents,
+  requires_core, status
+)
+values (
+  'professional',
+  'Profissionais',
+  '0.1.0',
+  'O roster de profissionais do salão (cabeleireiro, manicure, esteticista): nome (neutro) e especialidade em TEXTO LIVRE (dado do tenant, nunca enum). ⭐ active ↔ archived — o profissional que sai e volta é a MESMA pessoa (a física do vendor/mall, o DIVERGE do hr terminal). hr_employee_id é id solto OPCIONAL: quando o profissional também é colaborador do hr — mas o cadeira-alugada autônomo não é empregado, e por isso este roster é próprio, não o hr.',
+  'vertical', 'beauty',
+  '[
+     {"key":"professionals","canonicalName":"Profissionais"}
+   ]'::jsonb,
+  '[
+     {"key":"professional.professional.manage","moduleId":"professional","description":"Registrar, editar, arquivar e reativar o profissional do roster (especialidade texto livre; volta do arquivo)."}
+   ]'::jsonb,
+  '[
+     {"type":"professional.professional.registered","version":1,"description":"Um profissional entrou no roster — nome, especialidade e vínculo opcional ao hr por id solto."},
+     {"type":"professional.professional.archived","version":1,"description":"O profissional foi arquivado (saiu do roster vivo; reversível)."},
+     {"type":"professional.professional.reactivated","version":1,"description":"O profissional arquivado voltou ao roster — a MESMA pessoa."}
+   ]'::jsonb,
+  '[]'::jsonb,
+  '[]'::jsonb,
+  '0.0.x',
+  'published'
+)
+on conflict (module_id) do update set
+  name            = excluded.name,
+  version         = excluded.version,
+  summary         = excluded.summary,
+  layer           = excluded.layer,
+  domain_key      = excluded.domain_key,
+  vertical_key    = excluded.vertical_key,
+  capabilities    = excluded.capabilities,
+  permissions     = excluded.permissions,
+  events_emits    = excluded.events_emits,
+  events_consumes = excluded.events_consumes,
+  agents          = excluded.agents,
+  requires_core   = excluded.requires_core,
+  status          = excluded.status,
+  updated_at      = now();
+
+insert into core.module_registry (
+  module_id, name, version, summary,
+  layer, vertical_key,
+  capabilities, permissions, events_emits, events_consumes, agents,
+  requires_core, status
+)
+values (
+  'commission',
+  'Comissões',
+  '0.1.0',
+  'O livro de comissões do salão: cada lançamento é imutável — o profissional (id solto + nome carimbado), o serviço (texto livre), o valor da comissão (registrado, nunca calculado por regra de %), o valor-base informativo do serviço e o dia. Registrar é fato consumado; corrigir é lançar o ato inverso, nunca reescrever. NÃO é motor de cálculo (Lei 7): quem lança declara o valor. Cadastro de profissional, regra de % por serviço, apuração/fechamento de comissão e pagamento ficam de fora (é o professional, o cash/ap genérico e capacidades futuras).',
+  'vertical', 'beauty',
+  '[
+     {"key":"commissions","canonicalName":"Comissões"}
+   ]'::jsonb,
+  '[
+     {"key":"commission.commission.record","moduleId":"commission","description":"Lançar a comissão de um profissional por um serviço prestado — ato imutável, carimbado pelo servidor."}
+   ]'::jsonb,
+  '[
+     {"type":"commission.commission.registered","version":1,"description":"Uma comissão foi lançada — profissional (id solto), serviço, valor da comissão e valor-base no envelope."}
+   ]'::jsonb,
+  '[]'::jsonb,
+  '[]'::jsonb,
+  '0.0.x',
+  'published'
+)
+on conflict (module_id) do update set
+  name            = excluded.name,
+  version         = excluded.version,
+  summary         = excluded.summary,
+  layer           = excluded.layer,
+  domain_key      = excluded.domain_key,
+  vertical_key    = excluded.vertical_key,
+  capabilities    = excluded.capabilities,
+  permissions     = excluded.permissions,
+  events_emits    = excluded.events_emits,
+  events_consumes = excluded.events_consumes,
+  agents          = excluded.agents,
+  requires_core   = excluded.requires_core,
+  status          = excluded.status,
+  updated_at      = now();
+
+insert into core.module_registry (
+  module_id, name, version, summary,
+  layer, vertical_key,
+  capabilities, permissions, events_emits, events_consumes, agents,
+  requires_core, status
+)
+values (
+  'pack',
+  'Pacotes',
+  '0.1.0',
+  'O pacote fechado de sessões: o cliente compra N sessões de um serviço (texto livre), cada visita consome uma do livro imutável de usos, o saldo é VIEW (total − usos, nunca coluna) e consumir mais que o saldo é RECUSADO (a física do loyalty/invest). O DIVERGE do loyalty: o pacote é amarrado a UM serviço e UM cliente com identidade de compra própria (o total congela), não uma carteira fungível. Cliente por id solto ao crm. consumes VAZIO.',
+  'vertical', 'beauty',
+  '[
+     {"key":"packages","canonicalName":"Pacotes"}
+   ]'::jsonb,
+  '[
+     {"key":"pack.package.manage","moduleId":"pack","description":"Registrar a compra de um pacote (cliente por id solto, serviço em texto livre e o total de sessões)."},
+     {"key":"pack.session.record","moduleId":"pack","description":"Dar baixa numa sessão do pacote — um uso, ato imutável carimbado pelo servidor."}
+   ]'::jsonb,
+  '[
+     {"type":"pack.package.registered","version":1,"description":"Um pacote foi comprado — cliente por id solto, serviço e total de sessões no envelope."},
+     {"type":"pack.session.used","version":1,"description":"Uma sessão do pacote foi consumida — ato pontual imutável."}
+   ]'::jsonb,
+  '[]'::jsonb,
+  '[]'::jsonb,
+  '0.0.x',
+  'published'
+)
+on conflict (module_id) do update set
+  name            = excluded.name,
+  version         = excluded.version,
+  summary         = excluded.summary,
+  layer           = excluded.layer,
+  domain_key      = excluded.domain_key,
+  vertical_key    = excluded.vertical_key,
+  capabilities    = excluded.capabilities,
+  permissions     = excluded.permissions,
+  events_emits    = excluded.events_emits,
+  events_consumes = excluded.events_consumes,
+  agents          = excluded.agents,
+  requires_core   = excluded.requires_core,
+  status          = excluded.status,
+  updated_at      = now();
+
+-- ⛔ CEM módulos no catálogo (71 domain + 29 vertical), zero
 -- permissão concedida pelo seed. ⭐ Onda Vinte (Fase 3): o Vertical ☀️ Energia
 -- (plant · subscription · genreading · creditbalance) aberto — o terceiro bloco
 -- vertical, dor viva da Curva C solar. As 4 capacidades restantes ficam FORA:
@@ -5253,6 +5435,10 @@ on conflict (module_id) do update set
 -- aberto — vertical de maior risco de duplicação. As 4 capacidades restantes
 -- ficam FORA: Ingressos (Lei 3 + canta-siriema), Fornecedores (=vendor),
 -- Afiliados (canta-siriema), Pós-evento (=nps). Catálogo 93 → 96.
+-- ⭐ Onda Beleza (Fase 3): o Vertical 💇 Beleza & Estética (booking · professional
+-- · commission · pack) aberto. As 2 capacidades restantes ficam FORA: Fidelidade
+-- (=loyalty), Estoque de produtos (=inv/catalog). ⭐⭐ o pack é o Módulo 100 —
+-- a meta "rumo aos 100 módulos". Catálogo 96 → 100.
 
 -- =============================================================================
 -- 5. PLANOS-BASE

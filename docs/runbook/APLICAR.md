@@ -1895,6 +1895,49 @@ Onda Eventos; 25 verticais: 5 shopping-centers + 4 retail + 4 energy + 5 health 
 Nenhum agente aplica em produção. A conferência de segurança do PASSO 15
 (§ pós-apply) vale para os schemas novos.
 
+## PASSO 37 — APLICAR A ONDA BELEZA (o Vertical 💇 Beleza & Estética) — ARQUIVO
+
+⭐ A Onda Beleza abre o **Vertical 💇 Beleza & Estética** (`vertical_key='beauty'`)
+— o SÉTIMO bloco vertical. ⚠️ O `Suprema Beleza` é DOSSIÊ (design, não código
+provado): a física foi decidida sobre precedentes PROVADOS. Ver
+`docs/canon/ONDA-BELEZA-DECISOES.md`. Quatro módulos, um por migration:
+
+```
+psql "$DATABASE_URL" -f supabase/migrations/0112_booking.sql
+psql "$DATABASE_URL" -f supabase/migrations/0113_professional.sql
+psql "$DATABASE_URL" -f supabase/migrations/0114_commission.sql
+psql "$DATABASE_URL" -f supabase/migrations/0115_pack.sql
+psql "$DATABASE_URL" -f supabase/seed/0001_platform.sql   # reaplica o catálogo (idempotente)
+```
+
+⚠️ **Ao aplicar, EXPOR na Data API do Supabase os schemas `booking`,
+`professional`, `commission`, `pack`** (Project Settings → API → Exposed schemas).
+Sem isso as telas carregam vazias, sem erro que diga o motivo (lição das Etapas 9–12).
+
+✅ **NENHUM dos quatro consome evento** (`consumes` vazio; guarda de CI confere) —
+**SEM redeploy obrigatório do `apps/api`** nesta onda.
+
+Decisões (ver `docs/canon/ONDA-BELEZA-DECISOES.md`):
+- `booking` (Agendamento): a física do no-show do `appointment` sem PHI — cliente
+  `crm` por id solto, serviço texto livre, profissional id solto. ⛔ Anamnese/ficha
+  clínica de procedimento invasivo FORA (Lei 3).
+- `professional` (Profissionais): roster `active ↔ archived` (o DIVERGE do `hr`);
+  `hr_employee_id` id solto opcional.
+- `commission` (Comissões): livro imutável de comissão por serviço; ⚠️ NÃO é motor
+  de cálculo (Lei 7) — o valor é registrado.
+- `pack` (Pacotes): bundle de sessões, saldo VIEW, consumo > saldo recusado (a
+  física do `loyalty`/`invest`); o DIVERGE do ponto fungível.
+- **FORA (reaproveitamento):** Fidelidade→`loyalty`, Estoque de produtos→`inv`/`catalog`.
+
+⭐⭐ **Ao concluir este apply, o catálogo chega a 100 módulos publicados** (96 + 4
+da Onda Beleza; 29 verticais: 5 shopping-centers + 4 retail + 4 energy + 5 health +
+4 government + 3 events + 4 beauty). O `pack` é o **Módulo 100** — a meta "rumo aos
+100 módulos". A próxima migration livre é **`0116`**. Os testes `102`–`105` provam
+os quatro no CI.
+
+Nenhum agente aplica em produção. A conferência de segurança do PASSO 15
+(§ pós-apply) vale para os schemas novos.
+
 ## O QUE AINDA NÃO EXISTE
 
 Honestidade de escopo, para você não procurar o que não foi construído:

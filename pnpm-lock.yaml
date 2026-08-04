@@ -348,6 +348,19 @@ importers:
         specifier: ^5.7.2
         version: 5.9.3
 
+  packages/booking:
+    dependencies:
+      '@alsham/core':
+        specifier: workspace:*
+        version: link:../core
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.2
+        version: 22.20.1
+      typescript:
+        specifier: ^5.7.2
+        version: 5.9.3
+
   packages/budgets:
     dependencies:
       '@alsham/core':
@@ -427,6 +440,19 @@ importers:
         version: 5.9.3
 
   packages/checklists:
+    dependencies:
+      '@alsham/core':
+        specifier: workspace:*
+        version: link:../core
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.2
+        version: 22.20.1
+      typescript:
+        specifier: ^5.7.2
+        version: 5.9.3
+
+  packages/commission:
     dependencies:
       '@alsham/core':
         specifier: workspace:*
@@ -1051,6 +1077,19 @@ importers:
         specifier: ^5.7.2
         version: 5.9.3
 
+  packages/pack:
+    dependencies:
+      '@alsham/core':
+        specifier: workspace:*
+        version: link:../core
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.2
+        version: 22.20.1
+      typescript:
+        specifier: ^5.7.2
+        version: 5.9.3
+
   packages/park:
     dependencies:
       '@alsham/core':
@@ -1156,6 +1195,19 @@ importers:
         version: 5.9.3
 
   packages/proc:
+    dependencies:
+      '@alsham/core':
+        specifier: workspace:*
+        version: link:../core
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.2
+        version: 22.20.1
+      typescript:
+        specifier: ^5.7.2
+        version: 5.9.3
+
+  packages/professional:
     dependencies:
       '@alsham/core':
         specifier: workspace:*
