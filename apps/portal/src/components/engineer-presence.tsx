@@ -3,6 +3,53 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { usePathname } from 'next/navigation';
 
+import { pageOf, type FormField } from '@alsham/engineer';
+
+/**
+ * ⭐ **CONSCIÊNCIA DE FORMULÁRIO — o snapshot da tela, capturado no navegador.**
+ *
+ * Lê os campos visíveis (input/select/textarea) da página atual: rótulo (do
+ * `<label>` ou `aria-label`/`placeholder`), se está preenchido, se é obrigatório
+ * e se está em foco. NÃO é telemetria: é o que o Engenheiro precisa para ajudar a
+ * preencher a tela onde o usuário está.
+ *
+ * ⛔ **1ª CAMADA DA FRONTEIRA DE SIGILO:** em tela sigilosa (`sigilosa`), o
+ * `valor` NEM ENTRA no snapshot — o dado clínico não sai do navegador. O servidor
+ * suprime de novo (2ª camada), mas a primeira barreira é aqui.
+ */
+function capturarCampos(sigilosa: boolean): FormField[] {
+  if (typeof document === 'undefined') return [];
+  const ativos = document.activeElement;
+  const els = Array.from(
+    document.querySelectorAll<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>(
+      'input, select, textarea',
+    ),
+  ).filter((el) => el.type !== 'hidden' && el.type !== 'password' && !el.disabled);
+
+  const campos: FormField[] = [];
+  for (const el of els.slice(0, 40)) {
+    const rotulo =
+      (el.labels && el.labels[0]?.textContent?.trim()) ||
+      el.getAttribute('aria-label') ||
+      el.getAttribute('placeholder') ||
+      el.getAttribute('name') ||
+      '';
+    if (!rotulo) continue;
+    const valorBruto = 'value' in el ? String(el.value ?? '') : '';
+    const preenchido = valorBruto.trim().length > 0;
+    const campo: FormField = {
+      rotulo,
+      preenchido,
+      obrigatorio: el.required,
+      emFoco: el === ativos,
+      // ⛔ Sigilo: o valor só entra fora de tela sigilosa.
+      ...(sigilosa || !preenchido ? {} : { valor: valorBruto.slice(0, 120) }),
+    };
+    campos.push(campo);
+  }
+  return campos;
+}
+
 /**
  * A PRESENÇA DO ENGENHEIRO — o Sol Único que acorda.
  *
@@ -111,12 +158,17 @@ export function EngineerPresence() {
       setInput('');
       setPending(true);
       try {
+        // Consciência de tela: a página do catálogo e o snapshot do formulário,
+        // com o valor já suprimido em tela sigilosa (1ª camada da fronteira).
+        const page = pageOf(pathname);
+        const fields = capturarCampos(Boolean(page?.sigilosa));
         const resp = await fetch('/api/engineer', {
           method: 'POST',
           headers: { 'content-type': 'application/json' },
           body: JSON.stringify({
             messages: historico.map((t) => ({ role: t.role, text: t.text })),
             currentPath: pathname,
+            fields,
           }),
         });
         const dados = (await resp.json()) as {

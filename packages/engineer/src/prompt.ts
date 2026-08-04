@@ -1,4 +1,5 @@
 import { MODULE_READS } from './modules.ts';
+import { localizationBlock, formSnapshotBlock } from './pages.ts';
 import type { EngineerContext } from './types.ts';
 
 /**
@@ -20,9 +21,18 @@ export function buildSystemPrompt(ctx: EngineerContext): string {
           .join(', ')
       : '(nenhum módulo com acesso de leitura)';
 
-  const onde = ctx.currentPath
-    ? `O usuário está agora na tela ${ctx.currentPath}. Se a pergunta for sobre "isto aqui", é provável que se refira a esse módulo.`
-    : 'O usuário não indicou uma tela específica.';
+  // ⭐ Consciência de LOCALIZAÇÃO (do catálogo de páginas): quando a rota resolve
+  // uma página, o bloco rico (nome + descrição + como usar) entra; senão, cai no
+  // caminho antigo, com só a rota.
+  const onde = ctx.page
+    ? localizationBlock(ctx.page)
+    : ctx.currentPath
+      ? `O usuário está agora na tela ${ctx.currentPath}. Se a pergunta for sobre "isto aqui", é provável que se refira a esse módulo.`
+      : 'O usuário não indicou uma tela específica.';
+
+  // ⭐ Consciência de FORMULÁRIO: o snapshot da tela, com o valor suprimido em
+  // tela sigilosa (a supressão já veio feita; aqui o bloco DIZ que está oculto).
+  const formulario = formSnapshotBlock(ctx.fields, ctx.page?.sigilosa);
 
   const demo = ctx.demo
     ? 'ATENÇÃO: este ambiente está em modo de demonstração — o dado que as ferramentas retornam é fabricado e anônimo. Diga isso com franqueza se apresentar números; nunca os venda como reais.'
@@ -41,6 +51,7 @@ export function buildSystemPrompt(ctx: EngineerContext): string {
     `- Tenant ativo: ${ctx.tenantName}. Usuário: ${ctx.userEmail}.`,
     `- Módulos que ESTE usuário acessa: ${modulos}.`,
     `- ${onde}`,
+    formulario ? `- ${formulario}` : '',
     demo,
     '',
     'COMO AGIR (busca agêntica, não adivinhação):',
