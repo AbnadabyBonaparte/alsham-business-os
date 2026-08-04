@@ -1,10 +1,6 @@
 import { Suspense } from 'react';
 
-import {
-  PERMISSIONS,
-  suggestMatches,
-  unmatchedLines,
-} from '@alsham/finance-reconciliation';
+import { PERMISSIONS, composeMesa } from '@alsham/finance-reconciliation';
 
 import { getDataPort, DataPortError } from '@/lib/data';
 import { confidence, money } from '@/lib/format';
@@ -38,18 +34,19 @@ function Loading() {
 }
 
 /**
- * ⭐ **O CORAÇÃO DESTA PÁGINA SÃO DUAS LINHAS — E NENHUMA DELAS É DAQUI.**
+ * ⭐ **O CORAÇÃO DESTA PÁGINA É UMA LINHA — E ELA NÃO É DAQUI.**
  *
  * ```
- * const sugestoes  = suggestMatches(linhas, titulos, settings);
- * const divergencias = unmatchedLines(linhas, sugestoes);
+ * const { suggestions, divergences } = composeMesa(lines, matches, payables, settings, receivables);
  * ```
  *
- * As duas vêm de `@alsham/finance-reconciliation`. Esta página busca os dados,
+ * `composeMesa` vem de `@alsham/finance-reconciliation`: usa os casamentos JÁ
+ * GRAVADOS (com o score/estratégia de origem) como verdade, roda o motor só no
+ * que sobrou e classifica a divergência com MOTIVO. Esta página busca os dados,
  * repassa a política do tenant e desenha o resultado. Ela **não** sabe como se
- * pontua um casamento, qual sinal pesa mais nem qual o limiar — e é isso que
- * permite jogar `apps/` fora em 2028 sem perder uma regra sequer
- * (CLAUDE.md §5.3).
+ * pontua um casamento, qual sinal pesa mais, qual o limiar nem por que uma linha
+ * não casou — e é isso que permite jogar `apps/` fora em 2028 sem perder uma
+ * regra sequer (CLAUDE.md §5.3).
  */
 async function Conteudo() {
   const port = await getDataPort();
@@ -64,14 +61,23 @@ async function Conteudo() {
       port.loadReceivables(),
     ]);
 
+    // Os casamentos já gravados para estas linhas — o histórico que a mesa usa
+    // em vez de recalcular. Depende das linhas, então vem depois delas.
+    const matches = await port.loadReconciliationMatches(lines.map((l) => l.id));
+
     // ── a única "lógica" desta página: delegar ──────────────────────────────
-    const suggestions = suggestMatches(lines, payables, settings, receivables);
-    const divergences = unmatchedLines(lines, suggestions);
+    const { suggestions, divergences } = composeMesa(
+      lines,
+      matches,
+      payables,
+      settings,
+      receivables,
+    );
     // ───────────────────────────────────────────────────────────────────────
 
     const canManage = permissions.has(PERMISSIONS.matchManage);
     const currency = lines[0]?.currency ?? 'BRL';
-    const totalCasado = suggestions.reduce((sum, s) => sum + s.matchedAmountCents, 0);
+    const totalCasado = suggestions.reduce((sum, s) => sum + s.suggestion.matchedAmountCents, 0);
 
     return (
       <>
@@ -117,7 +123,7 @@ async function Conteudo() {
             title="Divergências"
             subtitle="O que sobrou — e é isto que interessa depois de rodar o motor."
           />
-          <DivergenceList lines={divergences} />
+          <DivergenceList divergences={divergences} />
         </div>
       </>
     );

@@ -22,6 +22,8 @@ export {
   suggestMatches,
   scorePair,
   scoreReceivablePair,
+  evaluatePair,
+  evaluateReceivablePair,
   unmatchedLines,
   summarizeStatement,
   normalizeTaxId,
@@ -29,7 +31,28 @@ export {
   daysBetween,
 } from './matching.ts';
 
-export type { StatementSummary } from './matching.ts';
+export type { StatementSummary, PairEvaluation } from './matching.ts';
+
+/**
+ * ⭐ A MESA: composição (o gravado manda sobre o recalculado) e a divergência
+ * com MOTIVO. Ver `mesa.ts` — pura, testável sem banco.
+ */
+export {
+  composeMesa,
+  explainDivergence,
+} from './mesa.ts';
+
+export type {
+  ClassifiedDivergence,
+  DivergenceExplanation,
+  DivergenceReason,
+  MesaComposition,
+  MesaSuggestion,
+  MesaSuggestionSource,
+  NearestCandidate,
+  SourcedStatementLine,
+  StatementLineSource,
+} from './mesa.ts';
 
 export type {
   ApprovalItem,

@@ -7,7 +7,10 @@ import type {
   MatchingSettings,
   Payable,
   Receivable,
+  ReconciliationMatch,
+  SourcedStatementLine,
   StatementLine,
+  StatementLineSource,
 } from '@alsham/finance-reconciliation';
 
 import { DataPortError, type DataPort } from './port';
@@ -77,15 +80,31 @@ export function createSupabasePort(db: SupabaseClient, tenantId: string): DataPo
       return mapping && typeof mapping === 'object' ? (mapping as CsvMapping) : null;
     },
 
-    async loadStatementLines(): Promise<StatementLine[]> {
+    async loadStatementLines(): Promise<SourcedStatementLine[]> {
+      // Join com o extrato de origem: a mesa mostra de qual CONTA veio a linha.
+      // O hint `!statement_lines_statement_fk` desfaz a ambiguidade da FK composta.
       const { data, error } = await db
         .schema(RECON)
         .from('statement_lines')
-        .select(LINE_COLS)
+        .select(`${LINE_COLS}, source:bank_statements!statement_lines_statement_fk(${STATEMENT_SOURCE_COLS})`)
         .in('status', ['unmatched', 'suggested'])
         .order('posted_at', { ascending: true });
       if (error) fail('carregar as linhas do extrato', error);
-      return (data ?? []).map(toLine);
+      return (data ?? []).map(toSourcedLine);
+    },
+
+    async loadReconciliationMatches(
+      statementLineIds: readonly string[],
+    ): Promise<ReconciliationMatch[]> {
+      if (statementLineIds.length === 0) return [];
+      const { data, error } = await db
+        .schema(RECON)
+        .from('reconciliation_matches')
+        .select(MATCH_COLS)
+        .in('statement_line_id', statementLineIds as string[])
+        .order('created_at', { ascending: false });
+      if (error) fail('carregar o histórico de casamentos', error);
+      return (data ?? []).map(toMatch);
     },
 
     async loadLinesOfStatement(statementId): Promise<StatementLine[]> {
@@ -380,6 +399,11 @@ export function createSupabasePort(db: SupabaseClient, tenantId: string): DataPo
 const LINE_COLS =
   'id, tenant_id, statement_id, line_no, posted_at, value_date, amount_cents, currency, description, counterparty_name, counterparty_tax_id, external_id, balance_after_cents, status';
 
+const STATEMENT_SOURCE_COLS = 'account_ref, period_start, period_end';
+
+const MATCH_COLS =
+  'id, tenant_id, statement_line_id, payable_id, receivable_id, matched_amount_cents, score, origin, strategy, status, decided_at, decided_by';
+
 function toLine(r: Record<string, unknown>): StatementLine {
   return {
     id: r.id as string,
@@ -397,6 +421,39 @@ function toLine(r: Record<string, unknown>): StatementLine {
     balanceAfterCents:
       r.balance_after_cents === null ? null : Number(r.balance_after_cents),
     status: r.status as StatementLine['status'],
+  };
+}
+
+/** A linha + a conta de origem do join. `source` nulo se o extrato não veio. */
+function toSourcedLine(r: Record<string, unknown>): SourcedStatementLine {
+  // PostgREST devolve o pai da FK como objeto (to-one). Pode vir null se a RLS
+  // do extrato barrar — a tela mostra "conta não identificada", nunca inventa.
+  const raw = r.source as Record<string, unknown> | null | undefined;
+  const source: StatementLineSource | null =
+    raw && typeof raw === 'object'
+      ? {
+          accountRef: (raw.account_ref ?? '') as string,
+          periodStart: raw.period_start as string,
+          periodEnd: raw.period_end as string,
+        }
+      : null;
+  return { ...toLine(r), source };
+}
+
+function toMatch(r: Record<string, unknown>): ReconciliationMatch {
+  return {
+    id: r.id as string,
+    tenantId: r.tenant_id as string,
+    statementLineId: r.statement_line_id as string,
+    payableId: (r.payable_id ?? null) as string | null,
+    receivableId: (r.receivable_id ?? null) as string | null,
+    matchedAmountCents: Number(r.matched_amount_cents),
+    score: r.score === null || r.score === undefined ? null : Number(r.score),
+    origin: r.origin as ReconciliationMatch['origin'],
+    strategy: (r.strategy ?? null) as string | null,
+    status: r.status as ReconciliationMatch['status'],
+    decidedAt: (r.decided_at ?? null) as string | null,
+    decidedBy: (r.decided_by ?? null) as string | null,
   };
 }
 

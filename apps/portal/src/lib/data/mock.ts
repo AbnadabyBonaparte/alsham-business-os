@@ -6,7 +6,10 @@ import type {
   MatchingSettings,
   Payable,
   Receivable,
+  ReconciliationMatch,
+  SourcedStatementLine,
   StatementLine,
+  StatementLineSource,
 } from '@alsham/finance-reconciliation';
 
 import { DataPortError, type DataPort } from './port';
@@ -174,6 +177,45 @@ const RECEIVABLES: Receivable[] = [
   }),
 ];
 
+/**
+ * Casamentos JÁ GRAVADOS de demonstração — o caminho "gravada" da mesa.
+ *
+ * `l-001↔p-001` e `l-005↔r-001` já estão em `reconciliation_matches` (status
+ * `suggested`), com score/estratégia do momento em que foram feitos. A mesa
+ * mostra ESSES números, não um recálculo. As demais linhas (`l-002`, `l-003`)
+ * o motor propõe agora; `l-004` sobra como divergência com motivo.
+ */
+const STORED_MATCHES: ReconciliationMatch[] = [
+  {
+    id: 'm-001',
+    tenantId: TENANT,
+    statementLineId: 'l-001',
+    payableId: 'p-001',
+    receivableId: null,
+    matchedAmountCents: 1_250_00,
+    score: 1,
+    origin: 'auto',
+    strategy: 'amount+date+tax-id+reference',
+    status: 'suggested',
+    decidedAt: null,
+    decidedBy: null,
+  },
+  {
+    id: 'm-002',
+    tenantId: TENANT,
+    statementLineId: 'l-005',
+    payableId: null,
+    receivableId: 'r-001',
+    matchedAmountCents: 4_500_00,
+    score: 0.95,
+    origin: 'auto',
+    strategy: 'amount+date+tax-id',
+    status: 'suggested',
+    decidedAt: null,
+    decidedBy: null,
+  },
+];
+
 const APPROVALS: ApprovalItem[] = [
   {
     id: 'a-001',
@@ -257,6 +299,15 @@ const STATEMENTS: BankStatement[] = [
   },
 ];
 
+/** Resolve a conta de origem de uma linha a partir do extrato de demonstração. */
+function withSource(l: StatementLine): SourcedStatementLine {
+  const stmt = STATEMENTS.find((s) => s.id === l.statementId);
+  const source: StatementLineSource | null = stmt
+    ? { accountRef: stmt.accountRef, periodStart: stmt.periodStart, periodEnd: stmt.periodEnd }
+    : null;
+  return { ...l, source };
+}
+
 /**
  * O mapeamento de CSV do tenant fictício.
  *
@@ -296,8 +347,13 @@ export function createMockPort(): DataPort {
     async loadCsvMapping() {
       return CSV_MAPPING;
     },
-    async loadStatementLines() {
-      return LINES;
+    async loadStatementLines(): Promise<SourcedStatementLine[]> {
+      return LINES.map(withSource);
+    },
+    async loadReconciliationMatches(statementLineIds) {
+      if (statementLineIds.length === 0) return [];
+      const wanted = new Set(statementLineIds);
+      return STORED_MATCHES.filter((m) => wanted.has(m.statementLineId));
     },
     async loadLinesOfStatement(statementId) {
       return LINES.filter((l) => l.statementId === statementId);
