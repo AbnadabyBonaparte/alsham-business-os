@@ -1,0 +1,17 @@
+{
+  "name": "@alsham/fisc",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": { ".": "./src/index.ts" },
+  "files": ["src"],
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "node --experimental-strip-types --test src/**/*.test.ts"
+  },
+  "dependencies": { "@alsham/core": "workspace:*" },
+  "devDependencies": { "@types/node": "^22.10.2", "typescript": "^5.7.2" },
+  "description": "Módulo 93 — Fiscalização (Vertical Governo). Domínio puro: o alvo fiscalizável (texto livre, volta do arquivo) e a vistoria — ato pontual imutável carimbado pelo servidor. A vistoria CONSTATA; o auto de infração é FORA (Lei 3). É a física do sec (roster + livro imutável) aplicada à fiscalização municipal."
+}

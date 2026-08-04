@@ -1814,6 +1814,47 @@ proposital).
 Nenhum agente aplica em produção. A conferência de segurança do PASSO 15
 (§ pós-apply) vale para os schemas novos.
 
+## PASSO 35 — APLICAR A ONDA GOVERNO (o Vertical 🏛 Governo) — ARQUIVO
+
+⭐ A Onda Governo abre o **Vertical 🏛 Governo** (`vertical_key='government'`) — o
+QUINTO bloco vertical. Quatro módulos, um por migration, na ordem:
+
+```
+psql "$DATABASE_URL" -f supabase/migrations/0105_proc.sql
+psql "$DATABASE_URL" -f supabase/migrations/0106_ombuds.sql
+psql "$DATABASE_URL" -f supabase/migrations/0107_bid.sql
+psql "$DATABASE_URL" -f supabase/migrations/0108_fisc.sql
+psql "$DATABASE_URL" -f supabase/seed/0001_platform.sql   # reaplica o catálogo (idempotente)
+```
+
+⚠️ **Ao aplicar, EXPOR na Data API do Supabase os schemas `proc`, `ombuds`,
+`bid`, `fisc`** (Project Settings → API → Exposed schemas). Sem isso as telas
+carregam vazias, sem erro que diga o motivo (lição paga das Etapas 9–12).
+
+✅ **NENHUM dos quatro consome evento** (`consumes` vazio; guarda de CI confere) —
+**SEM redeploy obrigatório do `apps/api`** nesta onda.
+
+Decisões (ver `docs/canon/ONDA-GOVERNO-DECISOES.md`):
+- `proc` (Protocolo): a Lei das Etapas do `ops` + protocolo público + decisão
+  formal terminal (deferido/indeferido/arquivado com despacho).
+- `ombuds` (Ouvidoria): o anonimato-físico do `whistle` para o cidadão (Lei
+  13.460) — anônima nunca grava quem manifestou.
+- `bid` (Licitações): o "comprador premia" do `rfq` + edital + `homologated`
+  (Lei 14.133). ⛔ Publicação no PNCP FORA (Lei 3).
+- `fisc` (Fiscalização): a física do `sec` (roster de alvos + vistoria
+  imutável). ⛔ Auto de infração FORA (Lei 3); a vistoria constata, a penalidade
+  integra.
+- **FORA (reaproveitamento/Lei 3):** Convênios→`ctr`, Patrimônio público→`pat`,
+  Tributos→Lei 3, Obras→`proj`/`sched`/`pcost`.
+
+⭐ **Ao concluir este apply, o catálogo chega a 93 módulos publicados** (89 + 4 da
+Onda Governo; 22 verticais: 5 shopping-centers + 4 retail + 4 energy + 5 health +
+4 government). A próxima migration livre é **`0109`** (a lacuna `0015`–`0016` é
+proposital). Os testes `95`–`98` provam os quatro no CI.
+
+Nenhum agente aplica em produção. A conferência de segurança do PASSO 15
+(§ pós-apply) vale para os schemas novos.
+
 ## O QUE AINDA NÃO EXISTE
 
 Honestidade de escopo, para você não procurar o que não foi construído:

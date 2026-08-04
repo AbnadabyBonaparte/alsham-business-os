@@ -309,6 +309,19 @@ importers:
         specifier: ^5.7.2
         version: 5.9.3
 
+  packages/bid:
+    dependencies:
+      '@alsham/core':
+        specifier: workspace:*
+        version: link:../core
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.2
+        version: 22.20.1
+      typescript:
+        specifier: ^5.7.2
+        version: 5.9.3
+
   packages/billing:
     dependencies:
       '@alsham/core':
@@ -668,6 +681,19 @@ importers:
         specifier: ^5.7.2
         version: 5.9.3
 
+  packages/fisc:
+    dependencies:
+      '@alsham/core':
+        specifier: workspace:*
+        version: link:../core
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.2
+        version: 22.20.1
+      typescript:
+        specifier: ^5.7.2
+        version: 5.9.3
+
   packages/fiscalcert:
     dependencies:
       '@alsham/core':
@@ -973,6 +999,19 @@ importers:
         specifier: ^5.7.2
         version: 5.9.3
 
+  packages/ombuds:
+    dependencies:
+      '@alsham/core':
+        specifier: workspace:*
+        version: link:../core
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.2
+        version: 22.20.1
+      typescript:
+        specifier: ^5.7.2
+        version: 5.9.3
+
   packages/ops:
     dependencies:
       '@alsham/core':
@@ -1078,6 +1117,19 @@ importers:
         version: 5.9.3
 
   packages/policies:
+    dependencies:
+      '@alsham/core':
+        specifier: workspace:*
+        version: link:../core
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.2
+        version: 22.20.1
+      typescript:
+        specifier: ^5.7.2
+        version: 5.9.3
+
+  packages/proc:
     dependencies:
       '@alsham/core':
         specifier: workspace:*

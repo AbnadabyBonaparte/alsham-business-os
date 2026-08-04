@@ -561,6 +561,20 @@ jobs:
       - name: aplicar 0104_exam.sql
         run: $PSQL -f supabase/migrations/0104_exam.sql
 
+      # ⭐ ONDA GOVERNO (Fase 3) — o Vertical 🏛 Governo (proc · ombuds · bid ·
+      # fisc). proc = Lei das Etapas do ops + protocolo + decisão terminal;
+      # ombuds = anonimato-físico do whistle; bid = "comprador premia" do rfq +
+      # edital; fisc = roster + livro imutável do sec. Auto de infração e
+      # Tributos FORA (Lei 3). Nenhum consome evento.
+      - name: aplicar 0105_proc.sql
+        run: $PSQL -f supabase/migrations/0105_proc.sql
+      - name: aplicar 0106_ombuds.sql
+        run: $PSQL -f supabase/migrations/0106_ombuds.sql
+      - name: aplicar 0107_bid.sql
+        run: $PSQL -f supabase/migrations/0107_bid.sql
+      - name: aplicar 0108_fisc.sql
+        run: $PSQL -f supabase/migrations/0108_fisc.sql
+
       # ---------------------------------------------------------------------
       # 2. SEED — e a prova de que reaplicar não muda nada
       # ---------------------------------------------------------------------
@@ -2035,6 +2049,40 @@ jobs:
         run: $PSQL -f supabase/tests/93_prescription_isolation.sql
       - name: teste de exames + trilha de leitura (exam)
         run: $PSQL -f supabase/tests/94_exam_isolation.sql
+
+      # ⭐ ONDA GOVERNO (Fase 3) — o Vertical 🏛 Governo. proc prova a Lei das
+      # Etapas + a decisão terminal; ombuds prova o anonimato-físico (anônima
+      # não grava o cidadão); bid prova o edital que congela + homologated;
+      # fisc prova o roster + a vistoria imutável.
+      - name: teste de protocolo (proc)
+        run: $PSQL -f supabase/tests/95_proc_isolation.sql
+      - name: teste de ouvidoria (ombuds)
+        run: $PSQL -f supabase/tests/96_ombuds_isolation.sql
+      - name: teste de licitações (bid)
+        run: $PSQL -f supabase/tests/97_bid_isolation.sql
+      - name: teste de fiscalização (fisc)
+        run: $PSQL -f supabase/tests/98_fisc_isolation.sql
+
+      # ⭐ Os quatro cartões da Onda Governo são VERTICAL government, consumes
+      # vazio (Lei 7). As outras 4 capacidades (Convênios→ctr, Patrimônio→pat,
+      # Tributos→Lei 3, Obras→proj/sched/pcost) ficam DECLARADAS FORA.
+      - name: os quatro módulos da Onda Governo são vertical government
+        run: |
+          N=$($PSQL -tAc "select count(*) from core.module_registry
+                           where layer='vertical' and vertical_key='government'
+                             and module_id in ('proc','ombuds','bid','fisc');")
+          [ "$N" = "4" ] || { echo "::error::esperava 4 cartões vertical government na Onda Governo: [$N]"; exit 1; }
+          # ⛔ vertical não pode ter domain_key (CHECK do 0001), e vice-versa.
+          BAD=$($PSQL -tAc "select count(*) from core.module_registry
+                             where module_id in ('proc','ombuds','bid','fisc')
+                               and domain_key is not null;")
+          [ "$BAD" = "0" ] || { echo "::error::um cartão da Onda Governo carregou domain_key"; exit 1; }
+          # Os quatro têm consumes VAZIO (Lei 7).
+          for M in proc ombuds bid fisc; do
+            C=$($PSQL -tAc "select jsonb_array_length(events_consumes) from core.module_registry where module_id='$M';")
+            [ "$C" = "0" ] || { echo "::error::o módulo $M deveria ter consumes vazio: [$C]"; exit 1; }
+          done
+          echo "proc·ombuds·bid·fisc — vertical government, consumes vazio (Lei 7)."
 
       # ⭐ Os quatro cartões da Onda Quatorze são DOMAIN quality — o território
       # novo. As outras 3 capacidades da Qualidade (Indicadores/Documentos/
