@@ -140,6 +140,9 @@ const MENU: readonly MenuItem[] = [
   { href: '/ouvidoria', label: 'Ouvidoria', moduleId: 'ombuds' },
   { href: '/licitacoes', label: 'Licitações', moduleId: 'bid' },
   { href: '/fiscalizacao', label: 'Fiscalização', moduleId: 'fisc' },
+  { href: '/credenciamento', label: 'Credenciamento & Check-in', moduleId: 'accred' },
+  { href: '/programacao', label: 'Programação/line-up', moduleId: 'lineup' },
+  { href: '/patrocinios', label: 'Patrocínios', moduleId: 'sponsor' },
   { href: '/store', label: 'Store', moduleId: null },
   { href: '/ajustes', label: 'Ajustes', moduleId: null },
 ];

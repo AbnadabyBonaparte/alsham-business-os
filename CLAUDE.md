@@ -298,7 +298,11 @@ A consequência é operacional e não é opinião:
   - `ombuds` (`0106`) — **Ouvidoria** (Módulo 91): reaproveita DELIBERADAMENTE o **anonimato-físico do `whistle`** (anônima nunca grava o cidadão — gatilho + CHECK + RLS por `reporter_id`). Tipo de manifestação (CHECK das 5 da Lei 13.460), protocolo público, tratamento `received → under_review → answered/dismissed`. O relato não passeia no envelope.
   - `bid` (`0107`) — **Licitações** (Módulo 92): a identidade "o comprador premia" do `rfq`, com o DIVERGE assinado: `draft → open → homologated/cancelled` (o `homologated` da Lei 14.133 × o `awarded` do `rfq`); edital + itens + `proposals` (livro imutável de propostas). Modalidade texto livre. ⛔ Publicação no PNCP FORA (Lei 3).
   - `fisc` (`0108`) — **Fiscalização** (Módulo 93): a física do `sec` (roster + livro imutável) para a inspeção pública. `fisc.targets` (`active ↔ archived`) + `fisc.inspections` (ato pontual imutável, carimbado pelo servidor). ⛔ O auto de infração FORA (Lei 3): a vistoria CONSTATA, a penalidade integra.
-- ⚠️ **A lacuna `0015`/`0016` é proposital** e vem da main. Com a Onda Governo (`0105`–`0108`), a próxima numeração livre é **`0109`**.
+- ⭐ **A ONDA EVENTOS (Fase 3) entregou os Módulos 94–96 num PR, um commit por módulo** (migrations `0109`–`0111`, ARQUIVO — apply do dono): **ABRE o Vertical 🎪 Eventos** (`vertical_key='events'`), o SEXTO bloco vertical — ⚠️ **o de MAIOR risco de duplicação do mapa**, cercado por três peças do império: o `evt` genérico (Domain Marketing), o `canta-siriema` (bilheteria+afiliados, produto real com PIX) e o `alsham-events-os` (framework Drizzle/MySQL, catedral de papel). A investigação começou pelas pedreiras (ver `ONDA-EVENTOS-DECISOES.md`). A Taxonomia §6 lista 8 capacidades; **3 viram módulo (4 caps), 4 ficam FORA**: *Ingressos* (Lei 3 + `canta-siriema` já É a bilheteria do império), *Fornecedores de evento* (=`vendor`), *Afiliados* (`canta-siriema`), *Pós-evento* (=`nps`/`pol`). Os TRÊS têm **`consumes` VAZIO** — sem redeploy do `apps/api`. O catálogo passa de 93 para **96 módulos publicados** (25 verticais: 5 shopping-centers + 4 retail + 4 energy + 5 health + 4 government + 3 events). Módulos:
+  - `accred` (`0109`) — **Credenciamento & Check-in** (Módulo 94): ⭐⭐ **UM schema, DUAS capacidades** — a física do `train` no portão: a credencial é o cadastro revogável (`active ↔ revoked`), o check-in é o ato pontual imutável carimbado pelo servidor (a física do `vis`). ⭐ **O DIVERGE do `train`:** a inscrição vai além da presença; o check-in NÃO tem sequência — quem volta amanhã faz OUTRO. Evento por id solto ao `evt`; tipo/nível de acesso TEXTO LIVRE. ⛔ Ingresso/pagamento (Lei 3) e check-out FORA.
+  - `lineup` (`0110`) — **Programação/line-up** (Módulo 95): a grade de atrações/sessões/palestras (palco e horário TEXTO LIVRE, ordenadas por posição). ⭐⭐ **A agenda é PLANO MUTÁVEL — o item se edita e se APAGA, SEM `status` e sem ciclo** (a física do `gantt`/`edcal`): o DIVERGE assinado do `sched`, cujo marco tem máquina de estados. Só dois fatos: `registered` e `updated`. Evento por id solto + nome carimbado.
+  - `sponsor` (`0111`) — **Patrocínios** (Módulo 96): a camada de patrocínio (cota/tier TEXTO LIVRE, valor opcional, checklist de entregáveis de ativação por evento). ⭐ O contrato jurídico continua no `ctr` e a negociação no `deal` (id solto) — o `sponsor` é a camada de patrocínio como o `lease` é a camada comercial sobre o `ctr`. ⭐ **`active ↔ archived`** (o patrocinador que volta é a MESMA relação — a física do `vendor`/`mall`, o DIVERGE do `lease` terminal); os entregáveis são MUTÁVEIS (o DIVERGE do `sales_reports` imutável do `lease`), FK intra-schema × `event_id` solto.
+- ⚠️ **A lacuna `0015`/`0016` é proposital** e vem da main. Com a Onda Eventos (`0109`–`0111`), a próxima numeração livre é **`0112`**.
 - ⛔ **A limpeza do runbook §7.3 FOI EXECUTADA** em 28/07/2026: a concessão global de permissão de módulo **não existe mais em produção**. O tenant piloto tem papel próprio, com as permissões concedidas por `core.install_module()` — pela Store, com o clique do dono. Nunca volte a conceder permissão de módulo no seed.
 - `packages/workflow` é **o correio do Core** — o entregador da caixa de saída: idempotência por consumidor, backoff exponencial, `dead` sem apagar. **ENGINE, não módulo** (Taxonomia §4): não aparece na Store.
 - `apps/api` é **a COMPOSIÇÃO** — o único lugar do repositório onde os módulos se conhecem. Ele importa `workflow`, `marketing`, `finance-reconciliation`, `accounts-payable`, `accounts-receivable` e `billing`; **nenhum deles importa nenhum outro**. ⭐ Desde a Etapa 10 o mesmo pacote (`finance-reconciliation`) é PRODUTOR numa inscrição e CONSUMIDOR em outra — e continua sem conhecer ninguém. Traz a persistência real do correio (contra Postgres, com arrendamento e `skip locked`), os adaptadores dos consumidores, o endpoint protegido e a saúde da fila.
@@ -373,9 +377,12 @@ docs/canon/            taxonomia · roadmap · core-spec · identidade-visual
                        · modulo-secincident-spec · modulo-continuity-spec
                        · modulo-plant-spec · modulo-subscription-spec
                        · modulo-genreading-spec · modulo-creditbalance-spec
+                       · modulo-accred-spec · modulo-lineup-spec
+                       · modulo-sponsor-spec
                        · ONDA-DEZENOVE-DECISOES (as 23 capacidades)
                        · ONDA-VINTE-DECISOES (as 8 capacidades do Energia)
                        · ONDA-VINTE-E-UM-DECISOES (as 8 capacidades da Saúde)
+                       · ONDA-EVENTOS-DECISOES (as 8 capacidades dos Eventos)
                                                         — leitura obrigatória
 docs/comercial/        VERTICAL-SHOPPING.md             — dossiê de venda
 docs/balancos/         tecnologia + supabase            — de onde minerar
@@ -458,7 +465,14 @@ supabase/migrations/   0001_core … 0014_ap_apply_recon_match
                                                             sec; auto de infração e
                                                             Tributos FORA por Lei 3);
                                                             apply do dono
-                       (lacuna 0015–0016 proposital; próxima livre: 0109)
+                       0109_accred · 0110_lineup · 0111_sponsor  — Onda Eventos
+                                                            (Fase 3 — ABRE o Vertical
+                                                            🎪 Eventos; maior risco de
+                                                            duplicação: evt/canta-siriema/
+                                                            events-os; Ingressos e
+                                                            Afiliados FORA por Lei 3 +
+                                                            canta-siriema); apply do dono
+                       (lacuna 0015–0016 proposital; próxima livre: 0112)
 supabase/seed/         0001_platform.sql                — catálogo, idempotente; zero tenant
 supabase/tests/        shim · isolamento · uso · consumo entre módulos
                        · instalador · triângulo · relacionamentos · a receber
@@ -484,6 +498,8 @@ supabase/tests/        shim · isolamento · uso · consumo entre módulos
                        · pacientes (patient) · agenda médica (appointment)
                        · prontuário+trilha (record) · receitas+trilha (prescription)
                        · exames+trilha (exam)
+                       · credenciamento+check-in (accred) · programação (lineup)
+                       · patrocínios (sponsor)
                                                         — só CI; NUNCA no Supabase real
 docs/runbook/          APLICAR.md                       — o passo a passo do dono
 .github/scripts/       guarda de defasagem de documento — encanamento de CI
@@ -588,6 +604,9 @@ packages/              core auth organizations workflow billing
                        ombuds                           — Módulo 91 (o anonimato-físico do whistle para o cidadão; Lei 13.460)
                        bid                              — Módulo 92 (o comprador premia do rfq; edital + homologated: o DIVERGE, Lei 14.133)
                        fisc                             — Módulo 93 (a física do sec; roster + vistoria imutável; auto de infração FORA por Lei 3)
+                       accred                           — Módulo 94 (um schema, duas caps: credencial revogável + check-in imutável; a física do train/vis)
+                       lineup                           — Módulo 95 (a grade mutável sem ciclo: o DIVERGE do sched; só registered/updated)
+                       sponsor                          — Módulo 96 (a camada de patrocínio sobre o ctr/deal; active↔archived; entregáveis mutáveis: o DIVERGE do lease)
                        workflow (o correio) · billing (uso) · ai (a forja)
                                                         — Engines/capacidades do Core
 ```

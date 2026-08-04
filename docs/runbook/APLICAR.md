@@ -1855,6 +1855,46 @@ proposital). Os testes `95`–`98` provam os quatro no CI.
 Nenhum agente aplica em produção. A conferência de segurança do PASSO 15
 (§ pós-apply) vale para os schemas novos.
 
+## PASSO 36 — APLICAR A ONDA EVENTOS (o Vertical 🎪 Eventos) — ARQUIVO
+
+⭐ A Onda Eventos abre o **Vertical 🎪 Eventos** (`vertical_key='events'`) — o
+SEXTO bloco vertical, e ⚠️ **o de maior risco de duplicação do mapa** (o `evt`
+genérico, o `canta-siriema` de bilheteria e o `alsham-events-os`). A investigação
+está em `docs/canon/ONDA-EVENTOS-DECISOES.md`. Três módulos, um por migration:
+
+```
+psql "$DATABASE_URL" -f supabase/migrations/0109_accred.sql
+psql "$DATABASE_URL" -f supabase/migrations/0110_lineup.sql
+psql "$DATABASE_URL" -f supabase/migrations/0111_sponsor.sql
+psql "$DATABASE_URL" -f supabase/seed/0001_platform.sql   # reaplica o catálogo (idempotente)
+```
+
+⚠️ **Ao aplicar, EXPOR na Data API do Supabase os schemas `accred`, `lineup`,
+`sponsor`** (Project Settings → API → Exposed schemas). Sem isso as telas
+carregam vazias, sem erro que diga o motivo (lição paga das Etapas 9–12).
+
+✅ **NENHUM dos três consome evento** (`consumes` vazio; guarda de CI confere) —
+**SEM redeploy obrigatório do `apps/api`** nesta onda.
+
+Decisões (ver `docs/canon/ONDA-EVENTOS-DECISOES.md`):
+- `accred` (Credenciamento & Check-in): UM schema, DUAS capacidades — a credencial
+  revogável (`active ↔ revoked`) + o check-in imutável carimbado pelo servidor (a
+  física do `train`/`vis`). ⛔ Ingresso/pagamento e check-out FORA.
+- `lineup` (Programação/line-up): a grade mutável e apagável, sem ciclo de estado
+  (o DIVERGE do `sched`); só `registered`/`updated`.
+- `sponsor` (Patrocínios): a camada de patrocínio (cota/valor/entregáveis) sobre o
+  `ctr`/`deal` (id solto), como o `lease` sobre o `ctr`; `active ↔ archived`.
+- **FORA (Lei 3 + reaproveitamento):** Ingressos→Lei 3/`canta-siriema`,
+  Fornecedores→`vendor`, Afiliados→`canta-siriema`, Pós-evento→`nps`.
+
+⭐ **Ao concluir este apply, o catálogo chega a 96 módulos publicados** (93 + 3 da
+Onda Eventos; 25 verticais: 5 shopping-centers + 4 retail + 4 energy + 5 health +
+4 government + 3 events). A próxima migration livre é **`0112`** (a lacuna
+`0015`–`0016` é proposital). Os testes `99`–`101` provam os três no CI.
+
+Nenhum agente aplica em produção. A conferência de segurança do PASSO 15
+(§ pós-apply) vale para os schemas novos.
+
 ## O QUE AINDA NÃO EXISTE
 
 Honestidade de escopo, para você não procurar o que não foi construído:
