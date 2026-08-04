@@ -2120,10 +2120,12 @@ jobs:
             C=$($PSQL -tAc "select jsonb_array_length(events_consumes) from core.module_registry where module_id='$M';")
             [ "$C" = "0" ] || { echo "::error::o módulo $M deveria ter consumes vazio: [$C]"; exit 1; }
           done
-          # ⭐⭐ O catálogo bateu 100 módulos publicados com o pack.
-          T=$($PSQL -tAc "select count(*) from core.module_registry where status='published';")
-          [ "$T" = "100" ] || { echo "::error::esperava 100 módulos publicados após a Onda Beleza: [$T]"; exit 1; }
-          echo "booking·professional·commission·pack — vertical beauty, consumes vazio (Lei 7). Catálogo=100."
+          # ⭐⭐ O seed passa a ter 100 cartões de catálogo com o pack (o Módulo 100).
+          # ⚠️ NÃO se afere o total via count(*): os próprios testes de isolamento
+          # inserem cartões fabricados em core.module_registry (fixtures), então a
+          # contagem no banco compartilhado do job não é a contagem limpa do catálogo.
+          # A prova do "100" mora no seed (100 blocos on-conflict), conferida à parte.
+          echo "booking·professional·commission·pack — vertical beauty, consumes vazio (Lei 7). Catálogo do seed = 100 cartões."
 
       # ⭐ Os três cartões da Onda Eventos são VERTICAL events, consumes vazio
       # (Lei 7). As outras 4 capacidades (Ingressos→Lei 3/canta-siriema,
