@@ -660,6 +660,13 @@ importers:
         version: 5.9.3
 
   packages/engineer:
+    dependencies:
+      '@alsham/ai':
+        specifier: workspace:*
+        version: link:../ai
+      '@alsham/permissions':
+        specifier: workspace:*
+        version: link:../permissions
     devDependencies:
       '@types/node':
         specifier: ^22.10.2

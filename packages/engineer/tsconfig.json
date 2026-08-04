@@ -4,7 +4,11 @@
     "composite": false,
     "declaration": false,
     "declarationMap": false,
-    "types": ["node"]
+    "types": ["node"],
+    "paths": {
+      "@alsham/ai": ["../ai/src/index.ts"],
+      "@alsham/permissions": ["../permissions/src/index.ts"]
+    }
   },
   "include": ["src/**/*.ts"]
 }

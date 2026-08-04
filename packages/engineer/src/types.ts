@@ -7,6 +7,8 @@
  * com o banco. Se um dia a pele mudar de framework, este pacote não muda.
  */
 
+import type { EnginePage, FormField } from './pages.ts';
+
 /** O papel de uma mensagem na conversa — o mesmo vocabulário do protocolo. */
 export type EngineerRole = 'user' | 'assistant';
 
@@ -29,6 +31,16 @@ export interface EngineerContext {
   readonly accessibleModules: readonly string[];
   /** A rota onde o usuário está agora, quando aplicável (ex.: `/conciliacao`). */
   readonly currentPath?: string | null;
+  /**
+   * A página resolvida do catálogo — a consciência de LOCALIZAÇÃO. A rota a
+   * resolve com `pageOf(currentPath)`; se ausente, o prompt não ganha o bloco.
+   */
+  readonly page?: EnginePage;
+  /**
+   * O snapshot do formulário visível — a consciência de FORMULÁRIO. Em tela
+   * sigilosa os campos chegam SEM `valor` (suprimidos no navegador e no servidor).
+   */
+  readonly fields?: readonly FormField[];
   /** Modo demonstração: sem banco, o dado é fabricado e o motor deve dizê-lo. */
   readonly demo?: boolean;
 }
