@@ -3474,21 +3474,24 @@ jobs:
           # A tela CHAMA o domínio; se um dia ela declarar o próprio, o
           # coração terá migrado para a pele. Inclui o parser: ler extrato é
           # regra de negócio (decide sinal, arredondamento, fuso, duplicata).
-          if grep -rInE 'function (suggestMatches|scorePair|unmatchedLines|summarizeStatement|parseOfx|parseCsv|parseStatement|parseAmountToCents|parseDate)' apps --include='*.ts' --include='*.tsx'; then
+          if grep -rInE 'function (suggestMatches|scorePair|unmatchedLines|composeMesa|explainDivergence|summarizeStatement|parseOfx|parseCsv|parseStatement|parseAmountToCents|parseDate)' apps --include='*.ts' --include='*.tsx'; then
             echo "::error::motor de domínio redeclarado em apps/ — ele vive em packages/"; exit 1
           fi
           # Procura a CHAMADA no CÓDIGO, ignorando linhas de comentário.
           #
+          # ⭐ Desde a Mesa de Conciliação P0 a página chama `composeMesa()`, o
+          # ponto de entrada do motor que usa `suggestMatches()`/`unmatchedLines()`
+          # por dentro (no pacote) e ainda lê o casamento gravado. A guarda segue
+          # a mesma: a tela CHAMA o domínio, nunca o reimplementa.
+          #
           # Duas versões anteriores desta guarda passaram na sabotagem: a
-          # primeira casava o nome em qualquer lugar; a segunda exigia
-          # `suggestMatches(` mas o próprio JSDoc da página tem essa string
-          # com parêntese. Guarda que não é testada contra sabotagem não é
-          # guarda — é decoração.
+          # primeira casava o nome em qualquer lugar; a segunda exigia a chamada
+          # mas o próprio JSDoc da página tem essa string com parêntese. Por isso
+          # se remove a linha de comentário ANTES de procurar a chamada — guarda
+          # que não é testada contra sabotagem não é guarda, é decoração.
           CODIGO=$(grep -Ev '^\s*(\*|//|/\*)' apps/portal/src/app/conciliacao/page.tsx)
-          echo "$CODIGO" | grep -Eq 'suggestMatches\(' \
-            || { echo "::error::a tela de conciliação deixou de chamar o motor do pacote"; exit 1; }
-          echo "$CODIGO" | grep -Eq 'unmatchedLines\(' \
-            || { echo "::error::a tela deixou de usar unmatchedLines do pacote"; exit 1; }
+          echo "$CODIGO" | grep -Eq 'composeMesa\(' \
+            || { echo "::error::a tela de conciliação deixou de chamar o motor do pacote (composeMesa)"; exit 1; }
 
           FECHA=$(grep -Ev '^\s*(\*|//|/\*)' apps/portal/src/app/fechamento/page.tsx)
           echo "$FECHA" | grep -Eq 'summarizeStatement\(' \
