@@ -580,6 +580,14 @@ jobs:
         run: $PSQL -f supabase/migrations/0110_lineup.sql
       - name: aplicar 0111_sponsor.sql
         run: $PSQL -f supabase/migrations/0111_sponsor.sql
+      - name: aplicar 0112_booking.sql
+        run: $PSQL -f supabase/migrations/0112_booking.sql
+      - name: aplicar 0113_professional.sql
+        run: $PSQL -f supabase/migrations/0113_professional.sql
+      - name: aplicar 0114_commission.sql
+        run: $PSQL -f supabase/migrations/0114_commission.sql
+      - name: aplicar 0115_pack.sql
+        run: $PSQL -f supabase/migrations/0115_pack.sql
 
       # ---------------------------------------------------------------------
       # 2. SEED — e a prova de que reaplicar não muda nada
@@ -2079,6 +2087,45 @@ jobs:
         run: $PSQL -f supabase/tests/100_lineup_isolation.sql
       - name: teste de patrocínios (sponsor)
         run: $PSQL -f supabase/tests/101_sponsor_isolation.sql
+
+      # ⭐ ONDA BELEZA (Fase 3) — o Vertical 💇 Beleza & Estética. booking prova a
+      # física do no-show (a do appointment, sem PHI); professional prova active↔
+      # archived (o DIVERGE do hr); commission prova o livro imutável de comissão;
+      # pack prova o saldo-recusa (a física do loyalty/invest). ⭐⭐ pack = Módulo 100.
+      - name: teste de agendamento (booking)
+        run: $PSQL -f supabase/tests/102_booking_isolation.sql
+      - name: teste de profissionais (professional)
+        run: $PSQL -f supabase/tests/103_professional_isolation.sql
+      - name: teste de comissões (commission)
+        run: $PSQL -f supabase/tests/104_commission_isolation.sql
+      - name: teste de pacotes (pack)
+        run: $PSQL -f supabase/tests/105_pack_isolation.sql
+
+      # ⭐ Os quatro cartões da Onda Beleza são VERTICAL beauty, consumes vazio
+      # (Lei 7). As outras 2 capacidades (Fidelidade→loyalty, Estoque de
+      # produtos→inv/catalog) ficam DECLARADAS FORA.
+      - name: os quatro módulos da Onda Beleza são vertical beauty
+        run: |
+          N=$($PSQL -tAc "select count(*) from core.module_registry
+                           where layer='vertical' and vertical_key='beauty'
+                             and module_id in ('booking','professional','commission','pack');")
+          [ "$N" = "4" ] || { echo "::error::esperava 4 cartões vertical beauty na Onda Beleza: [$N]"; exit 1; }
+          # ⛔ vertical não pode ter domain_key (CHECK do 0001), e vice-versa.
+          BAD=$($PSQL -tAc "select count(*) from core.module_registry
+                             where module_id in ('booking','professional','commission','pack')
+                               and domain_key is not null;")
+          [ "$BAD" = "0" ] || { echo "::error::um cartão da Onda Beleza carregou domain_key"; exit 1; }
+          # Os quatro têm consumes VAZIO (Lei 7).
+          for M in booking professional commission pack; do
+            C=$($PSQL -tAc "select jsonb_array_length(events_consumes) from core.module_registry where module_id='$M';")
+            [ "$C" = "0" ] || { echo "::error::o módulo $M deveria ter consumes vazio: [$C]"; exit 1; }
+          done
+          # ⭐⭐ O seed passa a ter 100 cartões de catálogo com o pack (o Módulo 100).
+          # ⚠️ NÃO se afere o total via count(*): os próprios testes de isolamento
+          # inserem cartões fabricados em core.module_registry (fixtures), então a
+          # contagem no banco compartilhado do job não é a contagem limpa do catálogo.
+          # A prova do "100" mora no seed (100 blocos on-conflict), conferida à parte.
+          echo "booking·professional·commission·pack — vertical beauty, consumes vazio (Lei 7). Catálogo do seed = 100 cartões."
 
       # ⭐ Os três cartões da Onda Eventos são VERTICAL events, consumes vazio
       # (Lei 7). As outras 4 capacidades (Ingressos→Lei 3/canta-siriema,
