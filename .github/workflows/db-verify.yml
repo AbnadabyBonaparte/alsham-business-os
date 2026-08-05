@@ -607,6 +607,11 @@ jobs:
       - name: aplicar 0120_secret_pages.sql
         run: $PSQL -f supabase/migrations/0120_secret_pages.sql
 
+      # ⭐ Data no fuso do tenant: core.tenants.timezone + core.tenant_today.
+      # Corrige o bug de fundamento (vencido comparado com a data do servidor UTC).
+      - name: aplicar 0119_tenant_timezone.sql
+        run: $PSQL -f supabase/migrations/0119_tenant_timezone.sql
+
       # ---------------------------------------------------------------------
       # 2. SEED — e a prova de que reaplicar não muda nada
       # ---------------------------------------------------------------------
@@ -3437,6 +3442,9 @@ jobs:
           # a leitura de hoje; o insight-service.test.ts precisa da tabela. Core ⇒
           # entra NAS DUAS listas (a lição do 0019/0116).
           $PSQL -q -f supabase/migrations/0118_tenant_insight_history.sql
+          # ⭐ Data no fuso do tenant: o insight-service.test.ts agora classifica
+          # vencido por core.tenant_today (0119), não current_date. Core ⇒ nas DUAS listas.
+          $PSQL -q -f supabase/migrations/0119_tenant_timezone.sql
           $PSQL -q -f supabase/seed/0001_platform.sql
 
       # ⚠️ Sem `DATABASE_URL` os testes do store se PULAM — de propósito, para

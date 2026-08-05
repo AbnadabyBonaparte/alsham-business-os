@@ -8,7 +8,7 @@
  *
  * ⛔ Zero I/O, zero credencial, zero fetch. Este pacote decide; não executa.
  */
-export { buildSystemPrompt, buildDocumentPrompt } from './prompt.ts';
+export { buildSystemPrompt, buildDocumentPrompt, todayGroundedFact } from './prompt.ts';
 export { buildTools, resolveConsulta, sanitizeLimite, pendenciaPlan } from './tools.ts';
 export { MODULE_READS, PENDENCIA_MODULES, knownReadModules } from './modules.ts';
 
