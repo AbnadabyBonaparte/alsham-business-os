@@ -600,6 +600,12 @@ jobs:
       # média recente) — o "arreio" da memória-além-da-janela. Core, imutável.
       - name: aplicar 0118_tenant_insight_history.sql
         run: $PSQL -f supabase/migrations/0118_tenant_insight_history.sql
+      # ⭐ PÁGINAS RESERVADAS — Core, não módulo (como o Painel/Insight): a
+      # prateleira `core.secret_pages` (conteúdo por slug, do tenant, no banco).
+      # A 0119 fica reservada ao PR do fuso do tenant (aberto à parte); esta é a
+      # 0120 para dois PRs abertos não cravarem o mesmo número.
+      - name: aplicar 0120_secret_pages.sql
+        run: $PSQL -f supabase/migrations/0120_secret_pages.sql
 
       # ---------------------------------------------------------------------
       # 2. SEED — e a prova de que reaplicar não muda nada
@@ -2124,6 +2130,13 @@ jobs:
       # 2 camadas, média contada, fechado ao tenant — o arreio da análise.
       - name: teste do histórico de insight (tenant_insight_history)
         run: $PSQL -f supabase/tests/107_tenant_insight_history_isolation.sql
+
+      # ⭐ PÁGINAS RESERVADAS (secret_pages): o tenant abre a PRÓPRIA página pelo
+      # slug; o slug de outro tenant não resolve; a tabela nua é fechada; slug
+      # adivinhável e título vazio são recusados; anon fora. (108 fica reservado
+      # ao teste do fuso do tenant, no PR aberto à parte.)
+      - name: teste de páginas reservadas (secret_pages)
+        run: $PSQL -f supabase/tests/109_secret_pages_isolation.sql
 
       # ⭐ Os quatro cartões da Onda Beleza são VERTICAL beauty, consumes vazio
       # (Lei 7). As outras 2 capacidades (Fidelidade→loyalty, Estoque de
@@ -4400,6 +4413,30 @@ jobs:
 
           [ "$FALHOU" = "0" ] || exit 1
           echo "o cliente vê o motor ALSHAM, e só."
+
+      # ⛔ A ROTA RESERVADA NÃO VAZA — a página secreta (/p/[slug]) exige login
+      # no tenant E o slug exato; ela NÃO pode aparecer em navegação, busca
+      # (Ctrl+K) nem sitemap. A defesa estrutural é que o menu se monta de
+      # `visibleMenu()` (catálogo de módulos), e um segmento dinâmico solto não
+      # entra ali — mas uma guarda barata fecha a porta contra o descuido.
+      - name: a rota reservada não vaza para navegação nem sitemap
+        run: |
+          # 1. O portal não tem sitemap — nada a indexar, nada de onde vazar.
+          if find apps/portal/src -iname 'sitemap.*' | grep -q .; then
+            echo "::error::apareceu um sitemap no portal — a rota reservada poderia vazar nele"; exit 1
+          fi
+          # 2. Nenhuma fonte de navegação aponta para a rota reservada. Um href
+          #    '/p/' numa dessas significaria que a página secreta entrou no menu.
+          if grep -rInE "['\"]/p/" \
+               packages/permissions/src \
+               apps/portal/src/lib/menu-groups.ts \
+               apps/portal/src/components/modules-menu.tsx \
+               apps/portal/src/components/command-palette.tsx 2>/dev/null | grep -q .; then
+            echo "::error::a rota reservada /p/ apareceu numa fonte de navegação"; exit 1
+          fi
+          # 3. A rota existe (testando a coisa certa) e é segmento dinâmico.
+          [ -f "apps/portal/src/app/p/[slug]/page.tsx" ] || { echo "::error::a rota reservada sumiu"; exit 1; }
+          echo "a rota reservada exige login + slug; fora de menu, busca e sitemap."
 
       # ⛔ A CHAVE DO MOTOR É DO SERVIDOR — a mesma fronteira da chave-mãe.
       #
