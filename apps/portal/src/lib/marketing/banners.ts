@@ -126,7 +126,11 @@ export const PAGE_BANNERS: Record<BannerKey, readonly BannerFact[]> = {
     },
     {
       text: 'A chave do motor nunca chega ao navegador. Ela vive só no servidor que compõe.',
-      grounds: 'service_role e chave de motor só no apps/api; guarda de CI sobre o bundle de cliente (§5.4).',
+      // ⚠️ Sem o literal da chave de serviço aqui: este módulo é importado por um
+      // client component, então TUDO nele vai ao bundle — e há guarda de CI que
+      // reprova esse token no pacote de cliente (é exatamente o fato que a frase
+      // acima celebra). A âncora descreve o fato sem carregar o token.
+      grounds: 'A chave de serviço e a chave de motor vivem só no apps/api; guarda de CI sobre o bundle de cliente (§5.4).',
     },
   ],
   eficiencia: [
