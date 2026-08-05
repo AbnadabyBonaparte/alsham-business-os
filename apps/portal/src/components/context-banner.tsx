@@ -58,6 +58,7 @@ export function ContextBanner({
   if (!facts || facts.length === 0) return null;
 
   const atual = facts[Math.min(i, facts.length - 1)]!;
+  // `atual` já é a frase (string) — o mapa carrega só o texto visível.
 
   return (
     <aside
@@ -80,7 +81,7 @@ export function ContextBanner({
           visible ? 'opacity-100' : 'opacity-0'
         }`}
       >
-        {atual.text}
+        {atual}
       </p>
     </aside>
   );
