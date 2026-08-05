@@ -8,9 +8,38 @@ import {
   resolveConsulta,
   sanitizeLimite,
   pendenciaPlan,
+  todayGroundedFact,
   MODULE_READS,
   knownReadModules,
 } from './index.ts';
+
+const BASE_CTX = {
+  tenantName: 'Tenant Piloto',
+  userEmail: 'op@tenant',
+  accessibleModules: ['ar'],
+} as const;
+
+// ---------------------------------------------------------------------------
+// A DATA DE HOJE (fuso do tenant) — resolvida do servidor, nunca assumida.
+// ---------------------------------------------------------------------------
+
+test('com today, o system prompt afirma a data e manda usá-la', () => {
+  const p = buildSystemPrompt({ ...BASE_CTX, today: '2026-08-05' });
+  assert.ok(p.includes('2026-08-05'), 'a data entra no prompt');
+  assert.ok(/fuso deste tenant/i.test(p), 'diz que é o fuso do tenant');
+  assert.ok(/nunca assuma outra data/i.test(p), 'proíbe assumir outra data');
+});
+
+test('sem today, o prompt NÃO inventa data (a linha não aparece)', () => {
+  const p = buildSystemPrompt({ ...BASE_CTX });
+  assert.ok(!/data de hoje/i.test(p), 'sem today, sem linha de data');
+});
+
+test('todayGroundedFact vira um FATO com a data — o que o juiz vê', () => {
+  const fato = todayGroundedFact('2026-08-05');
+  assert.ok(fato.includes('2026-08-05'));
+  assert.ok(/fuso do tenant/i.test(fato));
+});
 
 // ---------------------------------------------------------------------------
 // O MAPA DE LEITURA — invariante que mantém a consulta honesta.

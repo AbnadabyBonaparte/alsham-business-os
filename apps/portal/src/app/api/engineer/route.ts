@@ -7,6 +7,7 @@ import {
   gatedReply,
   pageOf,
   redactFields,
+  todayGroundedFact,
   type EngineerTurn,
   type FormField,
 } from '@alsham/engineer';
@@ -59,6 +60,26 @@ interface EngineerRequestBody {
   readonly fields?: FormField[];
 }
 
+/**
+ * A data de hoje NO FUSO DO TENANT, pela função central `core.tenant_today`
+ * (0119) — resolvida do servidor, sob a sessão do usuário (RLS). Devolve `null`
+ * se o RPC falhar: o Engenheiro segue sem a linha de data, sem quebrar a conversa.
+ */
+async function resolveTenantToday(
+  db: NonNullable<Awaited<ReturnType<typeof createSupabaseServerClient>>>,
+  tenantId: string,
+): Promise<string | null> {
+  try {
+    const { data, error } = await db.schema('core').rpc('tenant_today', {
+      p_tenant_id: tenantId,
+    });
+    if (error) return null;
+    return typeof data === 'string' ? data : null;
+  } catch {
+    return null;
+  }
+}
+
 export async function POST(req: Request) {
   const session = await resolveSession();
 
@@ -106,6 +127,13 @@ export async function POST(req: Request) {
     page?.sigilosa,
   );
 
+  const tenantId = session.mode === 'authenticated' ? session.activeTenant.id : '';
+
+  // ⭐ A DATA DE HOJE, NO FUSO DO TENANT — resolvida do servidor por
+  // `core.tenant_today` (0119), nunca deixada o modelo assumir. Sem banco
+  // (demonstração) fica `null` e o prompt não ganha a linha.
+  const today = db && tenantId ? await resolveTenantToday(db, tenantId) : null;
+
   const system = buildSystemPrompt({
     tenantName,
     userEmail,
@@ -114,6 +142,7 @@ export async function POST(req: Request) {
     page,
     fields,
     demo,
+    today,
   });
 
   const tools = db ? buildTools(modulos) : [];
@@ -126,7 +155,7 @@ export async function POST(req: Request) {
   const scope: ExecScope | null = db
     ? {
         db,
-        tenantId: session.mode === 'authenticated' ? session.activeTenant.id : '',
+        tenantId,
         tenantName,
         userEmail,
         accessibleModules: modulos,
@@ -137,7 +166,9 @@ export async function POST(req: Request) {
   // ⭐ Os FATOS grounded — o texto das leituras das ferramentas, acumulado ao
   // longo do laço. É o que o portão verificador confere contra a resposta: a
   // mesma fonte que a IA teve para responder, e nada além dela.
-  const groundedParts: string[] = [];
+  // ⭐ A data de hoje entra como PRIMEIRO fato grounded (fuso do tenant) — assim
+  // o juiz a vê como FATO e não reprova o Engenheiro por "assumir hoje".
+  const groundedParts: string[] = today ? [todayGroundedFact(today)] : [];
 
   for (let step = 0; step < MAX_STEPS; step++) {
     const r = await callForge({ system, messages, tools });

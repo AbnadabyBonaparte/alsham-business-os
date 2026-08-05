@@ -74,14 +74,17 @@ export async function runInsightOnce(pool: Pool): Promise<InsightRunReport> {
     // 2. O BANCO mede os vencidos, por MOEDA (somar moedas seria mentira). O
     //    `outstanding` é o que FALTA receber (amount − received).
     const { rows: grupos } = await pool.query<OverdueRow>(
+      // ⭐ "Hoje" é o do FUSO DO TENANT (core.tenant_today), nunca o do servidor
+      // (que roda em UTC). Para um tenant longe de UTC, `current_date` classificaria
+      // vencido por um dia inteiro errado. A função central é a fonte única (0119).
       `select currency,
-              count(*)                                  as overdue_count,
-              sum(amount_cents - received_amount_cents) as outstanding_cents,
-              (current_date - min(due_date))            as oldest_days
+              count(*)                                          as overdue_count,
+              sum(amount_cents - received_amount_cents)         as outstanding_cents,
+              (core.tenant_today($1) - min(due_date))           as oldest_days
          from ar.receivables
         where tenant_id = $1
           and status in ('open', 'partially_received')
-          and due_date < current_date
+          and due_date < core.tenant_today($1)
         group by currency`,
       [tenant_id],
     );

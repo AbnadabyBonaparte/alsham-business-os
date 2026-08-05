@@ -13,6 +13,17 @@ import type { EngineerContext } from './types.ts';
  * mas a decisão é de quem opera. Zero emoji (IDENTIDADE-VISUAL §6). Sem
  * "Oi! Como posso te ajudar hoje?".
  */
+/**
+ * ⭐ A linha de FATO GROUNDED que carrega a data de hoje (fuso do tenant).
+ *
+ * A rota a prepende aos fatos grounded que vão ao verificador — assim o juiz vê
+ * a data como FATO, e não reprova o Engenheiro por "assumir hoje". A mesma data
+ * que entra no system prompt entra aqui: uma fonte, `core.tenant_today` (0119).
+ */
+export function todayGroundedFact(today: string): string {
+  return `A data de hoje, no fuso do tenant, é ${today}.`;
+}
+
 export function buildSystemPrompt(ctx: EngineerContext): string {
   const modulos =
     ctx.accessibleModules.length > 0
@@ -49,6 +60,9 @@ export function buildSystemPrompt(ctx: EngineerContext): string {
     '',
     'QUEM PERGUNTA E O QUE ELE VÊ:',
     `- Tenant ativo: ${ctx.tenantName}. Usuário: ${ctx.userEmail}.`,
+    // ⭐ A data de hoje vem RESOLVIDA do servidor, no fuso do tenant (0119).
+    // O modelo NUNCA assume a data — é isto que fecha o gap que o juiz achou.
+    ctx.today ? `- A data de hoje, no fuso deste tenant, é ${ctx.today}. Use-a; nunca assuma outra data.` : '',
     `- Módulos que ESTE usuário acessa: ${modulos}.`,
     `- ${onde}`,
     formulario ? `- ${formulario}` : '',

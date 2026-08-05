@@ -43,6 +43,12 @@ export interface EngineerContext {
   readonly fields?: readonly FormField[];
   /** Modo demonstração: sem banco, o dado é fabricado e o motor deve dizê-lo. */
   readonly demo?: boolean;
+  /**
+   * ⭐ A data de HOJE no FUSO DO TENANT (`core.tenant_today`, 0119) — `YYYY-MM-DD`.
+   * A rota a resolve do servidor; NUNCA se deixa o modelo assumir a data. Sem ela
+   * (ex.: demonstração), o prompt não ganha a linha e o Engenheiro não afirma "hoje".
+   */
+  readonly today?: string | null;
 }
 
 /**
