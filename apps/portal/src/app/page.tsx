@@ -13,6 +13,7 @@ import type {
   ModuleHealth,
   OverviewCard,
   PlanUsageRow,
+  TenantInsight,
 } from '@/lib/data/panel-port';
 import { resolveSession } from '@/lib/session';
 import { Badge, DemoNotice, EmptyState, Panel, SectionHeader } from '@/components/states';
@@ -67,7 +68,7 @@ export default async function Painel() {
 
   // ⚠️ `Promise.allSettled`, não `all`: uma seção que não carrega não pode
   // apagar as outras. O Painel é a home — ele degrada por partes.
-  const [correio, consumo, trilha, prateleira, visao, saudeMod, permissoes] =
+  const [correio, consumo, trilha, prateleira, visao, saudeMod, permissoes, avisosR] =
     await Promise.allSettled([
       port.loadCourier(),
       port.loadPlanUsage(),
@@ -76,6 +77,7 @@ export default async function Painel() {
       port.loadOverview(),
       port.loadModuleHealth(),
       loadAllPermissions(),
+      port.loadInsights(),
     ]);
 
   const saude = correio.status === 'fulfilled' ? correio.value : null;
@@ -93,6 +95,9 @@ export default async function Painel() {
   );
   const permissoesDoUsuario =
     permissoes.status === 'fulfilled' ? permissoes.value : new Set<string>();
+  // ⭐ Os avisos proativos — o que a inteligência ALSHAM notou sozinha. `null` =
+  // a leitura falhou (a seção diz "sem leitura", nunca inventa "tudo em dia").
+  const avisos = avisosR.status === 'fulfilled' ? avisosR.value : null;
 
   const instalados = (modulos ?? []).filter((m) => m.state === 'installed');
   const disponiveis = (modulos ?? []).filter((m) => m.state !== 'installed');
@@ -110,6 +115,8 @@ export default async function Painel() {
       />
 
       <VisaoGeral cartoes={cartoes} />
+
+      <AvisosProativos avisos={avisos} />
 
       <div className="grid gap-4 lg:grid-cols-3">
         <div className="lg:col-span-2">
@@ -337,6 +344,65 @@ const VEREDITO_ROTULO = {
   PARADO: 'parado',
   ATENCAO: 'precisa de atenção',
 } as const;
+
+/* ─────────────────────────────────────────────────────────────────────────
+ * ⭐ OS AVISOS PROATIVOS — o que a inteligência ALSHAM notou SOZINHA
+ * ──────────────────────────────────────────────────────────────────────
+ * A prova de cognição proativa do Memorando da Divisão de Águas: o observador
+ * agendado leu um fato que já existe (contas a receber vencidas) e AVISOU sem
+ * ser perguntado. A frase é determinística, sobre um número real — nunca
+ * inventada. Ver `core.tenant_insights` (0116).
+ */
+
+/** "notado há X" — o carimbo que impede o aviso de mentir sobre o presente. */
+function notadoHa(observedAtIso: string): string {
+  const then = new Date(observedAtIso).getTime();
+  if (Number.isNaN(then)) return '';
+  const min = Math.max(0, Math.floor((Date.now() - then) / 60000));
+  if (min < 1) return 'agora há pouco';
+  if (min < 60) return `há ${min} min`;
+  const h = Math.floor(min / 60);
+  if (h < 24) return `há ${h} h`;
+  const d = Math.floor(h / 24);
+  return `há ${d} ${d === 1 ? 'dia' : 'dias'}`;
+}
+
+function AvisosProativos({ avisos }: { avisos: TenantInsight[] | null }) {
+  return (
+    <Panel className="px-6 py-5">
+      <div className="flex flex-wrap items-baseline justify-between gap-3">
+        <h2 className="font-display text-lg text-bos-text">O que a inteligência ALSHAM notou</h2>
+        {avisos === null ? <Badge tone="neutral">sem leitura</Badge> : null}
+      </div>
+
+      {avisos === null ? (
+        /* ⛔ Nunca "tudo em dia" por omissão: leitura que falha diz que falhou. */
+        <p className="mt-3 max-w-2xl text-sm text-bos-muted">
+          Não foi possível ler os avisos agora. Isso não quer dizer que está tudo em dia — quer
+          dizer que esta tela não conseguiu ler.
+        </p>
+      ) : avisos.length === 0 ? (
+        <p className="mt-3 max-w-2xl text-sm text-bos-muted">
+          Nada a sinalizar por enquanto. Quando a inteligência ALSHAM notar algo que peça sua
+          atenção, o aviso aparece aqui — sem você precisar perguntar.
+        </p>
+      ) : (
+        <ul className="mt-4 space-y-3">
+          {avisos.map((a, i) => (
+            <li
+              key={`${a.kind}-${i}`}
+              className="rounded-lg border border-bos-border bg-bos-surface px-4 py-3"
+            >
+              <p className="text-sm font-medium text-bos-text">{a.headline}</p>
+              <p className="mt-1 text-sm text-bos-muted">{a.detail}</p>
+              <p className="mt-2 text-xs text-bos-muted">notado {notadoHa(a.observedAt)}</p>
+            </li>
+          ))}
+        </ul>
+      )}
+    </Panel>
+  );
+}
 
 function SaudeDoCorreio({ saude }: { saude: CourierSummary | null }) {
   return (

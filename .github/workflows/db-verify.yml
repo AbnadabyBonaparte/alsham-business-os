@@ -589,6 +589,14 @@ jobs:
       - name: aplicar 0115_pack.sql
         run: $PSQL -f supabase/migrations/0115_pack.sql
 
+      # ⭐ O INSIGHT PROATIVO — Core, não módulo (como o Painel e a Forja): a
+      # superfície `core.tenant_insights` onde o observador agendado grava e o
+      # tenant lê. O 0117 é só o cron comentado (ato do dono).
+      - name: aplicar 0116_tenant_insights.sql
+        run: $PSQL -f supabase/migrations/0116_tenant_insights.sql
+      - name: aplicar 0117_insight_cron.sql
+        run: $PSQL -f supabase/migrations/0117_insight_cron.sql
+
       # ---------------------------------------------------------------------
       # 2. SEED — e a prova de que reaplicar não muda nada
       # ---------------------------------------------------------------------
@@ -2101,6 +2109,13 @@ jobs:
       - name: teste de pacotes (pack)
         run: $PSQL -f supabase/tests/105_pack_isolation.sql
 
+      # ⭐ O INSIGHT PROATIVO (Core, não módulo): a tabela core.tenant_insights se
+      # isola — só o service_role escreve, o tenant lê só o próprio (vínculo
+      # checado), a tabela nua é fechada, o escritor recusa vazio (Lei 7), o
+      # upsert reescreve no lugar e anon fica fora.
+      - name: teste do insight proativo (tenant_insights)
+        run: $PSQL -f supabase/tests/106_tenant_insights_isolation.sql
+
       # ⭐ Os quatro cartões da Onda Beleza são VERTICAL beauty, consumes vazio
       # (Lei 7). As outras 2 capacidades (Fidelidade→loyalty, Estoque de
       # produtos→inv/catalog) ficam DECLARADAS FORA.
@@ -3392,6 +3407,10 @@ jobs:
           $PSQL -q -f supabase/migrations/0045_bank.sql
           $PSQL -q -f supabase/migrations/0046_invest.sql
           $PSQL -q -f supabase/migrations/0047_dre.sql
+          # ⭐ O INSIGHT PROATIVO grava em core.tenant_insights e lê ar.receivables
+          # (0010, já acima) — o insight-service.test.ts precisa da tabela. Objeto
+          # do Core ⇒ entra NAS DUAS listas (a lição do 0019/forge escrita acima).
+          $PSQL -q -f supabase/migrations/0116_tenant_insights.sql
           $PSQL -q -f supabase/seed/0001_platform.sql
 
       # ⚠️ Sem `DATABASE_URL` os testes do store se PULAM — de propósito, para
@@ -3411,7 +3430,9 @@ jobs:
           # com o arquivo do triângulo inteiro fora da coleta.
           # A Etapa 14 acrescentou os 21 testes da forja; o piso sobe junto,
           # senão um arquivo inteiro pode sair da coleta sem o job notar.
-          [ "${PASSOU:-0}" -gt 45 ] || { echo "::error::só $PASSOU teste(s) rodaram; o arquivo não foi coletado"; exit 1; }
+          # O insight proativo acrescentou o insight-service.test.ts (4 testes);
+          # o piso sobe com ele, senão o arquivo pode sair da coleta sem o job notar.
+          [ "${PASSOU:-0}" -gt 49 ] || { echo "::error::só $PASSOU teste(s) rodaram; o arquivo não foi coletado"; exit 1; }
 
   contract:
     name: manifesto, tipos e domínio

@@ -1,0 +1,73 @@
+-- =============================================================================
+-- ALSHAM BUSINESS OS™ — 0117_insight_cron.sql
+-- LIGAR O OBSERVADOR PROATIVO: o agendamento da rodada de insight.
+-- =============================================================================
+--
+-- NÃO APLICADO, e ⚠️ ESTE ARQUIVO SOZINHO NÃO LIGA NADA. Ele deixa o
+-- agendamento COMENTADO — o mesmo motivo do 0005: agendar exige as extensões
+-- (`pg_cron`, `pg_net`) e a URL/segredo do endpoint, que só o dono tem. Um
+-- `cron.schedule` com URL falsa criaria um job que falha para sempre.
+--
+-- -----------------------------------------------------------------------------
+-- POR QUE O OBSERVADOR TEM CRON PRÓPRIO, E POR QUE ELE É MAIS LENTO QUE O CORREIO
+-- -----------------------------------------------------------------------------
+-- O correio roda 1×/min porque um FATO não pode esperar (0005). O observador
+-- proativo lê recebíveis VENCIDOS — uma condição que muda por DIA, não por
+-- minuto. Rodar de minuto em minuto só gastaria banco reescrevendo o mesmo
+-- aviso. A cadência sugerida é de algumas horas.
+--
+-- ⚠️ **NÃO VERIFICADO** contra operação real (Lei 7): a cadência é um ponto de
+-- partida; quem medir, troca — e é por isso que ela é um parâmetro do cron, não
+-- uma regra dentro do observador.
+--
+-- ⛔ E é o segredo do CORREIO que este cron usa (`x-correio-secret`), não o da
+-- forja: a rodada de insight NÃO chama motor pago — ela lê SQL e escreve SQL. O
+-- aviso do 0019 vale ao contrário aqui: a política de reentrega é segura porque
+-- não há chamada paga a repetir.
+-- =============================================================================
+
+-- =============================================================================
+-- O AGENDAMENTO — ⚠️ COMENTADO DE PROPÓSITO
+-- =============================================================================
+--
+-- Descomente **depois** de já ter ligado o correio (runbook §6) — as extensões
+-- e o `apps/api` no ar são os mesmos. Só falta a URL da rota nova no Vault.
+--
+-- ```sql
+-- create extension if not exists pg_cron;
+-- create extension if not exists pg_net;
+--
+-- -- De 6 em 6 horas. O recebível vencido muda por dia; minuto a minuto seria
+-- -- desperdício. A rodada é idempotente: ela recomputa-e-substitui, então uma
+-- -- rodada extra só reescreve o mesmo aviso com o mesmo número.
+-- select cron.schedule(
+--   'insight-do-core',
+--   '0 */6 * * *',
+--   $job$
+--     select net.http_post(
+--       url     := (select decrypted_secret from vault.decrypted_secrets where name = 'insight_url'),
+--       headers := jsonb_build_object(
+--                    'content-type',     'application/json',
+--                    'x-correio-secret', (select decrypted_secret from vault.decrypted_secrets where name = 'courier_secret')
+--                  ),
+--       body    := '{}'::jsonb,
+--       timeout_milliseconds := 25000
+--     );
+--   $job$
+-- );
+-- ```
+--
+-- ⚠️ `insight_url` aponta para `POST /insight/computar` do `apps/api` — a rota
+-- que roda `runInsightOnce`. O segredo é o MESMO do correio (`courier_secret`),
+-- porque é o mesmo chamador (o cron do banco) e o mesmo risco (nenhuma chamada
+-- paga). Guardar a URL/segredo é no Vault — **nunca** em texto numa migration.
+--
+-- Para desligar: `select cron.unschedule('insight-do-core');`
+--
+-- ⚠️ `net.http_post` é assíncrono: o cron dispara e não espera. A conferência de
+-- verdade é o próprio quadro — se os avisos não aparecem/atualizam no Painel do
+-- tenant, o observador não está rodando, não importa o que o log do cron diga.
+
+-- =============================================================================
+-- FIM. Nenhum job criado. Nenhum segredo. O agendamento é ato do dono.
+-- =============================================================================

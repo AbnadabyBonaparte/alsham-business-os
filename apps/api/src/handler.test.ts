@@ -67,6 +67,11 @@ describe('autorização', () => {
     const r = await handleRequest({ method: 'GET', path: '/correio/saude' }, deps);
     assert.equal(r.status, 401);
   });
+
+  test('⭐ o observador proativo exige o segredo — sem ele, 401, e o banco nem é tocado', async () => {
+    const r = await handleRequest({ method: 'POST', path: '/insight/computar' }, deps);
+    assert.equal(r.status, 401);
+  });
 });
 
 describe('roteamento', () => {
@@ -102,5 +107,14 @@ describe('roteamento', () => {
   test('barra no fim não muda a rota', async () => {
     const r = await handleRequest({ method: 'POST', path: '/correio/entregar/' }, deps);
     assert.equal(r.status, 401, 'a rota foi reconhecida — parou na autorização, não em 404');
+  });
+
+  test('⭐ observar por GET é 405 — gravar aviso muda estado, não pode ser reexecutado por prefetch', async () => {
+    // Com o segredo certo, chega ao método e para nele — antes de tocar o banco.
+    const r = await handleRequest(
+      { method: 'GET', path: '/insight/computar', secret: SEGREDO },
+      deps,
+    );
+    assert.equal(r.status, 405);
   });
 });

@@ -28,6 +28,12 @@ export type { PainelSnapshot, PainelLinha } from './local/painel.ts';
 export { agendaResumo } from './local/agenda.ts';
 export type { AgendaSnapshot, AgendaLinha } from './local/agenda.ts';
 
+// ⭐ O OBSERVADOR PROATIVO (a prova de cognição que age sem ser provocada) —
+// determinístico, sobre dado real, nunca inventa número. O apps/api o roda
+// agendado e grava o resultado em core.tenant_insights (0116).
+export { observarRecebiveisVencidos } from './local/recebiveis.ts';
+export type { RecebiveisVencidosSnapshot, InsightProativo } from './local/recebiveis.ts';
+
 // ⭐ A ponte para a FORJA — reaproveitamento de composePrompt/findViolations.
 export { composeGroundedPrompt, checkBrandSafety } from './grounded.ts';
 export type { BrandContext } from './grounded.ts';
