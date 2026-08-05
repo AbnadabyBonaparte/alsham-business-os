@@ -5,7 +5,9 @@ import {
   buildVerifierPrompt,
   parseVerdict,
   decideGate,
+  gatedReply,
   VERIFIER_RUBRIC,
+  VERIFY_BLOCKED_MESSAGE,
   type VerifierInput,
 } from './index.ts';
 
@@ -104,4 +106,28 @@ test('ponta a ponta: juiz ilegível → resposta NÃO publica', () => {
   // A prova da lei: um juiz que devolve lixo não pode liberar a resposta.
   const veredito = parseVerdict('o modelo caiu no meio da resposta {');
   assert.equal(decideGate(veredito).publish, false);
+});
+
+// ---------------------------------------------------------------------------
+// gatedReply — a decisão da rota viva: resposta liberada OU a frase honesta.
+// É o coração do fail-closed do lado da tela.
+// ---------------------------------------------------------------------------
+
+test('gatedReply: publish=true devolve a resposta original', () => {
+  assert.equal(gatedReply('3 títulos vencidos.', { publish: true }), '3 títulos vencidos.');
+});
+
+test('gatedReply: publish=false devolve a frase honesta, nunca a resposta', () => {
+  assert.equal(gatedReply('7 títulos / BRL 4200.', { publish: false }), VERIFY_BLOCKED_MESSAGE);
+});
+
+test('⛔ gatedReply FAIL-CLOSED: verificador ausente (null) NÃO publica', () => {
+  // O caso do bastão: o juiz caiu / rede fora / não configurado → não solta o
+  // não verificado, devolve a frase honesta.
+  assert.equal(gatedReply('qualquer resposta', null), VERIFY_BLOCKED_MESSAGE);
+});
+
+test('a frase honesta não é erro técnico cru nem a resposta', () => {
+  assert.ok(!/erro|error|500|502|exception/i.test(VERIFY_BLOCKED_MESSAGE));
+  assert.ok(/reformular/i.test(VERIFY_BLOCKED_MESSAGE));
 });

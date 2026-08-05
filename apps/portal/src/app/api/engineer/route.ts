@@ -4,6 +4,7 @@ import { accessibleModules } from '@alsham/permissions';
 import {
   buildSystemPrompt,
   buildTools,
+  gatedReply,
   pageOf,
   redactFields,
   type EngineerTurn,
@@ -14,6 +15,7 @@ import { resolveSession } from '@/lib/session';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { loadAllPermissions } from '@/lib/data';
 import { callForge, type ForgeContentBlock, type ForgeMessage } from '@/lib/engineer/forge';
+import { callVerify } from '@/lib/engineer/verify';
 import { executeTool, type ExecScope } from '@/lib/engineer/execute';
 
 /**
@@ -132,6 +134,10 @@ export async function POST(req: Request) {
     : null;
 
   const trace: string[] = [];
+  // ⭐ Os FATOS grounded — o texto das leituras das ferramentas, acumulado ao
+  // longo do laço. É o que o portão verificador confere contra a resposta: a
+  // mesma fonte que a IA teve para responder, e nada além dela.
+  const groundedParts: string[] = [];
 
   for (let step = 0; step < MAX_STEPS; step++) {
     const r = await callForge({ system, messages, tools });
@@ -153,7 +159,34 @@ export async function POST(req: Request) {
         .map((b) => b.text)
         .join('\n')
         .trim();
-      return NextResponse.json({ answer: answer || 'Sem resposta.', trace });
+      const bruto = answer || 'Sem resposta.';
+
+      // ⛔ Em demonstração o dado é FABRICADO e o system prompt já o declara: não
+      // há fato real a contradizer, e não se queima cota do tenant. Sem sessão
+      // (sem `scope`), a resposta sai como está.
+      if (!scope) {
+        return NextResponse.json({ answer: bruto, trace });
+      }
+
+      // ⭐ O PORTÃO VERIFICADOR — a segunda geração, medida. O juiz confere a
+      // resposta contra os FATOS grounded (as leituras que a IA teve). `verify`
+      // é `null` quando não deu pra verificar (juiz fora do ar, rede, cota) —
+      // e `gatedReply(_, null)` NÃO publica: devolve a frase honesta (fail-closed).
+      const verify = await callVerify({
+        question: ultima.text,
+        answer: bruto,
+        groundedFacts: groundedParts.join('\n\n'),
+        tenantId: scope.tenantId,
+        tenantName,
+        userId: null,
+      });
+      const finalAnswer = gatedReply(bruto, verify);
+      return NextResponse.json({
+        answer: finalAnswer,
+        trace,
+        // Sinaliza à tela quando a resposta NÃO foi confirmada — sem vazar o porquê.
+        ...(finalAnswer === bruto ? {} : { unverified: true }),
+      });
     }
 
     // O motor pediu ferramentas. Executa cada uma sob a sessão do usuário.
@@ -183,6 +216,7 @@ export async function POST(req: Request) {
 
       const out = await executeTool(scope, p.name, p.input);
       trace.push(out.label);
+      groundedParts.push(out.text);
       resultados.push({
         type: 'tool_result',
         tool_use_id: p.id,

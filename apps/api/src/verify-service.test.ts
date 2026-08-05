@@ -117,3 +117,41 @@ describe('o portão verificador na composição do apps/api', { skip: SEM_BANCO 
     assert.equal(r.verdict.verdict, 'fail');
   });
 });
+
+// ---------------------------------------------------------------------------
+// ⭐ A PROVA CONTRA O MOTOR REAL — o juiz de verdade pega a alucinação de verdade.
+// -----------------------------------------------------------------------------
+// Roda SÓ quando há chave real (ALSHAM_TEXT_API_KEY) E banco (DATABASE_URL) —
+// mesmo padrão do DATABASE_URL opcional. Em CI (sem chave) é PULADO, não fingido.
+// Localmente ou em produção, prova o que o juiz de mentira não pode: que o motor
+// real, dado uma resposta com números que os fatos não sustentam, REPROVA.
+// ⚠️ Não injeta judge → usa o adaptador de texto real (a mesma chave da Forja),
+// em modo NÃO-demo (a geração é medida no usage_ledger, custo real do dono).
+// ---------------------------------------------------------------------------
+const TEM_CHAVE = Boolean(process.env.ALSHAM_TEXT_API_KEY);
+
+// ⚠️ REGISTRO CONDICIONAL, não `skip`: sem chave/banco o teste nem é criado —
+// some da coleta em vez de aparecer como "pulado". A guarda de CI do correio
+// reprova QUALQUER teste pulado; um `skip` aqui (CI não tem chave) quebraria o
+// job. Assim, em CI ele simplesmente não existe; localmente/em produção, roda.
+if (!SEM_BANCO && TEM_CHAVE) {
+  describe('o juiz REAL contra uma alucinação real', () => {
+    test('resposta inventa 7 títulos / BRL 4200 sobre fatos de 3 / BRL 1500 → NÃO publica', async () => {
+    const r = await verifyAnswer(
+      { pool, env: process.env }, // motor real, não-demo, sem judge injetado
+      {
+        tenantId: TENANT,
+        userId: null,
+        tenantName: 'Tenant da Banca',
+        question: 'Quantos títulos estão vencidos e qual o total?',
+        answer: 'Você tem 7 títulos vencidos somando BRL 4200.00.',
+        groundedFacts: '3 títulos vencidos; total em aberto BRL 1500.00; o mais antigo há 12 dias.',
+      },
+    );
+    assert.equal(r.ok, true, 'o motor real respondeu');
+    if (!r.ok) return;
+    assert.equal(r.publish, false, 'o juiz real pegou os números inventados');
+    assert.equal(r.verdict.verdict, 'fail');
+  });
+});
+}

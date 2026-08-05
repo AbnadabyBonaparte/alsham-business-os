@@ -143,6 +143,29 @@ export function decideGate(verdict: VerifierVerdict): { readonly publish: boolea
 }
 
 /**
+ * A frase honesta que substitui a resposta quando o portão não a libera.
+ * NUNCA um erro técnico cru, NUNCA a resposta não verificada — um convite a
+ * reformular. É a mesma doutrina do insight: "nunca inventa OK".
+ */
+export const VERIFY_BLOCKED_MESSAGE =
+  'Não consegui confirmar essa resposta com segurança — pode reformular a pergunta?';
+
+/**
+ * A DECISÃO DA ROTA — PURA, e o coração do fail-closed do lado da tela.
+ *
+ * Recebe a resposta gerada e o veredito do verificador (`{ publish }`), OU
+ * `null` quando o verificador **não pôde rodar** (fora do ar, rede caída, não
+ * configurado). Devolve a resposta só quando o veredito diz `publish: true`;
+ * em TODO o resto — reprovado OU veredito ausente — devolve a frase honesta.
+ *
+ * ⛔ `null` NÃO publica. Essa é a regra que o bastão pediu explícita: se não
+ * deu pra verificar, o Engenheiro fica cauteloso, nunca solta o não verificado.
+ */
+export function gatedReply(answer: string, verify: { readonly publish: boolean } | null): string {
+  return verify?.publish ? answer : VERIFY_BLOCKED_MESSAGE;
+}
+
+/**
  * Extrai o primeiro objeto JSON balanceado de um texto — tolerante a prosa e a
  * cercas ```json ao redor. Devolve `null` se não houver um objeto fechado.
  * Puro; não avalia nada, só recorta a substring `{...}`.

@@ -45,7 +45,14 @@ export type { BrandContext } from './grounded.ts';
 // ⭐ O PORTÃO VERIFICADOR — a rede de FIDELIDADE (irmã da de marca), fail-closed.
 // Lógica pura: monta o prompt do juiz, lê o veredito, decide o portão. A chamada
 // ao motor vive no apps/api (como a Forja) — este pacote não faz rede.
-export { buildVerifierPrompt, parseVerdict, decideGate, VERIFIER_RUBRIC } from './verify.ts';
+export {
+  buildVerifierPrompt,
+  parseVerdict,
+  decideGate,
+  gatedReply,
+  VERIFIER_RUBRIC,
+  VERIFY_BLOCKED_MESSAGE,
+} from './verify.ts';
 export type { VerifierVerdict, VerifierInput } from './verify.ts';
 
 export type {
