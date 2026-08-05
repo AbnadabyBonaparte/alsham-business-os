@@ -596,6 +596,10 @@ jobs:
         run: $PSQL -f supabase/migrations/0116_tenant_insights.sql
       - name: aplicar 0117_insight_cron.sql
         run: $PSQL -f supabase/migrations/0117_insight_cron.sql
+      # ⭐ O LIVRO append-only que faz o observador ANALISAR (comparar hoje com a
+      # média recente) — o "arreio" da memória-além-da-janela. Core, imutável.
+      - name: aplicar 0118_tenant_insight_history.sql
+        run: $PSQL -f supabase/migrations/0118_tenant_insight_history.sql
 
       # ---------------------------------------------------------------------
       # 2. SEED — e a prova de que reaplicar não muda nada
@@ -2116,6 +2120,11 @@ jobs:
       - name: teste do insight proativo (tenant_insights)
         run: $PSQL -f supabase/tests/106_tenant_insights_isolation.sql
 
+      # ⭐ O livro de histórico (tenant_insight_history): append-only, imutável em
+      # 2 camadas, média contada, fechado ao tenant — o arreio da análise.
+      - name: teste do histórico de insight (tenant_insight_history)
+        run: $PSQL -f supabase/tests/107_tenant_insight_history_isolation.sql
+
       # ⭐ Os quatro cartões da Onda Beleza são VERTICAL beauty, consumes vazio
       # (Lei 7). As outras 2 capacidades (Fidelidade→loyalty, Estoque de
       # produtos→inv/catalog) ficam DECLARADAS FORA.
@@ -3411,6 +3420,10 @@ jobs:
           # (0010, já acima) — o insight-service.test.ts precisa da tabela. Objeto
           # do Core ⇒ entra NAS DUAS listas (a lição do 0019/forge escrita acima).
           $PSQL -q -f supabase/migrations/0116_tenant_insights.sql
+          # ⭐ O livro de histórico — o runInsightOnce lê a média daqui e acrescenta
+          # a leitura de hoje; o insight-service.test.ts precisa da tabela. Core ⇒
+          # entra NAS DUAS listas (a lição do 0019/0116).
+          $PSQL -q -f supabase/migrations/0118_tenant_insight_history.sql
           $PSQL -q -f supabase/seed/0001_platform.sql
 
       # ⚠️ Sem `DATABASE_URL` os testes do store se PULAM — de propósito, para

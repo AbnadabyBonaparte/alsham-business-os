@@ -65,6 +65,9 @@ beforeEach(async () => {
   await pool.query('delete from core.tenant_insights where tenant_id = any($1)', [
     [TENANT_AR, TENANT_SEM_AR],
   ]);
+  // ⚠️ O livro de histórico é IMUTÁVEL (o trigger recusa DELETE até para o dono);
+  // TRUNCATE não dispara trigger de linha, então é como se reseta entre testes.
+  await pool.query('truncate core.tenant_insight_history');
 });
 
 /** Insere um recebível cru (como dono do banco, contornando RLS — é montagem). */
@@ -170,5 +173,49 @@ describe('⭐ o observador proativo', { skip: SEM_BANCO }, () => {
       0,
       'sem o Módulo 5 instalado, o observador não avalia — e não inventa aviso',
     );
+  });
+
+  // ───────────────────────────────────────────────────────────────────────
+  // ⭐ O PASSO DO ANALISTA — cada rodada grava no livro; a tendência nasce dele
+  // ───────────────────────────────────────────────────────────────────────
+
+  async function historico(tenant: string): Promise<{ metric_value: string }[]> {
+    const { rows } = await pool.query(
+      `select metric_value from core.tenant_insight_history
+        where tenant_id = $1 and kind = 'ar-overdue' and subject_key = 'BRL'
+        order by observed_at`,
+      [tenant],
+    );
+    return rows as never;
+  }
+
+  test('⭐⭐ cada rodada acrescenta ao livro; com histórico, a frase COMPARA (memória → análise)', async () => {
+    // Rodada 1: 2 vencidos. Sem histórico ainda → é o avisador (sem tendência).
+    await semear(TENANT_AR, 'r-a', -10, 40_000, 'BRL');
+    await semear(TENANT_AR, 'r-b', -20, 60_000, 'BRL');
+    await runInsightOnce(pool);
+    assert.equal((await historico(TENANT_AR)).length, 1, 'a rodada 1 gravou 1 leitura no livro');
+    assert.doesNotMatch((await avisos(TENANT_AR))[0]!.headline, /média recente/);
+
+    // Rodada 2: os MESMOS 2 vencidos. Só 1 leitura anterior (< 2) → ainda sem tendência.
+    await runInsightOnce(pool);
+    assert.equal((await historico(TENANT_AR)).length, 2, 'a rodada 2 acrescentou (append-only): 2 leituras');
+
+    // Rodada 3: sobe para 3 vencidos, com 2 leituras anteriores (média 2) no livro.
+    await semear(TENANT_AR, 'r-c', -5, 20_000, 'BRL');
+    await runInsightOnce(pool);
+
+    const hist = await historico(TENANT_AR);
+    assert.deepEqual(hist.map((r) => Number(r.metric_value)), [2, 2, 3], 'o livro guarda as três leituras, na ordem');
+
+    // ⭐ E a frase agora COMPARA: 3 hoje × média 2 (2 leituras) = +50%, tendência de piora.
+    const linha = (await avisos(TENANT_AR)).find((a) => a.subject_key === 'BRL')!;
+    const { rows: det } = await pool.query(
+      `select detail from core.tenant_insights where tenant_id = $1 and kind = 'ar-overdue' and subject_key = 'BRL'`,
+      [TENANT_AR],
+    );
+    assert.match((det[0] as { detail: string }).detail, /50% acima da média recente \(2 nas últimas 2 leituras\)/);
+    assert.match((det[0] as { detail: string }).detail, /piora/);
+    assert.equal(Number(linha.metric_value), 3, 'o número de hoje continua real no quadro');
   });
 });

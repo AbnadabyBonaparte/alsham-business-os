@@ -41,9 +41,60 @@ export interface InsightProativo {
   readonly currency: string;
 }
 
+/**
+ * ⭐ **A MEMÓRIA ALÉM DA JANELA** — a média das leituras recentes deste mesmo
+ * (tenant, tipo, recorte), lida do livro `core.tenant_insight_history` (0118).
+ *
+ * É o que separa o AVISADOR do ANALISTA: sem isto, o motor só diz "3 vencidos";
+ * com isto, diz "3 vencidos — 40% acima da média recente". Os dois números
+ * (a contagem de hoje e esta média) são REAIS — a comparação nunca é escondida.
+ */
+export interface TendenciaBaseline {
+  /** Quantas leituras ANTERIORES entraram na média (0 = ainda sem histórico). */
+  readonly sampleCount: number;
+  /** A média da contagem de vencidos nessas leituras anteriores. */
+  readonly avgMetric: number;
+}
+
+/**
+ * ⚠️ Só se afirma tendência com pelo menos DUAS leituras anteriores — uma "média
+ * recente" de uma amostra só seria a leitura anterior disfarçada de média.
+ */
+const MIN_AMOSTRAS_TENDENCIA = 2;
+
+/** Abaixo deste %, hoje está "em linha" com a média — nem piora, nem melhora. */
+const LIMIAR_ESTAVEL_PCT = 10;
+
 /** Dinheiro em prosa, determinístico e independente de locale: `BRL 1234.56`. */
 function dinheiro(cents: number, currency: string): string {
   return `${currency} ${(cents / 100).toFixed(2)}`;
+}
+
+/** A média em prosa: `2` para 2.0, `2.3` para 2.33 — honesta, sem casa à toa. */
+function media(avg: number): string {
+  return Number.isInteger(avg) ? String(avg) : avg.toFixed(1);
+}
+
+/**
+ * A frase da TENDÊNCIA — ou `null` quando não há base honesta para afirmá-la
+ * (sem baseline, poucas leituras, ou média não-positiva). Nunca inventa: expõe
+ * a contagem de hoje E a média recente (com quantas leituras), lado a lado.
+ */
+function tendencia(overdueCount: number, baseline: TendenciaBaseline | null | undefined): string | null {
+  if (!baseline) return null;
+  if (!Number.isFinite(baseline.sampleCount) || baseline.sampleCount < MIN_AMOSTRAS_TENDENCIA) return null;
+  if (!Number.isFinite(baseline.avgMetric) || baseline.avgMetric <= 0) return null;
+
+  const pct = Math.round(((overdueCount - baseline.avgMetric) / baseline.avgMetric) * 100);
+  const janela = `${media(baseline.avgMetric)} nas últimas ${baseline.sampleCount} leituras`;
+
+  if (Math.abs(pct) < LIMIAR_ESTAVEL_PCT) {
+    return `Em linha com a média recente (${janela}).`;
+  }
+  if (pct > 0) {
+    return `${pct}% acima da média recente (${janela}) — a tendência é de piora.`;
+  }
+  return `${Math.abs(pct)}% abaixo da média recente (${janela}) — a tendência é de melhora.`;
 }
 
 /**
@@ -61,6 +112,7 @@ function dinheiro(cents: number, currency: string): string {
  */
 export function observarRecebiveisVencidos(
   s: RecebiveisVencidosSnapshot | null,
+  baseline?: TendenciaBaseline | null,
 ): InsightProativo | null {
   if (s === null) return null;
   if (!Number.isFinite(s.overdueCount) || s.overdueCount <= 0) return null;
@@ -70,7 +122,14 @@ export function observarRecebiveisVencidos(
   const dias = s.oldestDays === 1 ? 'dia' : 'dias';
 
   const headline = `${s.overdueCount} ${plural} — ${dinheiro(s.outstandingCents, s.currency)} a receber.`;
-  const detail = `O mais antigo venceu há ${s.oldestDays} ${dias}. Vale priorizar a cobrança.`;
+
+  // ⭐ O passo do ANALISTA: se há histórico honesto, a frase compara hoje com a
+  // média recente. Sem histórico, é o AVISADOR de sempre — e isso é honesto.
+  const frase = tendencia(s.overdueCount, baseline);
+  const detail =
+    `O mais antigo venceu há ${s.oldestDays} ${dias}.` +
+    (frase ? ` ${frase}` : '') +
+    ` Vale priorizar a cobrança.`;
 
   return {
     kind: 'ar-overdue',
