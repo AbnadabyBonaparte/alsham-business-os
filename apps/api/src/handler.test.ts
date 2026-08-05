@@ -118,3 +118,49 @@ describe('roteamento', () => {
     assert.equal(r.status, 405);
   });
 });
+
+// ---------------------------------------------------------------------------
+// O PORTÃO VERIFICADOR — /engenheiro/verificar (guardas; o banco não é tocado).
+// A lógica de publish/fail-closed é provada em verify-service.test.ts (contra
+// Postgres). Aqui provamos só que nenhuma requisição sem segredo, com método
+// errado ou sem tenantId chega perto do Pool.
+// ---------------------------------------------------------------------------
+const SEGREDO_FORJA = 'segredo-forja-de-teste-tamanho-ok';
+const depsForja = { pool: POOL_PROIBIDO, secret: SEGREDO, forgeSecret: SEGREDO_FORJA };
+
+describe('portão verificador — guardas', () => {
+  test('sem forgeSecret configurado, a rota é 503 (desligada, não aberta)', async () => {
+    const r = await handleRequest(
+      { method: 'POST', path: '/engenheiro/verificar', secret: SEGREDO },
+      deps, // sem forgeSecret
+    );
+    assert.equal(r.status, 503);
+  });
+
+  test('exige o segredo da FORJA — não o do correio', async () => {
+    // O segredo do correio não abre a rota do Engenheiro.
+    const r = await handleRequest(
+      { method: 'POST', path: '/engenheiro/verificar', secret: SEGREDO },
+      depsForja,
+    );
+    assert.equal(r.status, 401);
+  });
+
+  test('GET é 405 — verificar QUEIMA COTA, não pode ser reexecutado por prefetch', async () => {
+    const r = await handleRequest(
+      { method: 'GET', path: '/engenheiro/verificar', secret: SEGREDO_FORJA },
+      depsForja,
+    );
+    assert.equal(r.status, 405);
+  });
+
+  test('POST sem tenantId é 400 — e o banco NÃO é tocado', async () => {
+    // Chega ao handler com o segredo certo, para na validação do tenant, antes
+    // de qualquer consulta. Se tocasse o Pool, o POOL_PROIBIDO explodiria.
+    const r = await handleRequest(
+      { method: 'POST', path: '/engenheiro/verificar', secret: SEGREDO_FORJA, body: {} },
+      depsForja,
+    );
+    assert.equal(r.status, 400);
+  });
+});

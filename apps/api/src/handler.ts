@@ -9,6 +9,7 @@ import { runInsightOnce } from './insight-service.ts';
 import { judgeHealth, readQueueHealth } from './health.ts';
 import { generate, isDemoMode, readEngineState } from './forge-service.ts';
 import { converseText } from './forge-adapters.ts';
+import { verifyAnswer } from './verify-service.ts';
 
 /**
  * O endpoint protegido que aciona uma rodada do correio.
@@ -86,6 +87,9 @@ const ROTAS = [
   // ⭐ O relay do Engenheiro: uma rodada de conversa com o motor (com tools).
   // Usa o segredo da FORJA — é o mesmo chamador (o portal, com FORGE_SECRET).
   '/engenheiro/conversar',
+  // ⭐ O PORTÃO VERIFICADOR: confere a resposta gerada contra os fatos grounded
+  // antes de o portal a publicar. Segunda geração medida → família da FORJA.
+  '/engenheiro/verificar',
 ] as const;
 
 interface ForgeBody {
@@ -122,7 +126,7 @@ export async function handleRequest(
   }
 
   const daForja = rota.startsWith('/forja/');
-  const doEngenheiro = rota === '/engenheiro/conversar';
+  const doEngenheiro = rota.startsWith('/engenheiro/');
 
   // ⭐ Cada família de rota confere o SEU segredo. Quem tem o do correio não
   // gera, e quem tem o da forja não dispara entrega. O Engenheiro é o mesmo
@@ -143,7 +147,8 @@ export async function handleRequest(
   }
 
   if (daForja) return atenderForja(rota, req, deps);
-  if (doEngenheiro) return atenderEngenheiro(req, deps);
+  if (rota === '/engenheiro/conversar') return atenderEngenheiro(req, deps);
+  if (rota === '/engenheiro/verificar') return atenderVerificar(req, deps);
 
   if (rota === '/correio/saude') {
     if (req.method !== 'GET') return { status: 405, body: { error: 'use GET' } };
@@ -298,4 +303,67 @@ async function atenderEngenheiro(
     console.error('[engenheiro] falha no motor:', err);
     return { status: 502, body: { error: 'o motor ALSHAM não respondeu' } };
   }
+}
+
+interface VerificarBody {
+  tenantId?: unknown;
+  tenantName?: unknown;
+  userId?: unknown;
+  question?: unknown;
+  answer?: unknown;
+  groundedFacts?: unknown;
+}
+
+/**
+ * ⭐ **O PORTÃO VERIFICADOR.**
+ *
+ * O portal já tem a resposta gerada e os fatos grounded que a alimentaram.
+ * Aqui a segunda geração — o juiz — confere a fidelidade, MEDIDA como qualquer
+ * geração da Forja (`verifyAnswer` grava `ai_generations` + `usage_ledger`). O
+ * portal recebe só `{ publish }` e decide o que mostrar (`gatedReply`).
+ *
+ * ⛔ **FAIL-CLOSED, a lei que o bastão cravou:** se o verificador não pôde
+ * rodar — juiz fora do ar, cota estourada, erro — a resposta é `publish:false`,
+ * nunca um erro cru e nunca um "OK" por omissão. O portal, recebendo `false`,
+ * troca a resposta pela frase honesta.
+ *
+ * ⚠️ **O `tenantId` vem no corpo, e é seguro pela mesma razão da Forja:** quem
+ * chama é o portal, do servidor, com o tenant já resolvido da sessão × memberships;
+ * o segredo garante que só o portal chama. Ver `atenderForja`.
+ */
+async function atenderVerificar(
+  req: { method: string; path: string; secret?: string; body?: unknown },
+  deps: HandlerDeps,
+): Promise<HandlerResult> {
+  // Verificar QUEIMA COTA (segunda geração) — POST, sempre.
+  if (req.method !== 'POST') return { status: 405, body: { error: 'use POST' } };
+
+  const env = deps.env ?? process.env;
+  const corpo = (req.body ?? {}) as VerificarBody;
+  const tenantId = typeof corpo.tenantId === 'string' ? corpo.tenantId : null;
+  if (tenantId === null) return { status: 400, body: { error: 'tenantId ausente' } };
+
+  const resultado = await verifyAnswer(
+    { pool: deps.pool, env },
+    {
+      tenantId,
+      userId: typeof corpo.userId === 'string' ? corpo.userId : null,
+      tenantName: typeof corpo.tenantName === 'string' ? corpo.tenantName : '',
+      question: typeof corpo.question === 'string' ? corpo.question : '',
+      answer: typeof corpo.answer === 'string' ? corpo.answer : '',
+      groundedFacts: typeof corpo.groundedFacts === 'string' ? corpo.groundedFacts : '',
+    },
+  );
+
+  // ⛔ Não pôde verificar ⇒ não publica. 200 (o pedido foi atendido; o veredito
+  // é "não confirmado"), nunca 500 — 500 mandaria o portal tentar de novo e
+  // dobrar o custo. O portal lê `publish:false` e mostra a frase honesta.
+  if (!resultado.ok) {
+    return { status: 200, body: { publish: false, reason: resultado.reason } };
+  }
+
+  return {
+    status: 200,
+    body: { publish: resultado.publish, verdict: resultado.verdict, generationId: resultado.generationId },
+  };
 }
