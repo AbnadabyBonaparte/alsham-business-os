@@ -177,6 +177,13 @@ comment on function core.insight_history_baseline(uuid, text, text, int) is
 -- O revoke abaixo é o que faz o grant seguinte significar alguma coisa.
 -- =============================================================================
 
+-- ⛔ A FUNÇÃO DO TRIGGER também nasceu aberta a PUBLIC — e uma função de trigger
+-- não precisa de EXECUTE concedido a ninguém (o gatilho a roda no contexto do
+-- dono da tabela, sem checar privilégio do chamador). Deixá-la aberta faria a
+-- guarda de CI "função executável por anon" reprovar (a lição do 0022, de novo).
+revoke all on function core.tenant_insight_history_frozen()
+  from public, anon, authenticated;
+
 revoke all on function core.record_insight_history(uuid, text, text, bigint, bigint, text)
   from public, anon, authenticated;
 revoke all on function core.insight_history_baseline(uuid, text, text, int)
