@@ -17,6 +17,7 @@ import type {
 } from '@/lib/data/panel-port';
 import { resolveSession } from '@/lib/session';
 import { Badge, DemoNotice, EmptyState, Panel, SectionHeader } from '@/components/states';
+import { ContextBanner } from '@/components/context-banner';
 import { EventTimeline } from '@/components/event-timeline';
 import { DomainSectionHeader } from '@/components/domain-section';
 import { Table, TBody, TR, TD } from '@/components/table';
@@ -113,6 +114,11 @@ export default async function Painel() {
       <PainelHero
         titulo={session.mode === 'authenticated' ? `${session.activeTenant.name}.` : 'Painel.'}
       />
+
+      {/* ⭐ A faixa de confiança — frases VERDADEIRAS sobre isolamento, trilha
+          imutável e a chave que nunca vai ao navegador. Rotação silenciosa,
+          sem popup; cada linha ancorada num fato real (ver banners.ts). */}
+      <ContextBanner banner="confianca" />
 
       <VisaoGeral cartoes={cartoes} />
 
