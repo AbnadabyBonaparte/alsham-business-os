@@ -75,6 +75,22 @@ export interface ModuleHealth {
   readonly verdict: 'active' | 'idle';
 }
 
+/**
+ * ⭐ **Um AVISO PROATIVO** — o que a inteligência ALSHAM NOTOU sozinha, sem ser
+ * perguntada (a prova de cognição proativa do Memorando da Divisão de Águas).
+ *
+ * A frase é DETERMINÍSTICA, montada sobre um número real (`core.tenant_insights`,
+ * escrito pelo observador agendado). `observedAt` é o carimbo que impede o aviso
+ * de mentir sobre o presente: a tela mostra "notado há X".
+ */
+export interface TenantInsight {
+  readonly kind: string;
+  readonly headline: string;
+  readonly detail: string;
+  /** ISO do momento em que o observador leu o dado. */
+  readonly observedAt: string;
+}
+
 /** Uma linha da trilha DO TENANT. */
 export interface AuditRow {
   readonly id: string;
@@ -96,6 +112,12 @@ export interface AuditRow {
 export interface PanelPort {
   readonly kind: 'mock' | 'supabase';
   loadCourier(): Promise<CourierSummary | null>;
+  /**
+   * ⭐ Os avisos proativos DESTE tenant — o que o observador agendado notou
+   * sozinho. `null` = a leitura falhou (a tela diz "sem leitura", nunca inventa
+   * um "tudo em dia"); `[]` = leu, e não há nada a avisar agora.
+   */
+  loadInsights(): Promise<TenantInsight[] | null>;
   loadPlanUsage(): Promise<PlanUsageRow[]>;
   loadRecentAudit(): Promise<AuditRow[]>;
   /** Os módulos do catálogo cruzados com o que este tenant instalou. */

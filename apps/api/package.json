@@ -18,6 +18,7 @@
     "@alsham/core": "workspace:*",
     "@alsham/dre": "workspace:*",
     "@alsham/dunning": "workspace:*",
+    "@alsham/engineer": "workspace:*",
     "@alsham/finance-reconciliation": "workspace:*",
     "@alsham/marketing": "workspace:*",
     "@alsham/workflow": "workspace:*",

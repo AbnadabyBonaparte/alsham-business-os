@@ -11,6 +11,7 @@ import type {
   OverviewCard,
   PanelPort,
   PlanUsageRow,
+  TenantInsight,
 } from './panel-port';
 
 /** ⭐ Janela do veredito de saúde: atividade nos últimos 7 dias ⇒ ativo. */
@@ -60,6 +61,26 @@ export function createPanelSupabasePort(
         meusMortos: Number(linha.meus_mortos),
         meuAtrasoMin: Number(linha.meu_atraso_min),
       };
+    },
+
+    async loadInsights(): Promise<TenantInsight[] | null> {
+      const { data, error } = await db
+        .schema('core')
+        .rpc('tenant_insights_recent', { p_tenant_id: tenantId });
+      // ⚠️ Painel não derrama erro: sem resposta, a seção diz "sem leitura" —
+      // nunca inventa um "tudo em dia" que seria uma boa notícia falsa.
+      if (error) return null;
+      return ((data ?? []) as {
+        kind: string;
+        headline: string;
+        detail: string;
+        observed_at: string;
+      }[]).map((r) => ({
+        kind: r.kind,
+        headline: r.headline,
+        detail: r.detail,
+        observedAt: r.observed_at,
+      }));
     },
 
     async loadPlanUsage(): Promise<PlanUsageRow[]> {

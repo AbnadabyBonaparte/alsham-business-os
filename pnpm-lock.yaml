@@ -41,6 +41,9 @@ importers:
       '@alsham/dunning':
         specifier: workspace:*
         version: link:../../packages/dunning
+      '@alsham/engineer':
+        specifier: workspace:*
+        version: link:../../packages/engineer
       '@alsham/finance-reconciliation':
         specifier: workspace:*
         version: link:../../packages/finance-reconciliation

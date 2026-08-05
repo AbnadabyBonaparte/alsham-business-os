@@ -8,6 +8,7 @@ import type {
   OverviewCard,
   PanelPort,
   PlanUsageRow,
+  TenantInsight,
 } from './panel-port';
 
 /**
@@ -115,6 +116,19 @@ export function createPanelMockPort(): PanelPort {
         meusMortos: 0,
         meuAtrasoMin: 0,
       };
+    },
+
+    // ⭐ O aviso proativo do demo — um insight modesto e verdadeiro no molde do
+    // observador (contas a receber vencidas). Números modestos (Lei 7 na vitrine).
+    async loadInsights(): Promise<TenantInsight[]> {
+      return [
+        {
+          kind: 'ar-overdue',
+          headline: '2 títulos vencidos — BRL 1500.00 a receber.',
+          detail: 'O mais antigo venceu há 12 dias. Vale priorizar a cobrança.',
+          observedAt: `${HOJE}T06:00:00.000Z`,
+        },
+      ];
     },
 
     async loadPlanUsage(): Promise<PlanUsageRow[]> {

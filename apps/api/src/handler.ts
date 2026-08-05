@@ -5,6 +5,7 @@ import { engineLabel } from '@alsham/ai';
 import type { GenerationKind } from '@alsham/ai';
 
 import { runCourierOnce } from './composition.ts';
+import { runInsightOnce } from './insight-service.ts';
 import { judgeHealth, readQueueHealth } from './health.ts';
 import { generate, isDemoMode, readEngineState } from './forge-service.ts';
 import { converseText } from './forge-adapters.ts';
@@ -75,6 +76,11 @@ export interface HandlerDeps {
 const ROTAS = [
   '/correio/entregar',
   '/correio/saude',
+  // ⭐ O observador proativo: uma rodada que lê os recebíveis vencidos e grava
+  // os avisos em core.tenant_insights. Chamador é o CRON do banco (como o
+  // correio), então usa o segredo do CORREIO — não custa dinheiro por chamada,
+  // ao contrário da forja.
+  '/insight/computar',
   '/forja/gerar',
   '/forja/estado',
   // ⭐ O relay do Engenheiro: uma rodada de conversa com o motor (com tools).
@@ -143,6 +149,14 @@ export async function handleRequest(
     if (req.method !== 'GET') return { status: 405, body: { error: 'use GET' } };
     const saude = await readQueueHealth(deps.pool);
     return { status: 200, body: { ...saude, veredito: judgeHealth(saude) } };
+  }
+
+  // ⭐ O observador proativo — MUDA o estado (grava avisos), então é POST. Um GET
+  // que grava seria reexecutado por qualquer prefetch/crawler/retry de proxy.
+  if (rota === '/insight/computar') {
+    if (req.method !== 'POST') return { status: 405, body: { error: 'use POST' } };
+    const relatorio = await runInsightOnce(deps.pool);
+    return { status: 200, body: relatorio };
   }
 
   // Entregar MUDA o estado — então é POST. Um GET que entrega seria reexecutado
