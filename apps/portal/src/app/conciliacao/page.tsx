@@ -12,6 +12,7 @@ import {
   SectionHeader,
   TableSkeleton,
 } from '@/components/states';
+import { ContextBanner } from '@/components/context-banner';
 import { DivergenceList, ReconciliationTable } from '@/components/reconciliation-table';
 
 export const dynamic = 'force-dynamic';
@@ -99,6 +100,8 @@ async function Conteudo() {
             </div>
           }
         />
+
+        <ContextBanner banner="conciliacao" />
 
         <div className="mb-8 grid gap-4 sm:grid-cols-3">
           <Stat label="Sugestões de baixa" value={String(suggestions.length)} />

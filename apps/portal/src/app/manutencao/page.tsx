@@ -4,6 +4,7 @@ import { PERMISSIONS, summarizeOrders } from '@alsham/maintenance';
 
 import { getMntPort, DataPortError } from '@/lib/data';
 import { Badge, DemoNotice, ErrorState, SectionHeader, TableSkeleton } from '@/components/states';
+import { ContextBanner } from '@/components/context-banner';
 import { MntOrderForm, MntSetup } from '@/components/mnt-forms';
 import { MntBoard, PreventiveQueue } from '@/components/mnt-board';
 
@@ -59,6 +60,7 @@ async function Conteudo() {
             </div>
           }
         />
+        <ContextBanner banner="manutencao" />
         <div className="mb-6 flex flex-col gap-4">
           {canManage ? <MntOrderForm priorities={priorities} /> : null}
           <PreventiveQueue orders={orders} today={today} />

@@ -4,6 +4,7 @@ import { PERMISSIONS, summarizeRuns } from '@alsham/checklists';
 
 import { getChkPort, DataPortError } from '@/lib/data';
 import { Badge, DemoNotice, ErrorState, PageHero, SectionHeader, TableSkeleton } from '@/components/states';
+import { ContextBanner } from '@/components/context-banner';
 import { ChkSetup, ChkStartForm } from '@/components/chk-forms';
 import { ChkBoard } from '@/components/chk-board';
 
@@ -59,6 +60,7 @@ async function Conteudo() {
             </div>
           }
         />
+        <ContextBanner banner="checklists" />
         <div className="mb-6 flex flex-col gap-4">
           {canExecute ? <ChkStartForm templates={templates} items={templateItems} /> : null}
           <ChkSetup templates={templates} items={templateItems} canSetup={canSetup} />

@@ -4,6 +4,7 @@ import { PERMISSIONS, summarizeQueue } from '@alsham/dunning';
 
 import { getDunPort, DataPortError } from '@/lib/data';
 import { Badge, DemoNotice, ErrorState, SectionHeader, TableSkeleton } from '@/components/states';
+import { ContextBanner } from '@/components/context-banner';
 import { DunQueue } from '@/components/dun-queue';
 import { RulerDesigner } from '@/components/ruler-designer';
 
@@ -66,6 +67,7 @@ async function Conteudo() {
             </div>
           }
         />
+        <ContextBanner banner="cobranca" />
         <div className="mb-6">
           <RulerDesigner rulers={rulers} canDesign={canDesign} />
         </div>

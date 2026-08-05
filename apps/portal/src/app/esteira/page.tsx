@@ -12,6 +12,7 @@ import {
   SectionHeader,
   TableSkeleton,
 } from '@/components/states';
+import { ContextBanner } from '@/components/context-banner';
 import { WorkOrderForm } from '@/components/work-order-form';
 import { FinishedOrders, PipelineBoard } from '@/components/pipeline-board';
 
@@ -78,6 +79,8 @@ async function Conteudo() {
             </div>
           }
         />
+
+        <ContextBanner banner="esteira" />
 
         <div className="mb-6">
           <WorkOrderForm pipelines={esteiras} canManage={canManage} />
