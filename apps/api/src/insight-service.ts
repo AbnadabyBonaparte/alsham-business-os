@@ -1,7 +1,7 @@
 import type { Pool } from 'pg';
 
 import { observarRecebiveisVencidos } from '@alsham/engineer';
-import type { RecebiveisVencidosSnapshot } from '@alsham/engineer';
+import type { RecebiveisVencidosSnapshot, TendenciaBaseline } from '@alsham/engineer';
 
 /**
  * ⭐ **O OBSERVADOR PROATIVO — a prova de cognição que age sem ser provocada.**
@@ -23,6 +23,14 @@ import type { RecebiveisVencidosSnapshot } from '@alsham/engineer';
 
 /** O tipo de aviso que este observador produz. */
 export const AR_OVERDUE_KIND = 'ar-overdue';
+
+/**
+ * ⭐ Quantas leituras recentes entram na média da tendência. É o "arreio" da
+ * memória-além-da-janela: o observador compara HOJE com as últimas N leituras
+ * do livro `core.tenant_insight_history` (0118). Menos que isso seria míope;
+ * mais, começaria a diluir uma tendência recente em história velha.
+ */
+export const INSIGHT_HISTORY_WINDOW = 10;
 
 export interface InsightRunReport {
   /** Quantos tenants foram avaliados (têm o Módulo 5 instalado e ativo). */
@@ -92,8 +100,21 @@ export async function runInsightOnce(pool: Pool): Promise<InsightRunReport> {
           currency: g.currency,
         };
 
-        // A DECISÃO é do motor puro. `null` = nada a avisar.
-        const insight = observarRecebiveisVencidos(snapshot);
+        // ⭐ A MEMÓRIA: a média das leituras ANTERIORES deste (tenant, tipo,
+        //    moeda). Lida ANTES de gravar a de hoje — então é o passado, que é
+        //    com o que hoje se compara. Contada do livro, nunca estimada.
+        const { rows: base } = await client.query<{ sample_count: string; avg_metric: string }>(
+          `select sample_count, avg_metric
+             from core.insight_history_baseline($1, $2, $3, $4)`,
+          [tenant_id, AR_OVERDUE_KIND, snapshot.currency, INSIGHT_HISTORY_WINDOW],
+        );
+        const baseline: TendenciaBaseline = {
+          sampleCount: Number(base[0]?.sample_count ?? 0),
+          avgMetric: Number(base[0]?.avg_metric ?? 0),
+        };
+
+        // A DECISÃO é do motor puro — inclusive se há tendência a afirmar.
+        const insight = observarRecebiveisVencidos(snapshot, baseline);
         if (insight === null) continue;
 
         await client.query(
@@ -107,6 +128,20 @@ export async function runInsightOnce(pool: Pool): Promise<InsightRunReport> {
             insight.metricValue,
             insight.amountCents,
             insight.currency,
+          ],
+        );
+
+        // ⭐ E ACRESCENTA a leitura de hoje ao livro — para a rodada seguinte ter
+        //    com o que comparar. Append-only: o livro nunca se reescreve.
+        await client.query(
+          `select core.record_insight_history($1, $2, $3, $4, $5, $6)`,
+          [
+            tenant_id,
+            insight.kind,
+            insight.subjectKey,
+            snapshot.overdueCount,
+            snapshot.outstandingCents,
+            snapshot.currency,
           ],
         );
         written += 1;
